@@ -23,6 +23,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   useSidebar,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 
 const menuItems = [
@@ -40,11 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Sidebar variant="sidebar" collapsible="icon" className="border-r">
-        <SidebarHeader className="p-0">
-          <button
-            onClick={toggleSidebar}
-            className="flex h-[60px] w-full flex-row items-center gap-2 p-4 justify-start hover:bg-sidebar-accent transition-colors duration-200"
-          >
+        <SidebarHeader className="flex h-[60px] items-center justify-between p-4">
             <Link href="/" className="flex items-center gap-3">
               <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-primary-foreground" />
@@ -56,7 +53,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
               </div>
             </Link>
-          </button>
+            <SidebarTrigger className="group-data-[collapsible=icon]:flex hidden" />
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
@@ -107,6 +104,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <div className="flex flex-col sm:pl-[var(--sidebar-width-icon)] group-data-[state=expanded]:sm:pl-[var(--sidebar-width)] transition-[padding-left] duration-200">
+         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+            <SidebarTrigger className="sm:hidden" />
+        </header>
         {children}
       </div>
     </div>
