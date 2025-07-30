@@ -5,12 +5,9 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Home,
   Users,
   BarChart,
   Calendar,
-  FileText,
-  Shield,
   GraduationCap,
   Settings,
 } from 'lucide-react';
@@ -32,8 +29,6 @@ const menuItems = [
     { href: '/siniflarim', label: 'Sınıflarım', icon: GraduationCap },
     { href: '/raporlar', label: 'Raporlar', icon: BarChart },
     { href: '/planlarim', label: 'Planlarım', icon: Calendar },
-    { href: '/kodlar', label: 'Erişim Kodları', icon: FileText },
-    { href: '/admin', label: 'Admin Panel', icon: Shield },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
