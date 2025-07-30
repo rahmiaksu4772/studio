@@ -5,13 +5,14 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Users,
-  BarChart,
-  Calendar,
-  GraduationCap,
-  Settings,
-  Home,
-  PanelLeft,
+    Users,
+    BarChart,
+    Calendar,
+    GraduationCap,
+    Settings,
+    Home,
+    PanelLeft,
+    LogOut,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -28,9 +29,10 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import { useRouter } from 'next/navigation';
 
 const menuItems = [
-    { href: '/', label: 'Ana Sayfa', icon: Home },
+    { href: '/anasayfa', label: 'Ana Sayfa', icon: Home },
     { href: '/gunluk-takip', label: 'Günlük Takip', icon: Users },
     { href: '/siniflarim', label: 'Sınıflarım', icon: GraduationCap },
     { href: '/raporlar', label: 'Raporlar', icon: BarChart },
@@ -40,6 +42,12 @@ const menuItems = [
 function AppSidebar() {
     const pathname = usePathname();
     const { state } = useSidebar();
+    const router = useRouter();
+
+    const handleLogout = () => {
+        // TODO: Implement actual logout logic
+        router.push('/login');
+    }
     
     return (
         <Sidebar>
@@ -95,6 +103,11 @@ function AppSidebar() {
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton tooltip="Çıkış Yap" onClick={handleLogout}>
+                        <LogOut /> <span className={cn(state === 'collapsed' && 'hidden')}>Çıkış Yap</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
             </SidebarMenu>
             </SidebarFooter>
         </Sidebar>
@@ -120,6 +133,12 @@ function MobileHeader() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isMobile } = useSidebar();
+  const pathname = usePathname();
+
+  // Don't render layout for login/register pages
+  if (pathname === '/login' || pathname === '/kayit') {
+    return <>{children}</>;
+  }
   
   if (isMobile === undefined) {
       return null;
