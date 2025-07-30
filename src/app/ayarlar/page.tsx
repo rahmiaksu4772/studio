@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { EditProfileForm } from '@/components/edit-profile-form';
 import { useToast } from '@/hooks/use-toast';
+import { ChangePasswordForm } from '@/components/change-password-form';
 
 export type UserProfile = {
   fullName: string;
@@ -45,6 +46,7 @@ export default function AyarlarPage() {
   const [activeTheme, setActiveTheme] = React.useState('light');
   const [profile, setProfile] = React.useState<UserProfile>(initialProfile);
   const [isEditing, setIsEditing] = React.useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
@@ -67,6 +69,14 @@ export default function AyarlarPage() {
       reader.readAsDataURL(file);
     }
   };
+  
+  const handlePasswordChange = () => {
+    toast({
+        title: "Şifre Başarıyla Değiştirildi!",
+        description: "Yeni şifrenizle giriş yapabilirsiniz.",
+    });
+    setIsChangePasswordOpen(false);
+  }
 
   return (
     <AppLayout>
@@ -123,7 +133,7 @@ export default function AyarlarPage() {
                         <CardDescription>Şifre ve güvenlik ayarları.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <button className='w-full text-left p-4 rounded-lg border hover:bg-muted/50 transition-colors'>
+                        <button onClick={() => setIsChangePasswordOpen(true)} className='w-full text-left p-4 rounded-lg border hover:bg-muted/50 transition-colors'>
                             <p className='font-medium'>Şifre Değiştir</p>
                             <p className='text-xs text-muted-foreground'>Son değişiklik: 30 gün önce</p>
                         </button>
@@ -254,6 +264,12 @@ export default function AyarlarPage() {
         user={profile}
         onUpdate={handleProfileUpdate}
       />
+      
+      <ChangePasswordForm
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+        onSave={handlePasswordChange}
+       />
     </AppLayout>
   );
 }
