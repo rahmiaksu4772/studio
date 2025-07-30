@@ -43,9 +43,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader className="p-0">
           <button
             onClick={toggleSidebar}
-            className="flex h-[64px] w-full flex-row items-center gap-2 p-4 justify-start hover:bg-sidebar-accent transition-colors duration-200"
+            className="flex h-[60px] w-full flex-row items-center gap-2 p-4 justify-start hover:bg-sidebar-accent transition-colors duration-200"
           >
-            <div className="flex items-center gap-3 w-full">
+            <Link href="/" className="flex items-center gap-3">
               <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-primary-foreground" />
               </div>
@@ -55,7 +55,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </h1>
                 <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
               </div>
-            </div>
+            </Link>
           </button>
         </SidebarHeader>
         <SidebarContent className="p-2">
