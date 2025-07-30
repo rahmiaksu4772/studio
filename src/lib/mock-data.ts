@@ -74,6 +74,7 @@ students.forEach(student => {
         const randomDescription = Math.random() > 0.6 ? descriptions[Math.floor(Math.random() * descriptions.length)] : '';
         
         allRecords.push({
+            id: `record-${student.id}-${day.getTime()}`,
             studentId: student.id,
             classId: student.classId,
             date: format(day, 'yyyy-MM-dd'),

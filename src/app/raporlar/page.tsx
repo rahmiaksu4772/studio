@@ -194,7 +194,7 @@ export default function RaporlarPage() {
                 <CardContent>
                    <div className="space-y-4 max-h-96 overflow-y-auto">
                         {records.length > 0 ? records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
-                            <div key={`${record.date}-${record.studentId}`} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
+                            <div key={record.id} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
                                 <div className="font-semibold text-center w-24">
                                     <p>{format(new Date(record.date), 'dd MMMM', { locale: tr })}</p>
                                     <p className="text-xs text-muted-foreground">{format(new Date(record.date), 'cccc', { locale: tr })}</p>

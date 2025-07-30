@@ -9,6 +9,8 @@ import {
   Sparkles,
   Loader2,
   Book,
+  PlusCircle,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
@@ -43,42 +45,84 @@ export default function GunlukTakipPage() {
 
   const students = allStudents.filter((s) => s.classId === selectedClass.id);
 
-  const getInitialRecords = (classId: string, date: Date): Record<string, DailyRecord> => {
+  const getInitialRecords = (classId: string, date: Date): Record<string, DailyRecord[]> => {
     return allStudents
-    .filter(s => s.classId === classId)
-    .reduce((acc, student) => {
-        acc[student.id] = { studentId: student.id, status: null, description: '', date: format(date, 'yyyy-MM-dd'), classId: classId };
+      .filter(s => s.classId === classId)
+      .reduce((acc, student) => {
+        acc[student.id] = [{ 
+            id: `record-${Date.now()}`,
+            studentId: student.id, 
+            status: null, 
+            description: '', 
+            date: format(date, 'yyyy-MM-dd'), 
+            classId: classId 
+        }];
         return acc;
-    }, {} as Record<string, DailyRecord>);
-  }
+      }, {} as Record<string, DailyRecord[]>);
+  };
 
-  const [records, setRecords] = React.useState<Record<string, DailyRecord>>(getInitialRecords(selectedClass.id, recordDate));
+  const [records, setRecords] = React.useState<Record<string, DailyRecord[]>>(getInitialRecords(selectedClass.id, recordDate));
 
   React.useEffect(() => {
     setRecords(getInitialRecords(selectedClass.id, recordDate));
     setGeneralDescription('');
   }, [selectedClass.id, recordDate]);
 
-  const handleRecordChange = (studentId: string, newRecord: Partial<DailyRecord>) => {
+  const handleRecordChange = (studentId: string, recordId: string, newRecord: Partial<DailyRecord>) => {
     setRecords((prev) => ({
       ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        studentId,
-        status: newRecord.status !== undefined ? newRecord.status : prev[studentId]?.status,
-        description: newRecord.description !== undefined ? newRecord.description : prev[studentId]?.description,
-      },
+      [studentId]: prev[studentId].map(rec => 
+        rec.id === recordId ? { ...rec, ...newRecord } : rec
+      ),
     }));
   };
+
+  const addRecord = (studentId: string) => {
+    setRecords(prev => ({
+        ...prev,
+        [studentId]: [
+            ...prev[studentId],
+            {
+                id: `record-${Date.now()}-${Math.random()}`,
+                studentId: studentId,
+                classId: selectedClass.id,
+                date: format(recordDate, 'yyyy-MM-dd'),
+                status: null,
+                description: '',
+            }
+        ]
+    }));
+  };
+
+  const deleteRecord = (studentId: string, recordId: string) => {
+    setRecords(prev => {
+        const studentRecords = prev[studentId];
+        if(studentRecords.length <= 1) {
+            toast({
+                title: "Son Kayıt Silinemez",
+                description: "Her öğrenci için en az bir değerlendirme alanı bulunmalıdır.",
+                variant: "destructive"
+            });
+            return prev;
+        }
+        return {
+            ...prev,
+            [studentId]: studentRecords.filter(rec => rec.id !== recordId)
+        }
+    });
+  }
 
   const handleBulkStatusUpdate = (status: AttendanceStatus) => {
     setRecords(prevRecords => {
       const newRecords = { ...prevRecords };
       students.forEach(student => {
-        newRecords[student.id] = {
-          ...newRecords[student.id],
-          status: status,
-        };
+        // Only update the first record for bulk updates
+        if(newRecords[student.id] && newRecords[student.id][0]){
+             newRecords[student.id] = [{
+                ...newRecords[student.id][0],
+                status: status,
+            }];
+        }
       });
       return newRecords;
     });
@@ -92,7 +136,7 @@ export default function GunlukTakipPage() {
     console.log("Kaydedilen Veriler:", { 
         date: format(recordDate, 'yyyy-MM-dd'), 
         classId: selectedClass.id, 
-        records: Object.values(records),
+        records: Object.values(records).flat(),
         generalDescription: generalDescription,
      });
     toast({
@@ -101,8 +145,8 @@ export default function GunlukTakipPage() {
     });
   };
 
-  const handleGenerateDescription = async (studentId: string) => {
-    setGeneratingFor(studentId);
+  const handleGenerateDescription = async (studentId: string, recordId: string) => {
+    setGeneratingFor(recordId);
     startTransition(async () => {
       try {
         const result = await generateDescriptionAction({
@@ -112,7 +156,7 @@ export default function GunlukTakipPage() {
         });
         
         if (result.description) {
-          handleRecordChange(studentId, { description: result.description });
+          handleRecordChange(studentId, recordId, { description: result.description });
            toast({
             title: "AI Notu Oluşturuldu",
             description: "Öğrenci için otomatik not başarıyla oluşturuldu.",
@@ -199,7 +243,7 @@ export default function GunlukTakipPage() {
                 </div>
                  <div className="space-y-2">
                     <Label className="flex items-center gap-2">
-                        Tüm Sınıfa Uygula
+                        Tüm Sınıfa Uygula (İlk Değerlendirme)
                     </Label>
                     <div className="flex flex-wrap gap-2">
                         {statusOptions.map(option => (
@@ -228,78 +272,98 @@ export default function GunlukTakipPage() {
         
         <div className="space-y-4">
             <h2 className="text-xl font-semibold">Öğrenci Değerlendirmeleri</h2>
-            {students.map(student => {
-                const record = records[student.id];
-                return (
-                    <Card key={student.id}>
-                        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                            <div className='md:col-span-1'>
-                                <div className='font-medium'>{student.firstName} {student.lastName}</div>
-                                <div className='text-sm text-muted-foreground'>No: {student.studentNumber}</div>
-                            </div>
+            {students.map(student => (
+                <Card key={student.id}>
+                    <CardHeader>
+                        <div className='font-medium'>{student.firstName} {student.lastName}</div>
+                        <div className='text-sm text-muted-foreground'>No: {student.studentNumber}</div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {records[student.id]?.map((record, index) => (
                             <RadioGroup 
-                                value={record?.status || ""} 
-                                onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                className='md:col-span-1 grid grid-cols-5 gap-2'
+                                key={record.id} 
+                                value={record.status || ""} 
+                                onValueChange={(status) => handleRecordChange(student.id, record.id, { status: status as AttendanceStatus })}
+                                className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center rounded-lg bg-muted/50"
                             >
-                                {statusOptions.map(option => (
-                                    <TooltipProvider key={option.value}>
+                                <div className='md:col-span-1 grid grid-cols-5 gap-2'>
+                                    {statusOptions.map(option => (
+                                        <TooltipProvider key={`${record.id}-${option.value}`}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Label 
+                                                        htmlFor={`${record.id}-${option.value}`}
+                                                        className={cn(
+                                                            "flex flex-col items-center justify-center gap-1.5 rounded-md p-2 border-2 text-muted-foreground cursor-pointer transition-colors hover:border-primary",
+                                                            record.status === option.value && "border-primary bg-primary/10 text-primary"
+                                                            )}
+                                                        >
+                                                            {option.icon && <option.icon className="h-5 w-5" />}
+                                                            <span className='text-xs font-semibold'>{option.label}</span>
+                                                            <RadioGroupItem value={option.value} id={`${record.id}-${option.value}`} className='sr-only'/>
+                                                        </Label>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{option.label}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ))}
+                                </div>
+                                <div className="relative md:col-span-1">
+                                    <Textarea 
+                                        value={record.description || ''}
+                                        onChange={(e) => handleRecordChange(student.id, record.id, { description: e.target.value })}
+                                        placeholder='Öğrenci hakkında not...'
+                                        className='min-h-[40px] text-sm bg-white dark:bg-card pr-10'
+                                        rows={2}
+                                    />
+                                    <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Label 
-                                                    htmlFor={`${student.id}-${option.value}`}
-                                                    className={cn(
-                                                        "flex flex-col items-center justify-center gap-1.5 rounded-md p-2 border-2 text-muted-foreground cursor-pointer transition-colors hover:border-primary",
-                                                        record?.status === option.value && "border-primary bg-primary/10 text-primary"
-                                                        )}
-                                                    >
-                                                        {option.icon && <option.icon className="h-5 w-5" />}
-                                                        <span className='text-xs font-semibold'>{option.label}</span>
-                                                        <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} className='sr-only'/>
-                                                    </Label>
+                                                <Button 
+                                                    size='icon'
+                                                    variant='ghost'
+                                                    className='absolute top-1 right-1 h-8 w-8'
+                                                    onClick={() => handleGenerateDescription(student.id, record.id)}
+                                                    disabled={isPending && generatingFor === record.id}
+                                                >
+                                                    {isPending && generatingFor === record.id ? (
+                                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                                    ) : (
+                                                        <Sparkles className="h-5 w-5 text-primary" />
+                                                    )}
+                                                </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                <p>{option.label}</p>
+                                                <p>AI ile Not Oluştur</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
-                                ))}
+                                </div>
+                                <div className="md:col-span-1 flex justify-end">
+                                   <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button size="icon" variant="ghost" onClick={() => deleteRecord(student.id, record.id)}>
+                                                    <Trash2 className="h-5 w-5 text-red-500" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Değerlendirmeyi Sil</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                             </RadioGroup>
-                            <div className="relative md:col-span-1">
-                                <Textarea 
-                                    value={record?.description || ''}
-                                    onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                    placeholder='Öğrenci hakkında not...'
-                                    className='min-h-[40px] text-sm bg-white dark:bg-card pr-10'
-                                    rows={2}
-                                />
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button 
-                                                size='icon'
-                                                variant='ghost'
-                                                className='absolute top-1 right-1 h-8 w-8'
-                                                onClick={() => handleGenerateDescription(student.id)}
-                                                disabled={isPending && generatingFor === student.id}
-                                            >
-                                                {isPending && generatingFor === student.id ? (
-                                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                                ) : (
-                                                    <Sparkles className="h-5 w-5 text-primary" />
-                                                )}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>AI ile Not Oluştur</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )
-            })}
+                        ))}
+                         <Button variant="outline" size="sm" onClick={() => addRecord(student.id)} className="w-full">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Yeni Değerlendirme Ekle
+                        </Button>
+                    </CardContent>
+                </Card>
+            ))}
         </div>
       </main>
     </AppLayout>

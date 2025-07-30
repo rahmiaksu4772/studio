@@ -16,6 +16,7 @@ export type ClassInfo = {
 export type AttendanceStatus = '+' | '½' | '-' | 'G' | 'Y';
 
 export type DailyRecord = {
+  id: string;
   studentId: string;
   classId: string;
   date: string; // YYYY-MM-DD
