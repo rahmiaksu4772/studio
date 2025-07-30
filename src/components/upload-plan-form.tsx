@@ -132,7 +132,10 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) form.reset();
+      if (!isOpen) {
+        form.reset();
+        if(fileInputRef.current) fileInputRef.current.value = "";
+      }
       setOpen(isOpen);
     }}>
       <DialogTrigger asChild>{triggerButton}</DialogTrigger>
