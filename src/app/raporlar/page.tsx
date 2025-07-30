@@ -201,7 +201,7 @@ export default function RaporlarPage() {
             head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
             body: tableData,
             theme: 'grid',
-            styles: { font: 'Verdana' }
+            styles: { font: 'Verdana', fontStyle: 'normal' }
         });
 
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -228,7 +228,7 @@ export default function RaporlarPage() {
                     r.description || '-'
                 ]),
                 theme: 'grid',
-                styles: { font: 'Verdana' }
+                styles: { font: 'Verdana', fontStyle: 'normal' }
             });
         }
         doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
