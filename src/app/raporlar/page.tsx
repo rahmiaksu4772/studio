@@ -160,7 +160,7 @@ export default function RaporlarPage() {
         }
       });
       
-      const totalScore = summary['+'] * 10 + summary['P'] * 5 + summary['-'] * -10;
+      const totalScore = summary['+'] * 10 + summary['P'] * -5 + summary['-'] * -10;
       
       return {
         ...student,
@@ -473,3 +473,5 @@ export default function RaporlarPage() {
     </AppLayout>
   );
 }
+
+    
