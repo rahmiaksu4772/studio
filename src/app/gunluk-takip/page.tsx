@@ -40,6 +40,8 @@ import { generateDescriptionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
@@ -197,10 +199,29 @@ export default function GunlukTakipPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" className="w-full md:w-auto justify-start text-left font-normal">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              <span>{format(recordDate, 'dd MMMM yyyy', { locale: tr })}</span>
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full md:w-[280px] justify-start text-left font-normal",
+                    !recordDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {recordDate ? format(recordDate, 'dd MMMM yyyy - EEEE', { locale: tr}) : <span>Tarih Seç</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={recordDate || undefined}
+                  onSelect={(date) => setRecordDate(date || null)}
+                  initialFocus
+                  locale={tr}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -359,3 +380,5 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
+
+    
