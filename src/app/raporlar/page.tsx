@@ -1,10 +1,17 @@
 
 'use client';
 import * as React from 'react';
-import { Calendar, Download, UserCircle, ChevronDown } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  Download,
+  BarChart2,
+  PieChart,
+  List,
+  AlertCircle,
+} from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -12,12 +19,216 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartConfig,
+} from '@/components/ui/chart';
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Pie, Cell } from 'recharts';
+import { cn } from '@/lib/utils';
+import { format, subDays, startOfMonth } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import type { DateRange } from 'react-day-picker';
+
+import { classes, students, dailyRecords } from '@/lib/mock-data';
+import { statusOptions, Student } from '@/lib/types';
+
+const statusToTurkish: Record<string, string> = {
+    '+': 'Artı',
+    '½': 'Yarım Artı',
+    '-': 'Eksi',
+    'Y': 'Yok',
+    'G': 'İzinli',
+};
+
+const chartConfig = {
+  views: {
+    label: 'Durumlar',
+  },
+  ...statusOptions.reduce((acc, option) => {
+    acc[option.value] = {
+      label: option.label,
+      color: option.color?.startsWith('text-') ? `hsl(var(--${option.color.split('-')[1]}-600))` : 'hsl(var(--primary))',
+    };
+    // A bit of a hack to map tailwind colors to HSL vars for the chart
+    if (option.color === 'text-green-600') acc[option.value].color = 'hsl(142 71% 45%)';
+    if (option.color === 'text-green-500') acc[option.value].color = 'hsl(142 60% 65%)';
+    if (option.color === 'text-red-600') acc[option.value].color = 'hsl(0 72% 51%)';
+    if (option.color === 'text-yellow-600') acc[option.value].color = 'hsl(48 96% 53%)';
+    if (option.color === 'text-blue-600') acc[option.value].color = 'hsl(221 83% 53%)';
+    return acc;
+  }, {} as any)
+} satisfies ChartConfig;
+
 
 export default function RaporlarPage() {
+  const [selectedClassId, setSelectedClassId] = React.useState<string>(classes[0].id);
   const [selectedReportType, setSelectedReportType] = React.useState('bireysel');
+  const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: new Date(),
+  });
 
+  const availableStudents = students.filter(s => s.classId === selectedClassId);
+
+  React.useEffect(() => {
+    setSelectedStudentId(null);
+  }, [selectedClassId]);
+
+  const filteredData = React.useMemo(() => {
+    return dailyRecords.filter(record => {
+      const recordDate = new Date(record.date);
+      const fromDate = dateRange?.from ? new Date(dateRange.from) : null;
+      const toDate = dateRange?.to ? new Date(dateRange.to) : null;
+
+      if (fromDate) fromDate.setHours(0, 0, 0, 0);
+      if (toDate) toDate.setHours(23, 59, 59, 999);
+      
+      const isClassMatch = record.classId === selectedClassId;
+      const isDateMatch = fromDate && toDate ? recordDate >= fromDate && recordDate <= toDate : true;
+      const isStudentMatch = selectedReportType === 'bireysel' && selectedStudentId ? record.studentId === selectedStudentId : true;
+      
+      return isClassMatch && isDateMatch && isStudentMatch;
+    });
+  }, [selectedClassId, selectedStudentId, selectedReportType, dateRange]);
+
+
+  const individualReportData = React.useMemo(() => {
+      if (selectedReportType !== 'bireysel' || !selectedStudentId) return null;
+      
+      const summary = statusOptions.reduce((acc, option) => {
+          acc[option.value] = { count: 0, label: option.label, icon: option.icon };
+          return acc;
+      }, {} as any);
+
+      filteredData.forEach(record => {
+          if (record.status && summary[record.status]) {
+              summary[record.status].count += 1;
+          }
+      });
+      return { summary, records: filteredData };
+  }, [filteredData, selectedReportType, selectedStudentId]);
+
+  const classReportData = React.useMemo(() => {
+    if (selectedReportType !== 'sinif') return null;
+
+     const dataByStatus = statusOptions.map(option => ({
+      name: option.label,
+      value: filteredData.filter(d => d.status === option.value).length,
+      fill: chartConfig[option.value]?.color
+    }));
+    
+    return { dataByStatus };
+  }, [filteredData, selectedReportType]);
+
+
+  const renderReportContent = () => {
+    if (selectedReportType === 'bireysel' && !selectedStudentId) {
+        return <div className="text-center p-8">Lütfen bir öğrenci seçin.</div>
+    }
+    
+    if (filteredData.length === 0) {
+        return <div className="text-center p-8">Seçilen kriterlere uygun veri bulunamadı.</div>
+    }
+
+    if(selectedReportType === 'bireysel' && individualReportData){
+      const { summary, records } = individualReportData;
+      return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><BarChart2 /> İstatistikler</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                        {Object.entries(summary).map(([key, value]: [string, any]) => (
+                             <Card key={key} className="p-4">
+                                <div className="flex justify-center items-center mb-2">
+                                    {value.icon && <value.icon className={cn("h-6 w-6", statusOptions.find(o => o.value === key)?.color)} />}
+                                </div>
+                                <p className="text-2xl font-bold">{value.count}</p>
+                                <p className="text-sm text-muted-foreground">{value.label}</p>
+                            </Card>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><List /> Günlük Notlar</CardTitle>
+                    <CardDescription>Seçilen tarih aralığındaki gözlemler.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                   <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
+                            <div key={`${record.date}-${record.studentId}`} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
+                                <div className="font-semibold text-center w-24">
+                                    <p>{format(new Date(record.date), 'dd MMMM', { locale: tr })}</p>
+                                    <p className="text-xs text-muted-foreground">{format(new Date(record.date), 'cccc', { locale: tr })}</p>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-medium flex items-center gap-2">
+                                       {record.status && statusOptions.find(o=>o.value === record.status)?.icon &&
+                                            React.createElement(statusOptions.find(o=>o.value === record.status)!.icon!, {
+                                                className: cn("h-5 w-5", statusOptions.find(o => o.value === record.status)?.color)
+                                            })
+                                       }
+                                        <span>{statusToTurkish[record.status!] || 'Belirtilmemiş'}</span>
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">{record.description || "Ek bir not girilmemiş."}</p>
+                                </div>
+                            </div>
+                        ))}
+                   </div>
+                </CardContent>
+            </Card>
+        </div>
+      )
+    }
+
+    if(selectedReportType === 'sinif' && classReportData){
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><PieChart/> Sınıf Geneli Durum Dağılımı</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <ChartContainer config={chartConfig} className="min-h-[200px] w-full aspect-auto">
+                        <PieChart>
+                          <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent hideLabel />}
+                          />
+                          <Pie
+                            data={classReportData.dataByStatus}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={60}
+                            strokeWidth={5}
+                          >
+                          {classReportData.dataByStatus.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                           ))}
+                          </Pie>
+                          <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                        </PieChart>
+                      </ChartContainer>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return <div className="text-center p-8">Rapor oluşturuluyor...</div>;
+  }
+  
   return (
     <AppLayout>
       <main className="flex-1 p-4 sm:p-6 space-y-6">
@@ -42,13 +253,12 @@ export default function RaporlarPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="class-select">Sınıf Seçimi</Label>
-                <Select defaultValue="6a">
+                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
                   <SelectTrigger id="class-select">
                     <SelectValue placeholder="Sınıf seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="c1">6/A</SelectItem>
-                    <SelectItem value="c2">7/B</SelectItem>
+                    {classes.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -66,43 +276,62 @@ export default function RaporlarPage() {
               </div>
               <div className="space-y-2" style={{ display: selectedReportType === 'bireysel' ? 'block' : 'none' }}>
                 <Label htmlFor="student-select">Öğrenci</Label>
-                <Select>
+                <Select value={selectedStudentId || ''} onValueChange={setSelectedStudentId} disabled={availableStudents.length === 0}>
                   <SelectTrigger id="student-select">
                     <SelectValue placeholder="Öğrenci seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="s1">Ahmet Yılmaz</SelectItem>
-                    <SelectItem value="s2">Ayşe Kaya</SelectItem>
+                    {availableStudents.map(s => <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="start-date">Başlangıç Tarihi</Label>
-                <div className="relative">
-                  <Input id="start-date" type="text" placeholder="Tarih seçin" />
-                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="end-date">Bitiş Tarihi</Label>
-                <div className="relative">
-                  <Input id="end-date" type="text" placeholder="Tarih seçin" />
-                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
+                <Label>Tarih Aralığı</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                        dateRange.to ? (
+                            <>
+                            {format(dateRange.from, "LLL dd, y", { locale: tr })} -{" "}
+                            {format(dateRange.to, "LLL dd, y", { locale: tr })}
+                            </>
+                        ) : (
+                            format(dateRange.from, "LLL dd, y", { locale: tr })
+                        )
+                        ) : (
+                        <span>Tarih aralığı seçin</span>
+                        )}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                        locale={tr}
+                    />
+                    </PopoverContent>
+                </Popover>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="min-h-[400px] flex items-center justify-center border-dashed">
-            <div className="text-center">
-                <UserCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">Raporu Görüntüleyin</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Lütfen yukarıdaki filtrelerden bir seçim yapın.
-                </p>
-            </div>
-        </Card>
+        <div className="min-h-[400px]">
+            {renderReportContent()}
+        </div>
       </main>
     </AppLayout>
   );

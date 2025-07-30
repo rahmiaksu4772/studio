@@ -46,38 +46,22 @@ export default function GunlukTakipPage() {
   const [isPending, startTransition] = useTransition();
   const [generatingFor, setGeneratingFor] = React.useState<string | null>(null);
 
-  const initialRecords: Record<string, DailyRecord> = allStudents
-    .filter(s => s.classId === selectedClass.id)
-    .reduce((acc, student) => {
-        acc[student.id] = { studentId: student.id, status: null, description: '' };
-        return acc;
-    }, {} as Record<string, DailyRecord>);
-  
-  const [records, setRecords] = React.useState<Record<string, DailyRecord>>(initialRecords);
-
   const students = allStudents.filter((s) => s.classId === selectedClass.id);
 
-  React.useEffect(() => {
-    const newRecords: Record<string, DailyRecord> = allStudents
-      .filter(s => s.classId === selectedClass.id)
-      .reduce((acc, student) => {
-        acc[student.id] = { studentId: student.id, status: null, description: '' };
+  const getInitialRecords = (classId: string, date: Date): Record<string, DailyRecord> => {
+    return allStudents
+    .filter(s => s.classId === classId)
+    .reduce((acc, student) => {
+        acc[student.id] = { studentId: student.id, status: null, description: '', date: format(date, 'yyyy-MM-dd'), classId: classId };
         return acc;
-      }, {} as Record<string, DailyRecord>);
+    }, {} as Record<string, DailyRecord>);
+  }
 
-    // You can apply some initial mock data here if needed, for example:
-    const student1 = students[0]?.id;
-    const student3 = students[2]?.id;
-    if (student1) {
-        newRecords[student1].status = '+';
-        newRecords[student1].description = 'Derse aktif katılım gösterdi.';
-    }
-    if (student3) {
-        newRecords[student3].status = '-';
-        newRecords[student3].description = 'Ödevini evde unutmuş.';
-    }
-    setRecords(newRecords);
-  }, [selectedClass.id, students]);
+  const [records, setRecords] = React.useState<Record<string, DailyRecord>>(getInitialRecords(selectedClass.id, recordDate));
+
+  React.useEffect(() => {
+    setRecords(getInitialRecords(selectedClass.id, recordDate));
+  }, [selectedClass.id, recordDate]);
 
   const handleRecordChange = (studentId: string, newRecord: Partial<DailyRecord>) => {
     setRecords((prev) => ({
@@ -103,10 +87,11 @@ export default function GunlukTakipPage() {
   }
 
   const handleSave = () => {
-    console.log("Kaydedilen Veriler:", { records });
+    // In a real app, you would send this to your backend API
+    console.log("Kaydedilen Veriler:", { date: format(recordDate, 'yyyy-MM-dd'), classId: selectedClass.id, records: Object.values(records) });
     toast({
       title: "Kayıt Başarılı",
-      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar ve notlar kaydedildi.`,
+      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar ve notlar kaydedildi. (Konsolu kontrol edin)`,
     });
   };
 
