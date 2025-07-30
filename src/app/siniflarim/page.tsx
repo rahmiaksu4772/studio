@@ -45,7 +45,7 @@ export default function SiniflarimPage() {
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {classes.map((c, index) => (
             <Card key={c.id}>
-              <CardHeader className={cn("text-white rounded-t-lg", index % 2 === 0 ? 'bg-primary' : 'bg-secondary-foreground' )}>
+              <CardHeader className='bg-primary text-primary-foreground'>
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle className='text-primary-foreground'>{c.name}</CardTitle>

@@ -29,7 +29,7 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import { Bar, BarChart, XAxis, YAxis, Pie, Cell } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -226,25 +226,27 @@ export default function RaporlarPage() {
                     <CardTitle className="flex items-center gap-2"><PieChart/> Sınıf Geneli Durum Dağılımı</CardTitle>
                 </CardHeader>
                 <CardContent className="flex justify-center">
-                     <ChartContainer config={chartConfig} className="min-h-[300px] w-full max-w-lg aspect-auto">
-                        <PieChart>
-                          <ChartTooltip
-                            cursor={false}
-                            content={<ChartTooltipContent hideLabel />}
-                          />
-                          <Pie
-                            data={classReportData.dataByStatus}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius={60}
-                            strokeWidth={5}
-                          >
-                          {classReportData.dataByStatus.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                           ))}
-                          </Pie>
-                          <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                        </PieChart>
+                     <ChartContainer config={chartConfig} className="min-h-[300px] w-full max-w-lg">
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                            <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent hideLabel />}
+                            />
+                            <Pie
+                                data={classReportData.dataByStatus}
+                                dataKey="value"
+                                nameKey="name"
+                                innerRadius={60}
+                                strokeWidth={5}
+                            >
+                            {classReportData.dataByStatus.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                            </Pie>
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                            </PieChart>
+                        </ResponsiveContainer>
                       </ChartContainer>
                 </CardContent>
             </Card>
