@@ -175,7 +175,7 @@ export default function RaporlarPage() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
-    doc.setFont('Verdana', 'normal');
+    doc.setFont('normal');
 
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
@@ -201,7 +201,7 @@ export default function RaporlarPage() {
             head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
             body: tableData,
             theme: 'grid',
-            styles: { font: 'Verdana', fontStyle: 'normal' }
+            styles: { font: 'normal', fontStyle: 'normal' }
         });
 
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -228,7 +228,7 @@ export default function RaporlarPage() {
                     r.description || '-'
                 ]),
                 theme: 'grid',
-                styles: { font: 'Verdana', fontStyle: 'normal' }
+                styles: { font: 'normal', fontStyle: 'normal' }
             });
         }
         doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -472,6 +472,5 @@ export default function RaporlarPage() {
       </main>
     </AppLayout>
   );
-}
 
     
