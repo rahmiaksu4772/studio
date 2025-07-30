@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Inter } from "next/font/google"
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
-        <SidebarProvider>
-          {children}
-        </SidebarProvider>
+        <TooltipProvider>
+          <SidebarProvider>
+            {children}
+          </SidebarProvider>
+        </TooltipProvider>
         <Toaster />
       </body>
     </html>
