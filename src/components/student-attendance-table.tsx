@@ -44,12 +44,12 @@ export default function StudentAttendanceTable({
   }
       
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">No</TableHead>
-              <TableHead>Öğrenci Adı Soyadı</TableHead>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="w-[60px] p-2 text-center">No</TableHead>
+              <TableHead className="min-w-[150px]">Öğrenci Adı Soyadı</TableHead>
               <TableHead className="min-w-[320px]">Durum</TableHead>
               <TableHead className="w-full">Açıklama</TableHead>
             </TableRow>

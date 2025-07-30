@@ -72,7 +72,7 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
 
   return (
     <TableRow className={cn("transition-colors", rowColorClass)} data-status={status}>
-      <TableCell className="font-medium">{student.studentNumber}</TableCell>
+      <TableCell className="p-2 text-center font-medium text-muted-foreground">{student.studentNumber}</TableCell>
       <TableCell>{`${student.firstName} ${student.lastName}`}</TableCell>
       <TableCell>
         <RadioGroup
@@ -85,7 +85,7 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
                 <TooltipTrigger asChild>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} />
-                    <Label htmlFor={`${student.id}-${option.value}`} className="cursor-pointer">
+                    <Label htmlFor={`${student.id}-${option.value}`} className="cursor-pointer flex items-center gap-2">
                       {option.icon ? <option.icon className={cn("h-5 w-5", option.color)} /> : option.value}
                     </Label>
                   </div>
@@ -103,7 +103,7 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
             placeholder="Öğrenci hakkında bir not ekleyin..."
             value={description}
             onChange={handleDescriptionChange}
-            className="min-h-[60px] bg-card/80 pr-28"
+            className="min-h-[60px] bg-card/80 pr-24"
             rows={2}
           />
           <Button variant="ghost" size="sm" onClick={handleGenerateDescription} disabled={isPending} className="absolute top-1 right-1 h-auto px-2 py-1 text-xs self-start gap-1">

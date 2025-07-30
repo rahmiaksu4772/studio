@@ -1,4 +1,4 @@
-import { type LucideIcon, PlusCircle, MinusCircle, CircleSlash, ThumbsUp, ThumbsDown, UserCheck, UserX, GraduationCap } from "lucide-react";
+import { type LucideIcon, ThumbsUp, CircleSlash, ThumbsDown, UserCheck, UserX } from "lucide-react";
 
 export type Student = {
   id: string;

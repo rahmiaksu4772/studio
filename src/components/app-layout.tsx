@@ -28,18 +28,16 @@ import {
 } from '@/components/ui/sidebar';
 
 const menuItems = [
-    { href: '/', label: 'Ana Panel', icon: Home },
-    { href: '#', label: 'Sınıflarım', icon: GraduationCap },
-    { href: '#gunluk-takip', label: 'Günlük Takip', icon: Users },
-    { href: '#', label: 'Raporlar', icon: BarChart },
-    { href: '#', label: 'Planlarım', icon: Calendar },
-    { href: '#', label: 'Erişim Kodları', icon: FileText },
-    { href: '#', label: 'Admin Panel', icon: Shield },
+    { href: '/gunluk-takip', label: 'Günlük Takip', icon: Users },
+    { href: '/siniflarim', label: 'Sınıflarım', icon: GraduationCap },
+    { href: '/raporlar', label: 'Raporlar', icon: BarChart },
+    { href: '/planlarim', label: 'Planlarım', icon: Calendar },
+    { href: '/kodlar', label: 'Erişim Kodları', icon: FileText },
+    { href: '/admin', label: 'Admin Panel', icon: Shield },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [activeMenu, setActiveMenu] = React.useState('#gunluk-takip');
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -78,13 +76,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarGroup className="mt-4">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <a href={item.href} onClick={() => setActiveMenu(item.href)}>
-                    <SidebarMenuButton asChild tooltip={item.label} isActive={activeMenu === item.href}>
+                  <Link href={item.href}>
+                    <SidebarMenuButton asChild tooltip={item.label} isActive={pathname.startsWith(item.href)}>
                         <a>
                             <item.icon /> <span>{item.label}</span>
                         </a>
                     </SidebarMenuButton>
-                  </a>
+                  </Link>
                 </SidebarMenuItem>
               ))}
             </SidebarGroup>
@@ -93,11 +91,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Ayarlar">
-                   <a>
-                    <Settings /> <span>Ayarlar</span>
-                   </a>
-                </SidebarMenuButton>
+                <Link href="/ayarlar">
+                    <SidebarMenuButton asChild tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
+                       <a>
+                        <Settings /> <span>Ayarlar</span>
+                       </a>
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

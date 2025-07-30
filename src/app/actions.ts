@@ -1,12 +1,9 @@
 'use server';
 
 import { descriptionAutoFill } from '@/ai/flows/description-auto-fill';
+import type { DescriptionAutoFillInput } from '@/ai/flows/description-auto-fill';
 
-export async function generateDescriptionAction(input: {
-  studentId: string;
-  classId: string;
-  recordDate: string;
-}) {
+export async function generateDescriptionAction(input: DescriptionAutoFillInput) {
   try {
     const result = await descriptionAutoFill(input);
 
