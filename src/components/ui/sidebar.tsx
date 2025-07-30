@@ -71,11 +71,11 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useMediaQuery("(max-width: 768px)")
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    const [open, setOpen] = React.useState(defaultOpen ?? !isMobile);
+    const [open, setOpen] = React.useState(defaultOpen ?? false);
 
     React.useEffect(() => {
         if (defaultOpen === undefined) {
-          setOpen(!isMobile);
+          setOpen(false);
         }
     }, [isMobile, defaultOpen]);
 
