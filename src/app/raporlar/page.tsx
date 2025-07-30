@@ -47,8 +47,8 @@ export default function RaporlarPage() {
                     <SelectValue placeholder="Sınıf seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="6a">6/A</SelectItem>
-                    <SelectItem value="7b">7/B</SelectItem>
+                    <SelectItem value="c1">6/A</SelectItem>
+                    <SelectItem value="c2">7/B</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
