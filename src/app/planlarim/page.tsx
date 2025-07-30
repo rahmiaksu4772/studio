@@ -2,9 +2,9 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon } from 'lucide-react';
+import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, Eye } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -20,7 +20,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm, type Plan } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 export default function PlanlarimPage() {
   const { toast } = useToast();
@@ -51,10 +50,10 @@ export default function PlanlarimPage() {
   };
   
   const getFileIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return <FileText className="h-24 w-24 text-muted-foreground" />;
-    if (fileType.includes('word')) return <WordIcon className="h-24 w-24 text-muted-foreground" />;
-    if (fileType.includes('sheet') || fileType.includes('excel')) return <ExcelIcon className="h-24 w-24 text-muted-foreground" />;
-    return <FileText className="h-24 w-24 text-muted-foreground" />;
+    if (fileType.includes('pdf')) return <FileText className="h-12 w-12 text-destructive" />;
+    if (fileType.includes('word')) return <WordIcon className="h-12 w-12 text-blue-600" />;
+    if (fileType.includes('sheet') || fileType.includes('excel')) return <ExcelIcon className="h-12 w-12 text-green-600" />;
+    return <FileText className="h-12 w-12 text-muted-foreground" />;
   }
 
   if (isLoading) {
@@ -94,25 +93,24 @@ export default function PlanlarimPage() {
             </div>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-1">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {plans.map((plan) => (
-              <Card key={plan.id}>
+              <Card key={plan.id} className="flex flex-col">
                 <CardHeader>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <CardTitle>{plan.title}</CardTitle>
-                            <Badge variant={plan.type === 'annual' ? 'default' : 'secondary'}>
-                                {plan.type === 'annual' ? 'Yıllık Plan' : 'Haftalık Plan'}
-                            </Badge>
-                        </div>
-                        <CardDescription>Yüklenme Tarihi: {plan.uploadDate} | Dosya Türü: {plan.fileType.split('/')[1] || plan.fileType}</CardDescription>
+                  <div className='flex items-start justify-between gap-4'>
+                    <div className="flex-shrink-0">
+                      {getFileIcon(plan.fileType)}
                     </div>
-                    <AlertDialog>
+                    <div className='flex-grow'>
+                        <CardTitle className="text-base font-bold leading-tight mb-1">{plan.title}</CardTitle>
+                        <Badge variant={plan.type === 'annual' ? 'default' : 'secondary'}>
+                            {plan.type === 'annual' ? 'Yıllık Plan' : 'Haftalık Plan'}
+                        </Badge>
+                    </div>
+                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Sil
+                        <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -132,29 +130,23 @@ export default function PlanlarimPage() {
                     </AlertDialog>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  {plan.fileType === 'application/pdf' ? (
-                     <div className="w-full aspect-[4/3] sm:aspect-[16/9] rounded-md border bg-muted overflow-hidden">
-                        <iframe
-                            src={plan.fileDataUrl}
-                            className="w-full h-full"
-                            title={plan.title}
-                        />
-                     </div>
-                  ) : (
-                    <div className="w-full aspect-[4/3] sm:aspect-[16/9] rounded-md border bg-muted flex flex-col items-center justify-center p-4">
-                        {getFileIcon(plan.fileType)}
-                        <p className='mt-4 font-semibold text-lg'>Önizleme mevcut değil</p>
-                        <p className='text-muted-foreground text-sm mb-6'>Bu dosya türü tarayıcıda görüntülenemez.</p>
-                        <a href={plan.fileDataUrl} download={plan.fileName}>
-                            <Button>
-                                <Download className="mr-2 h-4 w-4" />
-                                Dosyayı İndir
-                            </Button>
-                        </a>
-                    </div>
-                  )}
+                <CardContent className="flex-grow">
+                    <p className="text-xs text-muted-foreground">
+                        Yüklenme T.: {plan.uploadDate} | Tür: {plan.fileType.split('/')[1] || plan.fileType}
+                    </p>
                 </CardContent>
+                <CardFooter className="flex gap-2">
+                    <a href={plan.fileDataUrl} target="_blank" rel="noopener noreferrer" className='w-full'>
+                        <Button variant="outline" className="w-full">
+                            <Eye className="mr-2 h-4 w-4" /> Görüntüle
+                        </Button>
+                    </a>
+                    <a href={plan.fileDataUrl} download={plan.fileName} className='w-full'>
+                        <Button className="w-full">
+                            <Download className="mr-2 h-4 w-4" /> İndir
+                        </Button>
+                    </a>
+                </CardFooter>
               </Card>
             ))}
           </div>
