@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, Eye, X as CloseIcon } from 'lucide-react';
+import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, X as CloseIcon } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -158,7 +158,7 @@ export default function PlanlarimPage() {
                 </CardContent>
                 <CardFooter className="flex gap-2">
                     <Button variant="outline" className="w-full" onClick={() => viewFile(plan)}>
-                        <Eye className="mr-2 h-4 w-4" /> Görüntüle
+                        <FileText className="mr-2 h-4 w-4" /> Görüntüle
                     </Button>
                     <Button className="w-full" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
                         <Download className="mr-2 h-4 w-4" /> İndir
@@ -193,4 +193,3 @@ export default function PlanlarimPage() {
     </AppLayout>
   );
 }
-
