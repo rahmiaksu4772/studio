@@ -17,12 +17,17 @@ export default function DersProgrami() {
   const { toast } = useToast();
   const [schedule, setSchedule] = React.useState<WeeklyScheduleItem[]>(initialSchedule);
   const [activeDay, setActiveDay] = React.useState<string>(daysOfWeek[0]);
+  const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
+    // This effect runs only on the client, after hydration
+    setIsClient(true);
     const todayIndex = new Date().getDay();
     // Sunday is 0, Monday is 1... Adjust to match our array (Monday is 0)
     const adjustedDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
-    setActiveDay(daysOfWeek[adjustedDayIndex]);
+    if(daysOfWeek[adjustedDayIndex]) {
+       setActiveDay(daysOfWeek[adjustedDayIndex]);
+    }
   }, []);
 
 
@@ -54,6 +59,25 @@ export default function DersProgrami() {
   };
   
   const activeDayIndex = schedule.findIndex(d => d.day === activeDay);
+
+  if (!isClient) {
+    // Render a placeholder or null on the server to avoid mismatch
+    return (
+        <Card className="w-full">
+            <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <CardTitle className="flex items-center gap-2">
+                        <BookOpenCheck className="h-5 w-5" />
+                        Haftalık Ders Programı
+                    </CardTitle>
+                </div>
+            </CardHeader>
+            <CardContent className="min-h-[400px] flex items-center justify-center">
+                 {/* You can add a skeleton loader here if you prefer */}
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
