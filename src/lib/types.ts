@@ -27,20 +27,8 @@ export type DailyRecord = {
 
 export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string }[] = [
     { value: '+', label: 'Artı', icon: CheckCheck, color: 'text-green-600' },
-    { value: 'P', label: 'Yarım', icon: Check, color: 'text-green-500' },
+    { value: 'P', label: 'Yarım Artı', icon: Check, color: 'text-green-500' },
     { value: '-', label: 'Eksi', icon: X, color: 'text-red-600' },
     { value: 'Y', label: 'Yok', icon: UserX, color: 'text-yellow-600' },
     { value: 'G', label: 'İzinli', icon: UserCheck, color: 'text-blue-600' },
 ];
-
-export interface Lesson {
-  time: string;
-  subject: string;
-  class: string;
-}
-
-export interface WeeklyScheduleItem {
-  day: string;
-  dayOfWeek: string;
-  lessons: Lesson[];
-}

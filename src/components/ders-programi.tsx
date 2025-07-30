@@ -3,117 +3,126 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpenCheck, Clock } from 'lucide-react';
-import { weeklySchedule } from '@/lib/mock-data';
+import { BookOpenCheck, Clock, Plus, Save, Trash2 } from 'lucide-react';
+import { weeklySchedule as initialSchedule } from '@/lib/mock-data';
+import type { WeeklyScheduleItem, Lesson } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
-import { format, parse } from 'date-fns';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { useToast } from '@/hooks/use-toast';
 
-const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
-
-const getCurrentLessonIndex = (lessons: any[]) => {
-  const now = new Date();
-  for (let i = 0; i < lessons.length; i++) {
-    const lesson = lessons[i];
-    const [startTimeStr, endTimeStr] = lesson.time.split(' - ');
-    const startTime = parse(startTimeStr, 'HH:mm', new Date());
-    const endTime = parse(endTimeStr, 'HH:mm', new Date());
-    
-    // Set date to today for accurate comparison
-    const today = new Date();
-    startTime.setFullYear(today.getFullYear(), today.getMonth(), today.getDate());
-    endTime.setFullYear(today.getFullYear(), today.getMonth(), today.getDate());
-
-    if (now >= startTime && now <= endTime) {
-      return i;
-    }
-  }
-  return -1;
-};
-
+const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 export default function DersProgrami() {
-    const todayStr = format(new Date(), 'EEEE'); // e.g., "Monday"
-    const todayTurkish = weeklySchedule.find(d => d.dayOfWeek === todayStr)?.day || '';
-    const [currentDay, setCurrentDay] = React.useState(todayTurkish || daysOfWeek[0]);
-    
-    const [currentLessonIndex, setCurrentLessonIndex] = React.useState(-1);
+  const { toast } = useToast();
+  const [schedule, setSchedule] = React.useState<WeeklyScheduleItem[]>(initialSchedule);
+  const [activeDay, setActiveDay] = React.useState<string>(daysOfWeek[0]);
 
-    React.useEffect(() => {
-        const todaySchedule = weeklySchedule.find(d => d.day === currentDay);
-        if (todaySchedule) {
-            const lessonIndex = getCurrentLessonIndex(todaySchedule.lessons);
-            setCurrentLessonIndex(lessonIndex);
-        }
+  const handleLessonChange = (dayIndex: number, lessonIndex: number, field: keyof Lesson, value: string) => {
+    const newSchedule = [...schedule];
+    (newSchedule[dayIndex].lessons[lessonIndex] as any)[field] = value;
+    setSchedule(newSchedule);
+  };
+  
+  const addLesson = (dayIndex: number) => {
+    const newSchedule = [...schedule];
+    newSchedule[dayIndex].lessons.push({ time: '00:00 - 00:00', subject: 'Yeni Ders', class: 'Sınıf' });
+    setSchedule(newSchedule);
+  };
+  
+  const deleteLesson = (dayIndex: number, lessonIndex: number) => {
+    const newSchedule = [...schedule];
+    newSchedule[dayIndex].lessons.splice(lessonIndex, 1);
+    setSchedule(newSchedule);
+  };
 
-        const interval = setInterval(() => {
-            if (todaySchedule) {
-                const lessonIndex = getCurrentLessonIndex(todaySchedule.lessons);
-                setCurrentLessonIndex(lessonIndex);
-            }
-        }, 60000); // Check every minute
-
-        return () => clearInterval(interval);
-    }, [currentDay]);
+  const handleSaveChanges = () => {
+    console.log('Kaydedilen Program:', schedule);
+    toast({
+      title: 'Program Kaydedildi',
+      description: 'Ders programındaki değişiklikler başarıyla kaydedildi. (Konsolu kontrol edin)',
+    });
+  };
+  
+  const activeDayIndex = schedule.findIndex(d => d.day === activeDay);
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BookOpenCheck className="h-5 w-5" />
-          Haftalık Ders Programı
-        </CardTitle>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+            <BookOpenCheck className="h-5 w-5" />
+            Haftalık Ders Programı
+            </CardTitle>
+            <Button onClick={handleSaveChanges}>
+                <Save className='mr-2 h-4 w-4' />
+                Değişiklikleri Kaydet
+            </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="mb-4 overflow-x-auto pb-2">
-          <div className="flex w-full space-x-2">
-            {daysOfWeek.map(day => (
+          <div className="flex w-full space-x-1 sm:space-x-2">
+            {schedule.map(day => (
               <button
-                key={day}
-                onClick={() => setCurrentDay(day)}
+                key={day.day}
+                onClick={() => setActiveDay(day.day)}
                 className={cn(
-                  'px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-                  currentDay === day
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
+                  'px-3 py-2 rounded-md text-sm font-semibold transition-colors whitespace-nowrap flex-1 sm:flex-auto',
+                   day.color,
+                  activeDay === day.day
+                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                    : 'text-foreground/80'
                 )}
               >
-                {day}
+                {day.day}
               </button>
             ))}
           </div>
         </div>
         
-        <div className="rounded-lg border overflow-hidden">
-            {weeklySchedule.find(d => d.day === currentDay)?.lessons.map((lesson, index) => (
-                 <div key={index} 
-                    className={cn(
-                        "grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-4 transition-all",
-                        index < weeklySchedule.find(d => d.day === currentDay)!.lessons.length - 1 && "border-b",
-                        index === currentLessonIndex && todayTurkish === currentDay && "bg-primary/10 ring-2 ring-primary/50"
-                    )}
+        <div className="rounded-lg border p-4 min-h-[300px] bg-muted/30">
+            {activeDayIndex !== -1 && schedule[activeDayIndex].lessons.map((lesson, lessonIndex) => (
+                 <div key={lessonIndex} 
+                    className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center p-2 rounded-lg transition-all hover:bg-background/80"
                 >
-                    <div className="flex items-center gap-3 font-semibold text-primary">
-                        <Clock className="h-5 w-5" />
-                        <span>{lesson.time}</span>
+                    <div className="flex items-center gap-2 font-semibold text-primary col-span-1 md:col-span-2">
+                        <Clock className="h-5 w-5 flex-shrink-0" />
+                        <Input
+                            value={lesson.time}
+                            onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'time', e.target.value)}
+                            className="bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-primary h-9"
+                        />
                     </div>
-                    <div className="col-span-1 md:col-span-2">
-                        <p className="font-bold text-lg">{lesson.subject}</p>
-                        <p className="text-sm text-muted-foreground">{lesson.class}</p>
+                    <div className="col-span-1 md:col-span-3">
+                         <Input
+                            value={lesson.subject}
+                            onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'subject', e.target.value)}
+                            className="font-bold text-md bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-primary h-9"
+                        />
+                        <Input
+                            value={lesson.class}
+                            onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'class', e.target.value)}
+                            className="text-sm text-muted-foreground bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-primary h-8 -mt-1"
+                        />
                     </div>
-                    {index === currentLessonIndex && todayTurkish === currentDay && (
-                        <div className="flex items-center justify-start md:justify-end">
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-200 text-green-800 animate-pulse">
-                                Şimdi
-                            </span>
-                        </div>
-                    )}
+                    <div className="flex items-center justify-end">
+                       <Button variant="ghost" size="icon" onClick={() => deleteLesson(activeDayIndex, lessonIndex)}>
+                           <Trash2 className="h-4 w-4 text-destructive" />
+                       </Button>
+                    </div>
                  </div>
             ))}
-            {weeklySchedule.find(d => d.day === currentDay)?.lessons.length === 0 && (
-                <div className="text-center p-8 text-muted-foreground">
-                    Bugün ders programı boş.
+            {activeDayIndex !== -1 && schedule[activeDayIndex].lessons.length === 0 && (
+                <div className="text-center p-8 text-muted-foreground h-full flex flex-col items-center justify-center">
+                    <p className='font-semibold'>Bugün ders programı boş.</p>
+                    <p className='text-sm'>Yeni bir ders ekleyerek başlayabilirsiniz.</p>
                 </div>
             )}
+             <Button variant="outline" className="w-full mt-4" onClick={() => addLesson(activeDayIndex)}>
+                <Plus className="mr-2 h-4 w-4"/>
+                Yeni Ders Ekle
+            </Button>
         </div>
       </CardContent>
     </Card>
