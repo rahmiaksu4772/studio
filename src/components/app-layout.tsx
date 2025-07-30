@@ -53,7 +53,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
             </div>
           </div>
-           <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:hidden" />
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
@@ -111,6 +110,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <div className="flex flex-col sm:pl-[var(--sidebar-width-icon)] group-data-[state=expanded]:sm:pl-[var(--sidebar-width)] transition-[padding-left] duration-200">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+            <SidebarTrigger className="sm:hidden" />
+        </header>
         {children}
       </div>
     </div>
