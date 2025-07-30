@@ -202,8 +202,6 @@ export default function RaporlarPage() {
             body: tableData,
             theme: 'grid',
             didDrawCell: (data: any) => {
-              // This is a workaround to ensure all characters are rendered correctly.
-              // We are forcing the font to be set for each cell.
               if (data.section === 'body' || data.section === 'head') {
                 data.cell.styles.font = 'normal';
                 data.cell.styles.fontStyle = 'normal';
@@ -487,3 +485,6 @@ export default function RaporlarPage() {
 
     
 
+
+
+    
