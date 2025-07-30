@@ -231,8 +231,8 @@ export default function RaporlarPage() {
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     } else if (selectedReportType === 'bireysel' && individualReportData) {
         const selectedStudent = students.find(s => s.id === selectedStudentId);
-        
         doc.setFont('Verdana', 'normal');
+        
         doc.setFontSize(11);
         doc.setTextColor(100);
         doc.text(`Sınıf: ${selectedClass?.name}`, 14, 32);
@@ -516,6 +516,8 @@ export default function RaporlarPage() {
     
 
 
+
+    
 
     
 
