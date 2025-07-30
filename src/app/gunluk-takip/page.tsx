@@ -9,7 +9,6 @@ import {
   Sparkles,
   Loader2,
   Book,
-  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
@@ -44,68 +43,45 @@ export default function GunlukTakipPage() {
 
   const students = allStudents.filter((s) => s.classId === selectedClass.id);
 
-  const getInitialRecords = (classId: string, date: Date): Record<string, DailyRecord[]> => {
+  const getInitialRecords = (classId: string, date: Date): Record<string, DailyRecord> => {
     return allStudents
       .filter(s => s.classId === classId)
       .reduce((acc, student) => {
-        const baseRecord = { 
+        acc[student.id] = { 
+            id: `record-${student.id}-${date.toISOString()}`,
             studentId: student.id, 
             status: null, 
             description: '', 
             date: format(date, 'yyyy-MM-dd'), 
             classId: classId 
         };
-        acc[student.id] = [
-            { ...baseRecord, id: `record-${Date.now()}-1` },
-            { ...baseRecord, id: `record-${Date.now()}-2` }
-        ];
         return acc;
-      }, {} as Record<string, DailyRecord[]>);
+      }, {} as Record<string, DailyRecord>);
   };
 
-  const [records, setRecords] = React.useState<Record<string, DailyRecord[]>>(getInitialRecords(selectedClass.id, recordDate));
+  const [records, setRecords] = React.useState<Record<string, DailyRecord>>(getInitialRecords(selectedClass.id, recordDate));
 
   React.useEffect(() => {
     setRecords(getInitialRecords(selectedClass.id, recordDate));
     setGeneralDescription('');
   }, [selectedClass.id, recordDate]);
 
-  const handleRecordChange = (studentId: string, recordId: string, newRecord: Partial<DailyRecord>) => {
+  const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id' | 'studentId'>>) => {
     setRecords((prev) => ({
       ...prev,
-      [studentId]: prev[studentId].map(rec => 
-        rec.id === recordId ? { ...rec, ...newRecord } : rec
-      ),
+      [studentId]: { ...prev[studentId], ...newRecord },
     }));
   };
-
-  const deleteRecord = (studentId: string, recordId: string) => {
-    setRecords(prev => {
-        const studentRecords = prev[studentId];
-        if(studentRecords.length <= 1) {
-            toast({
-                title: "Son Kayıt Silinemez",
-                description: "Her öğrenci için en az bir değerlendirme alanı bulunmalıdır.",
-                variant: "destructive"
-            });
-            return prev;
-        }
-        return {
-            ...prev,
-            [studentId]: studentRecords.filter(rec => rec.id !== recordId)
-        }
-    });
-  }
 
   const handleBulkStatusUpdate = (status: AttendanceStatus) => {
     setRecords(prevRecords => {
       const newRecords = { ...prevRecords };
       students.forEach(student => {
-        if(newRecords[student.id] && newRecords[student.id][0]){
-             newRecords[student.id] = [{
-                ...newRecords[student.id][0],
+        if(newRecords[student.id]){
+             newRecords[student.id] = {
+                ...newRecords[student.id],
                 status: status,
-            }, ...newRecords[student.id].slice(1)];
+            };
         }
       });
       return newRecords;
@@ -120,7 +96,7 @@ export default function GunlukTakipPage() {
     console.log("Kaydedilen Veriler:", { 
         date: format(recordDate, 'yyyy-MM-dd'), 
         classId: selectedClass.id, 
-        records: Object.values(records).flat().filter(r => r.status || r.description), // Sadece dolu olanları kaydet
+        records: Object.values(records).filter(r => r.status || r.description), // Sadece dolu olanları kaydet
         generalDescription: generalDescription,
      });
     toast({
@@ -129,8 +105,8 @@ export default function GunlukTakipPage() {
     });
   };
 
-  const handleGenerateDescription = async (studentId: string, recordId: string) => {
-    setGeneratingFor(recordId);
+  const handleGenerateDescription = async (studentId: string) => {
+    setGeneratingFor(studentId);
     startTransition(async () => {
       try {
         const result = await generateDescriptionAction({
@@ -140,7 +116,7 @@ export default function GunlukTakipPage() {
         });
         
         if (result.description) {
-          handleRecordChange(studentId, recordId, { description: result.description });
+          handleRecordChange(studentId, { description: result.description });
            toast({
             title: "AI Notu Oluşturuldu",
             description: "Öğrenci için otomatik not başarıyla oluşturuldu.",
@@ -163,6 +139,8 @@ export default function GunlukTakipPage() {
       }
     });
   };
+
+  const currentRecord = (studentId: string) => records[studentId];
 
   return (
     <AppLayout>
@@ -227,7 +205,7 @@ export default function GunlukTakipPage() {
                 </div>
                  <div className="space-y-2">
                     <Label className="flex items-center gap-2">
-                        Tüm Sınıfa Uygula (İlk Değerlendirme)
+                        Tüm Sınıfa Uygula
                     </Label>
                     <div className="flex flex-wrap gap-2">
                         {statusOptions.map(option => (
@@ -256,18 +234,20 @@ export default function GunlukTakipPage() {
         
         <div className="space-y-4 mt-6">
             <h2 className="text-xl font-semibold">Öğrenci Değerlendirmeleri</h2>
-            {students.map(student => (
-                <Card key={student.id}>
-                    <CardHeader>
-                        <div className='font-medium'>{student.firstName} {student.lastName}</div>
-                        <div className='text-sm text-muted-foreground'>No: {student.studentNumber}</div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {records[student.id]?.map((record, index) => (
-                            <div key={record.id} className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start rounded-lg bg-muted/50">
+            {students.map(student => {
+                const record = currentRecord(student.id);
+                if (!record) return null;
+                return (
+                    <Card key={student.id}>
+                        <CardHeader>
+                            <div className='font-medium'>{student.firstName} {student.lastName}</div>
+                            <div className='text-sm text-muted-foreground'>No: {student.studentNumber}</div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start rounded-lg bg-muted/50">
                                 <RadioGroup 
                                     value={record.status || ""} 
-                                    onValueChange={(status) => handleRecordChange(student.id, record.id, { status: status as AttendanceStatus })}
+                                    onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
                                     className="md:col-span-1 grid grid-cols-5 gap-2"
                                 >
                                     {statusOptions.map(option => (
@@ -296,53 +276,39 @@ export default function GunlukTakipPage() {
                                 <div className="relative md:col-span-2 flex items-start gap-2">
                                     <Textarea 
                                         value={record.description || ''}
-                                        onChange={(e) => handleRecordChange(student.id, record.id, { description: e.target.value })}
+                                        onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
                                         placeholder='Öğrenci hakkında not...'
                                         className='min-h-[40px] text-sm bg-white dark:bg-card pr-10 flex-1'
                                         rows={2}
                                     />
-                                    <div className="flex flex-col gap-1">
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button 
-                                                        size='icon'
-                                                        variant='ghost'
-                                                        className='h-8 w-8'
-                                                        onClick={() => handleGenerateDescription(student.id, record.id)}
-                                                        disabled={isPending && generatingFor === record.id}
-                                                    >
-                                                        {isPending && generatingFor === record.id ? (
-                                                            <Loader2 className="h-5 w-5 animate-spin" />
-                                                        ) : (
-                                                            <Sparkles className="h-5 w-5 text-primary" />
-                                                        )}
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>AI ile Not Oluştur</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                          <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button size="icon" variant="ghost" onClick={() => deleteRecord(student.id, record.id)}>
-                                                        <Trash2 className="h-5 w-5 text-red-500" />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Değerlendirmeyi Sil</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </div>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button 
+                                                    size='icon'
+                                                    variant='ghost'
+                                                    className='h-8 w-8'
+                                                    onClick={() => handleGenerateDescription(student.id)}
+                                                    disabled={isPending && generatingFor === student.id}
+                                                >
+                                                    {isPending && generatingFor === student.id ? (
+                                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                                    ) : (
+                                                        <Sparkles className="h-5 w-5 text-primary" />
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>AI ile Not Oluştur</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </div>
                             </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            ))}
+                        </CardContent>
+                    </Card>
+                )
+            })}
         </div>
       </main>
     </AppLayout>
