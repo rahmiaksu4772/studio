@@ -219,7 +219,7 @@ export default function RaporlarPage() {
             body: tableData,
             startY: 30,
             theme: 'grid',
-            headStyles: { font: 'Verdana', fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+            headStyles: { font: 'Verdana', fontStyle: 'bold', fillColor: [33, 150, 243], textColor: 255 },
             styles: { font: 'Verdana', fontStyle: 'normal' },
             alternateRowStyles: { fillColor: [240, 244, 255] },
             didDrawPage: (data: any) => {
@@ -260,7 +260,7 @@ export default function RaporlarPage() {
                     r.description || '-'
                 ]),
                 theme: 'striped',
-                headStyles: { font: 'Verdana', fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+                headStyles: { font: 'Verdana', fontStyle: 'bold', fillColor: [33, 150, 243], textColor: 255 },
                 styles: { font: 'Verdana', fontStyle: 'normal' },
                 didDrawPage: (data: any) => {
                     pageHeader(data);
@@ -516,6 +516,8 @@ export default function RaporlarPage() {
     
 
 
+
+    
 
     
 
