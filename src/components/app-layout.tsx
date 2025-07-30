@@ -39,11 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isMobile, setOpen } = useSidebar();
 
   React.useEffect(() => {
-    if (isMobile) {
-      setOpen(false);
-    } else {
-      setOpen(true);
-    }
+    setOpen(!isMobile);
   }, [isMobile, setOpen]);
 
 
