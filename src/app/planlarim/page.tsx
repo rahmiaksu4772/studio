@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon } from 'lucide-react';
+import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, X as CloseIcon } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,14 +20,16 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm, type Plan } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function PlanlarimPage() {
   const { toast } = useToast();
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
+  const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    // Simulate loading existing plans
     setIsLoading(false);
   }, []);
 
@@ -65,25 +67,49 @@ export default function PlanlarimPage() {
     document.body.removeChild(link);
   };
 
+  const dataURIToBlob = (dataURI: string) => {
+    try {
+        const splitDataURI = dataURI.split(',');
+        const byteString = splitDataURI[0].indexOf('base64') >= 0 ? atob(splitDataURI[1]) : decodeURI(splitDataURI[1]);
+        const mimeString = splitDataURI[0].split(':')[1].split(';')[0];
+
+        const ia = new Uint8Array(byteString.length);
+        for (let i = 0; i < byteString.length; i++)
+            ia[i] = byteString.charCodeAt(i);
+
+        return new Blob([ia], { type: mimeString });
+    } catch (error) {
+        console.error("Error converting Data URI to Blob:", error);
+        return null;
+    }
+  }
+
   const viewFile = (plan: Plan) => {
     if (plan.fileType.includes('pdf')) {
-      const newWindow = window.open();
-      if (newWindow) {
-        newWindow.document.write(`<iframe src="${plan.fileDataUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-        newWindow.document.title = plan.fileName;
+      const blob = dataURIToBlob(plan.fileDataUrl);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+        setViewingPlan(plan);
       } else {
         toast({
-          title: 'Engellendi',
-          description: 'Lütfen tarayıcınızda açılır pencerelere izin verin.',
+          title: 'PDF Görüntülenemedi',
+          description: 'Dosya verisi bozuk veya desteklenmiyor.',
           variant: 'destructive',
         });
       }
     } else {
-      // For Word/Excel, "View" will also download the file.
       downloadFile(plan.fileDataUrl, plan.fileName);
     }
   };
-
+  
+  const closeViewer = () => {
+    if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+    }
+    setViewingPlan(null);
+    setPdfUrl(null);
+  }
 
   if (isLoading) {
     return (
@@ -174,6 +200,26 @@ export default function PlanlarimPage() {
                 </CardFooter>
               </Card>
             ))}
+          </div>
+        )}
+
+        {viewingPlan && pdfUrl && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex flex-col p-4">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-white">{viewingPlan.title}</h2>
+                <Button variant="destructive" size="icon" onClick={closeViewer}>
+                    <CloseIcon className="h-6 w-6" />
+                    <span className="sr-only">Kapat</span>
+                </Button>
+            </div>
+            <div className="flex-1 w-full h-full bg-gray-800 rounded-lg overflow-hidden">
+                <object data={pdfUrl} type="application/pdf" width="100%" height="100%">
+                    <div className="flex items-center justify-center h-full text-white">
+                        <p>PDF görüntüleyici yüklenemedi. Tarayıcınız bu dosyayı desteklemiyor olabilir veya dosya bozuk olabilir.</p>
+                        <a href={pdfUrl} download={viewingPlan.fileName} className="underline ml-2">Dosyayı indirmeyi deneyin.</a>
+                    </div>
+                </object>
+            </div>
           </div>
         )}
       </main>
