@@ -31,7 +31,7 @@ export default function SiniflarimPage() {
       id: `c${classes.length + 1}`,
       name: className,
     };
-    setClasses([...classes, newClass]);
+    setClasses([newClass, ...classes]);
   };
 
   const handleAddStudent = (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
