@@ -28,13 +28,11 @@ import {
 } from '@/components/ui/sidebar';
 
 const menuItems = [
-    { href: '/', label: 'Ana Panel', icon: Home },
-    { href: '/siniflarim', label: 'Sınıflarım', icon: GraduationCap },
-    { href: '/gunluk-takip', label: 'Günlük Takip', icon: Users },
-    { href: '/raporlar', label: 'Raporlar', icon: BarChart },
-    { href: '/planlarim', label: 'Planlarım', icon: Calendar },
-    { href: '/kodlar', label: 'Erişim Kodları', icon: FileText },
-    { href: '/admin', label: 'Admin Panel', icon: Shield },
+    { href: '#siniflarim', label: 'Sınıflarım', icon: GraduationCap },
+    { href: '#gunluk-takip', label: 'Günlük Takip', icon: Users },
+    { href: '#raporlar', label: 'Raporlar', icon: BarChart },
+    { href: '#planlarim', label: 'Planlarım', icon: Calendar },
+    { href: '#diger', label: 'Diğer', icon: Settings },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -76,15 +74,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </SidebarMenuItem>
             <SidebarGroup className="mt-4">
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} legacyBehavior passHref>
-                    <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
+              <SidebarMenuItem>
+                  <Link href="/" legacyBehavior passHref>
+                    <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Ana Panel">
                       <a>
-                        <item.icon /> <span>{item.label}</span>
+                        <Home /> <span>Ana Panel</span>
                       </a>
                     </SidebarMenuButton>
                   </Link>
+              </SidebarMenuItem>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <a href={item.href}>
+                    <SidebarMenuButton asChild tooltip={item.label}>
+                        <a>
+                            <item.icon /> <span>{item.label}</span>
+                        </a>
+                    </SidebarMenuButton>
+                  </a>
                 </SidebarMenuItem>
               ))}
             </SidebarGroup>
@@ -93,13 +100,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/hesabim" legacyBehavior passHref>
-                <SidebarMenuButton asChild isActive={pathname === '/hesabim'} tooltip="Ayarlar">
+                <SidebarMenuButton asChild tooltip="Ayarlar">
                    <a>
                     <Settings /> <span>Ayarlar</span>
                    </a>
                 </SidebarMenuButton>
-              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
