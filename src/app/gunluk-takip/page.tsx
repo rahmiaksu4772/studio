@@ -264,11 +264,11 @@ export default function GunlukTakipPage() {
                             <div className='text-sm text-muted-foreground'>No: {student.studentNumber}</div>
                         </CardHeader>
                         <CardContent>
-                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start rounded-lg bg-muted/50">
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-start rounded-lg bg-muted/50">
                                 <RadioGroup 
                                     value={record.status || ""} 
                                     onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                    className="md:col-span-1 grid grid-cols-5 gap-2"
+                                    className="md:col-span-3 lg:col-span-2 grid grid-cols-1 gap-2"
                                 >
                                     {statusOptions.map(option => (
                                         <TooltipProvider key={`${record.id}-${option.value}`}>
@@ -277,29 +277,29 @@ export default function GunlukTakipPage() {
                                                     <Label 
                                                         htmlFor={`${record.id}-${option.value}`}
                                                         className={cn(
-                                                            "flex flex-col items-center justify-center gap-1.5 rounded-md p-2 border-2 text-muted-foreground cursor-pointer transition-colors hover:border-primary",
+                                                            "flex items-center justify-start gap-3 rounded-md p-2 border-2 text-muted-foreground cursor-pointer transition-colors hover:border-primary",
                                                             record.status === option.value && "border-primary bg-primary/10 text-primary"
                                                             )}
                                                         >
                                                             {option.icon && <option.icon className="h-5 w-5" />}
-                                                            <span className='text-xs font-semibold'>{option.label}</span>
+                                                            <span className='font-semibold'>{option.label}</span>
                                                             <RadioGroupItem value={option.value} id={`${record.id}-${option.value}`} className='sr-only'/>
                                                         </Label>
                                                 </TooltipTrigger>
-                                                <TooltipContent>
+                                                <TooltipContent side="right">
                                                     <p>{option.label}</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
                                     ))}
                                 </RadioGroup>
-                                <div className="relative md:col-span-2 flex items-start gap-2">
+                                <div className="relative md:col-span-9 lg:col-span-10 flex items-start gap-2">
                                     <Textarea 
                                         value={record.description || ''}
                                         onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
                                         placeholder='Öğrenci hakkında not...'
                                         className='min-h-[40px] text-sm bg-white dark:bg-card pr-10 flex-1'
-                                        rows={2}
+                                        rows={5}
                                     />
                                     <TooltipProvider>
                                         <Tooltip>
