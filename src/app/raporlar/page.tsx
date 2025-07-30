@@ -41,7 +41,7 @@ import { statusOptions } from '@/lib/types';
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
-    '½': 'Yarım Artı',
+    'P': 'Yarım Artı',
     '-': 'Eksi',
     'Y': 'Yok',
     'G': 'İzinli',
