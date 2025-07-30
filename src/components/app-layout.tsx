@@ -22,10 +22,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarGroup,
-  useSidebar,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const menuItems = [
     { href: '/', label: 'Ana Sayfa', icon: Home },
@@ -37,13 +35,6 @@ const menuItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { setOpen } = useSidebar();
-  const isMobile = useIsMobile();
-
-  React.useEffect(() => {
-    setOpen(!isMobile);
-  }, [isMobile, setOpen]);
-
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
