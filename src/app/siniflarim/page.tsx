@@ -40,17 +40,6 @@ export default function SiniflarimPage() {
   };
 
   const handleAddStudent = (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
-    const isDuplicate = students.some(s => s.classId === classId && s.studentNumber === studentData.studentNumber);
-
-    if (isDuplicate) {
-        toast({
-            title: 'Hata: Mükerrer Kayıt',
-            description: `Bu sınıfta "${studentData.studentNumber}" numaralı bir öğrenci zaten mevcut.`,
-            variant: 'destructive',
-        });
-        return;
-    }
-
     const newStudent: Student = {
       ...studentData,
       id: `s${students.length + 1 + Math.random()}`,
@@ -77,17 +66,6 @@ export default function SiniflarimPage() {
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
-    const isDuplicate = students.some(s => s.id !== updatedStudent.id && s.classId === updatedStudent.classId && s.studentNumber === updatedStudent.studentNumber);
-
-    if(isDuplicate){
-        toast({
-            title: 'Hata: Mükerrer Kayıt',
-            description: `Bu sınıfta "${updatedStudent.studentNumber}" numaralı bir öğrenci zaten mevcut.`,
-            variant: 'destructive',
-        });
-        return;
-    }
-
     setStudents(students.map(s => (s.id === updatedStudent.id ? updatedStudent : s)));
     toast({
       title: 'Başarılı!',
@@ -110,7 +88,7 @@ export default function SiniflarimPage() {
   };
   
   const getStudentsForClass = (classId: string) => {
-      return students.filter(s => s.classId === c.id);
+      return students.filter(s => s.classId === classId);
   }
 
   return (
