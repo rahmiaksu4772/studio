@@ -82,6 +82,26 @@ students.forEach(student => {
     });
 });
 
+// Generate some data for today
+const today = new Date();
+if (today.getDay() !== 0 && today.getDay() !== 6) {
+    students.forEach(student => {
+        if (Math.random() > 0.3) { // 70% chance to have a record for today
+             const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+             const randomDescription = Math.random() > 0.5 ? descriptions[Math.floor(Math.random() * descriptions.length)] : '';
+             allRecords.push({
+                id: `record-${student.id}-${today.getTime()}`,
+                studentId: student.id,
+                classId: student.classId,
+                date: format(today, 'yyyy-MM-dd'),
+                status: randomStatus,
+                description: randomDescription,
+            });
+        }
+    });
+}
+
+
 export const dailyRecords: DailyRecord[] = allRecords;
 
 export type Lesson = {
