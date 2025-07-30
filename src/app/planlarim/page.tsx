@@ -54,7 +54,26 @@ export default function PlanlarimPage() {
     if (fileType.includes('word')) return <WordIcon className="h-12 w-12 text-blue-600" />;
     if (fileType.includes('sheet') || fileType.includes('excel')) return <ExcelIcon className="h-12 w-12 text-green-600" />;
     return <FileText className="h-12 w-12 text-muted-foreground" />;
-  }
+  };
+
+  const downloadFile = (dataUrl: string, fileName: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const viewFile = (plan: Plan) => {
+    if (plan.fileType.includes('pdf')) {
+      const pdfWindow = window.open("");
+      pdfWindow?.document.write(`<iframe width='100%' height='100%' src='${plan.fileDataUrl}'></iframe>`);
+      pdfWindow?.document.title = plan.fileName;
+    } else {
+      downloadFile(plan.fileDataUrl, plan.fileName);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -136,16 +155,12 @@ export default function PlanlarimPage() {
                     </p>
                 </CardContent>
                 <CardFooter className="flex gap-2">
-                    <a href={plan.fileDataUrl} target="_blank" rel="noopener noreferrer" className='w-full'>
-                        <Button variant="outline" className="w-full">
-                            <Eye className="mr-2 h-4 w-4" /> Görüntüle
-                        </Button>
-                    </a>
-                    <a href={plan.fileDataUrl} download={plan.fileName} className='w-full'>
-                        <Button className="w-full">
-                            <Download className="mr-2 h-4 w-4" /> İndir
-                        </Button>
-                    </a>
+                    <Button variant="outline" className="w-full" onClick={() => viewFile(plan)}>
+                        <Eye className="mr-2 h-4 w-4" /> Görüntüle
+                    </Button>
+                    <Button className="w-full" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
+                        <Download className="mr-2 h-4 w-4" /> İndir
+                    </Button>
                 </CardFooter>
               </Card>
             ))}
