@@ -1,4 +1,4 @@
-import { type LucideIcon } from "lucide-react";
+import { type LucideIcon, PlusCircle, MinusCircle, CircleSlash, ThumbsUp, ThumbsDown, UserCheck, UserX, GraduationCap } from "lucide-react";
 
 export type Student = {
   id: string;
@@ -21,10 +21,10 @@ export type DailyRecord = {
   description: string;
 };
 
-export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon }[] = [
-  { value: '+', label: 'Artı' },
-  { value: '½', label: 'Yarım Artı' },
-  { value: '-', label: 'Eksi' },
-  { value: 'Y', label: 'Yok' },
-  { value: 'G', label: 'Mazeretli' },
+export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string }[] = [
+  { value: '+', label: 'Artı (Katılım, Başarı)', icon: ThumbsUp, color: 'text-green-600' },
+  { value: '½', label: 'Yarım Artı (Çaba)', icon: CircleSlash, color: 'text-green-500' },
+  { value: '-', label: 'Eksi (Eksiklik, Olumsuz Davranış)', icon: ThumbsDown, color: 'text-red-600' },
+  { value: 'Y', label: 'Yok (Derse Gelmedi)', icon: UserX, color: 'text-yellow-600' },
+  { value: 'G', label: 'Mazeretli (İzinli)', icon: UserCheck, color: 'text-blue-600' },
 ];

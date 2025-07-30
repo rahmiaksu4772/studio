@@ -5,6 +5,7 @@ import {
   TableBody,
   TableRow,
   TableHead,
+  TableCell,
 } from '@/components/ui/table';
 import type { DailyRecord, Student, AttendanceStatus } from '@/lib/types';
 import StudentRow from './student-row';
@@ -13,7 +14,7 @@ type StudentAttendanceTableProps = {
   students: Student[];
   records: Record<string, DailyRecord>;
   onRecordChange: (studentId: string, newRecord: Partial<DailyRecord>) => void;
-  filter: AttendanceStatus | 'all';
+  filter: AttendanceStatus | 'all' | 'unmarked';
   classId: string;
   recordDate: string;
 };
@@ -27,33 +28,12 @@ export default function StudentAttendanceTable({
   recordDate
 }: StudentAttendanceTableProps) {
   
-  const getFilteredStudents = () => {
-    if (filter === 'all') return students;
-    if (filter === 'Y' || filter === 'G') {
-       return students.filter(s => records[s.id]?.status === filter);
-    }
-    return students.filter(s => {
-      const record = records[s.id];
-      if (!record || !record.status) return false;
-      
-      if (filter === '+') return record.status === '+' || record.status === '½';
-      if (filter === '-') return record.status === '-';
-      
-      // A special case for unmarked students
-      if (filter === 'unmarked') return !record.status;
-      
-      return record.status === filter;
-    });
-  }
-
-  const filteredStudents =
-    filter === 'all'
-      ? students
-      : students.filter((s) => {
-          const status = records[s.id]?.status;
-          if (filter === 'unmarked') return !status;
-          return status === filter;
-        });
+  const filteredStudents = students.filter((s) => {
+    if (filter === 'all') return true;
+    const status = records[s.id]?.status;
+    if (filter === 'unmarked') return !status;
+    return status === filter;
+  });
 
   if (filteredStudents.length === 0) {
     return (

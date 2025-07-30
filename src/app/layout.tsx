@@ -3,9 +3,9 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { Inter as FontSans } from "next/font/google"
+import { Inter } from "next/font/google"
 
-const fontSans = FontSans({
+const fontSans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 })

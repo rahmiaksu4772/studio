@@ -18,6 +18,6 @@ export async function generateDescriptionAction(input: {
 
   } catch (error) {
     console.error('AI description generation failed:', error);
-    return { error: 'Açıklama üretilirken bir hata oluştu.' };
+    return { error: 'AI ile açıklama üretilirken bir hata oluştu.' };
   }
 }

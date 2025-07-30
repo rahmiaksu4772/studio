@@ -67,7 +67,7 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
     '½': 'bg-green-50/70 dark:bg-green-900/20 hover:bg-green-100/80 dark:hover:bg-green-900/30',
     '-': 'bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40',
     'Y': 'bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/40',
-    'G': 'bg-gray-100 dark:bg-gray-800/30 hover:bg-gray-200 dark:hover:bg-gray-800/40',
+    'G': 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40',
   }[status!] || 'hover:bg-muted/50';
 
   return (
@@ -81,40 +81,40 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
           className="flex flex-wrap items-center gap-x-4 gap-y-2"
         >
           {statusOptions.map((option) => (
-            <div key={option.value} className="flex items-center space-x-2">
-              <Tooltip>
+             <Tooltip key={option.value}>
                 <TooltipTrigger asChild>
-                  <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} />
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} />
+                    <Label htmlFor={`${student.id}-${option.value}`} className="cursor-pointer">
+                      {option.icon ? <option.icon className={cn("h-5 w-5", option.color)} /> : option.value}
+                    </Label>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{option.label}</p>
                 </TooltipContent>
               </Tooltip>
-              <Label htmlFor={`${student.id}-${option.value}`}>{option.icon ? <option.icon className="h-4 w-4" /> : option.value}</Label>
-            </div>
           ))}
         </RadioGroup>
       </TableCell>
       <TableCell>
-        {status && (
-          <div className="flex flex-col gap-2">
-             <Textarea
-              placeholder="Öğrenci hakkında bir not ekleyin..."
-              value={description}
-              onChange={handleDescriptionChange}
-              className="min-h-[60px] bg-card/80"
-              rows={2}
-            />
-            <Button variant="ghost" size="sm" onClick={handleGenerateDescription} disabled={isPending} className="self-start gap-2">
-                {isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                    <Sparkles className="h-4 w-4 text-primary" />
-                )}
-                <span>AI ile Not Doldur</span>
-            </Button>
-          </div>
-        )}
+        <div className="relative flex flex-col gap-2">
+           <Textarea
+            placeholder="Öğrenci hakkında bir not ekleyin..."
+            value={description}
+            onChange={handleDescriptionChange}
+            className="min-h-[60px] bg-card/80 pr-28"
+            rows={2}
+          />
+          <Button variant="ghost" size="sm" onClick={handleGenerateDescription} disabled={isPending} className="absolute top-1 right-1 h-auto px-2 py-1 text-xs self-start gap-1">
+              {isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                  <Sparkles className="h-3 w-3 text-primary" />
+              )}
+              <span>AI Not</span>
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );

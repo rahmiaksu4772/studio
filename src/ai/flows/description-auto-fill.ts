@@ -33,14 +33,18 @@ const prompt = ai.definePrompt({
   output: {schema: DescriptionAutoFillOutputSchema},
   prompt: `You are an AI assistant helping teachers auto-fill description fields for student records.
 
-  Given the student ID, class ID, and record date, generate a description based on previous entries for the student in the class.
-  If there are no previous entries, generate a generic message like 'No previous entries found for this student.'
+  Given the student ID, class ID, and record date, generate a concise, objective, and pedagogical observation note for the student.
+  The note should reflect a potential observation a teacher might make on that day.
+  Example notes: "Showed great participation in the math lesson.", "Seemed a bit distracted during the Turkish class.", "Completed the given task ahead of time and helped a friend.", "Forgot to bring the homework assignment."
+  
+  Do not refer to past entries. Generate a new, relevant note for the given date.
+  Keep the language professional and suitable for a school environment.
 
   Student ID: {{{studentId}}}
   Class ID: {{{classId}}}
   Record Date: {{{recordDate}}}
 
-  Description:`, // initial prompt
+  Description:`,
 });
 
 const descriptionAutoFillFlow = ai.defineFlow(
