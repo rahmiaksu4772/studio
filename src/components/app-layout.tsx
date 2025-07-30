@@ -40,18 +40,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Sidebar variant="sidebar" collapsible="icon" className="border-r">
         <SidebarHeader className="flex h-[60px] items-center justify-between p-4">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
-                <GraduationCap className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <h1 className="text-xl font-semibold tracking-tight text-foreground">
-                  SınıfPlanım
-                </h1>
-                <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
-              </div>
-            </Link>
-            <SidebarTrigger className="group-data-[collapsible=icon]:flex hidden" />
+            <SidebarTrigger className="flex items-center gap-3 w-full">
+                <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
+                    <GraduationCap className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                    <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                    SınıfPlanım
+                    </h1>
+                    <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
+                </div>
+            </SidebarTrigger>
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
