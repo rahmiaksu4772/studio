@@ -67,7 +67,6 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -77,6 +76,8 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
       file: undefined,
     },
   });
+  
+  const fileRef = form.register('file');
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
@@ -94,7 +95,6 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
       };
       onAddPlan(newPlan);
       form.reset();
-      if(fileInputRef.current) fileInputRef.current.value = "";
       setOpen(false);
     } catch (error) {
       toast({
@@ -134,7 +134,6 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
     <Dialog open={open} onOpenChange={(isOpen) => {
       if (!isOpen) {
         form.reset();
-        if(fileInputRef.current) fileInputRef.current.value = "";
       }
       setOpen(isOpen);
     }}>
@@ -194,22 +193,27 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
              <FormField
                 control={form.control}
                 name="file"
-                render={({ field: { onChange, ...rest } }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Dosya</FormLabel>
                     <FormControl>
                       <div>
-                        <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                        <label 
+                          htmlFor="file-upload" 
+                          className={cn(
+                              "flex w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                              "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                          )}
+                        >
                           <Folder className="mr-2 h-4 w-4 text-yellow-500" />
                           <span>{selectedFile?.[0]?.name ?? 'Dosya Seç'}</span>
-                        </Button>
+                        </label>
                         <Input
                             type="file"
+                            id="file-upload"
                             className="hidden"
-                            ref={fileInputRef}
                             accept=".pdf,.doc,.docx,.xls,.xlsx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                            onChange={(e) => onChange(e.target.files)}
-                            {...rest}
+                            {...fileRef}
                         />
                       </div>
                     </FormControl>
