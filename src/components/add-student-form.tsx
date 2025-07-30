@@ -31,7 +31,7 @@ export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false }
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      studentNumber: undefined,
+      studentNumber: '' as any, // Initialize with empty string to avoid uncontrolled input error
       firstName: '',
       lastName: '',
     },
@@ -43,7 +43,7 @@ export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false }
       title: 'Başarılı!',
       description: `Öğrenci "${values.firstName} ${values.lastName}" eklendi.`,
     });
-    form.reset({ studentNumber: undefined, firstName: '', lastName: '' });
+    form.reset({ studentNumber: '' as any, firstName: '', lastName: '' });
     setOpen(false);
   }
 
@@ -79,7 +79,7 @@ export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false }
                   <FormItem>
                     <FormLabel>Okul Numarası</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Örn: 123" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                      <Input type="number" placeholder="Örn: 123" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
