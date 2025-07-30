@@ -160,7 +160,7 @@ export default function RaporlarPage() {
         }
       });
       
-      const totalScore = summary['+'] * 10 + summary['P'] * -5 + summary['-'] * -10;
+      const totalScore = summary['+'] * 10 + summary['-'] * -10 + summary['P'] * -5;
       
       return {
         ...student,
@@ -175,7 +175,7 @@ export default function RaporlarPage() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
-    doc.setFont('normal');
+    doc.setFont('normal', 'normal');
 
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
