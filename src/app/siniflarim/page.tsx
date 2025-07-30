@@ -11,6 +11,7 @@ import type { Student, ClassInfo } from '@/lib/types';
 import { AddClassForm } from '@/components/add-class-form';
 import { AddStudentForm } from '@/components/add-student-form';
 import { EditStudentForm } from '@/components/edit-student-form';
+import { ImportStudentsDialog } from '@/components/import-students-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,10 +42,23 @@ export default function SiniflarimPage() {
   const handleAddStudent = (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
     const newStudent: Student = {
       ...studentData,
-      id: `s${students.length + 1}`,
+      id: `s${students.length + 1 + Math.random()}`,
       classId,
     };
     setStudents([...students, newStudent]);
+  };
+  
+  const handleBulkAddStudents = (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
+    const studentsToAdd: Student[] = newStudents.map((studentData, index) => ({
+      ...studentData,
+      id: `s${students.length + index + 1 + Math.random()}`,
+      classId,
+    }));
+    setStudents([...students, ...studentsToAdd]);
+    toast({
+        title: "Öğrenciler Başarıyla Aktarıldı!",
+        description: `${newStudents.length} öğrenci "${classes.find(c=>c.id === classId)?.name}" sınıfına eklendi.`
+    })
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
@@ -99,25 +113,7 @@ export default function SiniflarimPage() {
                   <h4 className="font-semibold">Öğrenci Listesi</h4>
                   <div className="flex items-center gap-2">
                     <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} />
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Upload className="h-4 w-4 mr-2" />
-                          İçe Aktar
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Özellik Geliştirme Aşamasında</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Öğrencileri toplu olarak içe aktarma özelliği yakında eklenecektir. Anlayışınız için teşekkür ederiz.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogAction>Tamam</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} />
                   </div>
                 </div>
 
@@ -147,7 +143,7 @@ export default function SiniflarimPage() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Bu işlem geri alınamaz. "{student.firstName} {student.lastName}" adlı öğrenciyi kalıcı olarak silecektir.
+                                            Bu işlem geri alınamaz. "{student.firstName} ${student.lastName}" adlı öğrenciyi kalıcı olarak silecektir.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -168,8 +164,9 @@ export default function SiniflarimPage() {
                     <Users className="mx-auto h-10 w-10 mb-2" />
                     <h3 className="font-semibold">Öğrenci Bulunmuyor</h3>
                     <p className="text-sm">Bu sınıfa henüz öğrenci eklenmemiş.</p>
-                    <div className="mt-4">
+                    <div className="mt-4 flex items-center justify-center gap-2">
                         <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} isFirstStudent={true}/>
+                        <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} isFirstImport={true} />
                     </div>
                   </div>
                 )}
