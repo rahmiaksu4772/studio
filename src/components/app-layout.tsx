@@ -40,15 +40,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Sidebar variant="sidebar" collapsible="icon" className="border-r">
         <SidebarHeader className="flex h-[60px] items-center justify-between p-4">
-            <SidebarTrigger className="flex items-center gap-3 w-full">
-                <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
-                    <GraduationCap className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                    <h1 className="text-xl font-semibold tracking-tight text-foreground">
-                    SınıfPlanım
-                    </h1>
-                    <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
+            <SidebarTrigger>
+                 <div className="flex items-center gap-3 w-full">
+                    <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
+                        <GraduationCap className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                        SınıfPlanım
+                        </h1>
+                        <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
+                    </div>
                 </div>
             </SidebarTrigger>
         </SidebarHeader>
@@ -96,7 +98,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
 
-      <div className="flex flex-col sm:pl-[var(--sidebar-width-icon)] group-data-[state=expanded]:sm:pl-[var(--sidebar-width)] transition-[padding-left] duration-200">
+      <div className="flex flex-col flex-1 sm:pl-[var(--sidebar-width-icon)] group-data-[state=expanded]:sm:pl-[var(--sidebar-width)] transition-[padding-left] duration-200">
          <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <SidebarTrigger className="sm:hidden" />
         </header>

@@ -107,7 +107,6 @@ export default function RaporlarPage() {
           return acc;
       }, {} as any);
 
-      const chartData: { date: string, [key: string]: number | string }[] = [];
       const dateMap: { [key: string]: { date: string, [key: string]: number | string } } = {};
 
       filteredData.forEach(record => {

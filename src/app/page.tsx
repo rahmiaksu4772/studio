@@ -3,8 +3,6 @@
 
 import AppLayout from '@/components/app-layout';
 import DersProgrami from '@/components/ders-programi';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpenCheck } from 'lucide-react';
 
 export default function HomePage() {
   return (

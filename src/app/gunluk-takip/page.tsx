@@ -121,7 +121,7 @@ export default function GunlukTakipPage() {
              newRecords[student.id] = [{
                 ...newRecords[student.id][0],
                 status: status,
-            }];
+            }, ...newRecords[student.id].slice(1)];
         }
       });
       return newRecords;
@@ -182,8 +182,8 @@ export default function GunlukTakipPage() {
 
   return (
     <AppLayout>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <main className="flex-1 p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className='flex-1'>
             <h1 className="text-2xl font-semibold">{selectedClass.name} - Günlük Takip</h1>
             <p className="text-muted-foreground">{format(recordDate, 'dd MMMM yyyy, cccc', { locale: tr })}</p>
@@ -270,7 +270,7 @@ export default function GunlukTakipPage() {
             </CardContent>
         </Card>
         
-        <div className="space-y-4">
+        <div className="space-y-4 mt-6">
             <h2 className="text-xl font-semibold">Öğrenci Değerlendirmeleri</h2>
             {students.map(student => (
                 <Card key={student.id}>
@@ -280,13 +280,12 @@ export default function GunlukTakipPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {records[student.id]?.map((record, index) => (
-                            <RadioGroup 
-                                key={record.id} 
-                                value={record.status || ""} 
-                                onValueChange={(status) => handleRecordChange(student.id, record.id, { status: status as AttendanceStatus })}
-                                className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center rounded-lg bg-muted/50"
-                            >
-                                <div className='md:col-span-1 grid grid-cols-5 gap-2'>
+                            <div key={record.id} className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start rounded-lg bg-muted/50">
+                                <RadioGroup 
+                                    value={record.status || ""} 
+                                    onValueChange={(status) => handleRecordChange(student.id, record.id, { status: status as AttendanceStatus })}
+                                    className="md:col-span-1 grid grid-cols-5 gap-2"
+                                >
                                     {statusOptions.map(option => (
                                         <TooltipProvider key={`${record.id}-${option.value}`}>
                                             <Tooltip>
@@ -309,53 +308,53 @@ export default function GunlukTakipPage() {
                                             </Tooltip>
                                         </TooltipProvider>
                                     ))}
-                                </div>
-                                <div className="relative md:col-span-1">
+                                </RadioGroup>
+                                <div className="relative md:col-span-2 flex items-start gap-2">
                                     <Textarea 
                                         value={record.description || ''}
                                         onChange={(e) => handleRecordChange(student.id, record.id, { description: e.target.value })}
                                         placeholder='Öğrenci hakkında not...'
-                                        className='min-h-[40px] text-sm bg-white dark:bg-card pr-10'
+                                        className='min-h-[40px] text-sm bg-white dark:bg-card pr-10 flex-1'
                                         rows={2}
                                     />
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button 
-                                                    size='icon'
-                                                    variant='ghost'
-                                                    className='absolute top-1 right-1 h-8 w-8'
-                                                    onClick={() => handleGenerateDescription(student.id, record.id)}
-                                                    disabled={isPending && generatingFor === record.id}
-                                                >
-                                                    {isPending && generatingFor === record.id ? (
-                                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                                    ) : (
-                                                        <Sparkles className="h-5 w-5 text-primary" />
-                                                    )}
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>AI ile Not Oluştur</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                                    <div className="flex flex-col gap-1">
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button 
+                                                        size='icon'
+                                                        variant='ghost'
+                                                        className='h-8 w-8'
+                                                        onClick={() => handleGenerateDescription(student.id, record.id)}
+                                                        disabled={isPending && generatingFor === record.id}
+                                                    >
+                                                        {isPending && generatingFor === record.id ? (
+                                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                                        ) : (
+                                                            <Sparkles className="h-5 w-5 text-primary" />
+                                                        )}
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>AI ile Not Oluştur</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button size="icon" variant="ghost" onClick={() => deleteRecord(student.id, record.id)}>
+                                                        <Trash2 className="h-5 w-5 text-red-500" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Değerlendirmeyi Sil</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                 </div>
-                                <div className="md:col-span-1 flex justify-end">
-                                   <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button size="icon" variant="ghost" onClick={() => deleteRecord(student.id, record.id)}>
-                                                    <Trash2 className="h-5 w-5 text-red-500" />
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Değerlendirmeyi Sil</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
-                            </RadioGroup>
+                            </div>
                         ))}
                          <Button variant="outline" size="sm" onClick={() => addRecord(student.id)} className="w-full">
                             <PlusCircle className="mr-2 h-4 w-4" />

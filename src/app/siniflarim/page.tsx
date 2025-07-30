@@ -57,7 +57,7 @@ export default function SiniflarimPage() {
                     </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-4">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold">Öğrenciler</h4>
                   <div className="flex items-center gap-2">
