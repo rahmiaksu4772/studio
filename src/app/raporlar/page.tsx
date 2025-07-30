@@ -5,13 +5,21 @@ import {
   Calendar as CalendarIcon,
   Download,
   BarChart2,
-  PieChart,
+  Users,
   List,
   Loader2,
 } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -35,9 +43,13 @@ import { cn } from '@/lib/utils';
 import { format, startOfMonth } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import type { Student } from '@/lib/types';
+
 
 import { classes, students, dailyRecords } from '@/lib/mock-data';
-import { statusOptions } from '@/lib/types';
+import { statusOptions, AttendanceStatus } from '@/lib/types';
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
@@ -136,14 +148,88 @@ export default function RaporlarPage() {
   const classReportData = React.useMemo(() => {
     if (selectedReportType !== 'sinif') return null;
 
-     const dataByStatus = statusOptions.map(option => ({
-      name: option.label,
-      value: filteredData.filter(d => d.status === option.value).length,
-      fill: chartConfig[option.value]?.color
-    }));
+    const studentSummaries = availableStudents.map(student => {
+      const studentRecords = filteredData.filter(r => r.studentId === student.id);
+      const summary: Record<AttendanceStatus, number> = {
+        '+': 0, 'P': 0, '-': 0, 'Y': 0, 'G': 0
+      };
+      
+      studentRecords.forEach(record => {
+        if(record.status) {
+          summary[record.status]++;
+        }
+      });
+      
+      const totalScore = summary['+'] * 2 + summary['P'] * 1 + summary['-'] * -1;
+      
+      return {
+        ...student,
+        summary,
+        totalScore
+      };
+    }).sort((a, b) => b.totalScore - a.totalScore);
     
-    return { dataByStatus };
-  }, [filteredData, selectedReportType]);
+    return { studentSummaries };
+  }, [filteredData, selectedReportType, availableStudents]);
+
+
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF();
+    const selectedClass = classes.find(c => c.id === selectedClassId);
+    const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
+
+    if (selectedReportType === 'sinif' && classReportData) {
+        doc.text(`Sınıf Raporu: ${selectedClass?.name}`, 14, 15);
+        doc.setFontSize(10);
+        doc.text(dateTitle, 14, 20);
+
+        const tableData = classReportData.studentSummaries.map(s => [
+            s.studentNumber,
+            `${s.firstName} ${s.lastName}`,
+            s.summary['+'],
+            s.summary['P'],
+            s.summary['-'],
+            s.summary['Y'],
+            s.summary['G'],
+            s.totalScore
+        ]);
+
+        (doc as any).autoTable({
+            startY: 25,
+            head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
+            body: tableData,
+            theme: 'grid'
+        });
+
+        doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    } else if (selectedReportType === 'bireysel' && individualReportData) {
+        const selectedStudent = students.find(s => s.id === selectedStudentId);
+        doc.text(`Bireysel Rapor: ${selectedStudent?.firstName} ${selectedStudent?.lastName}`, 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Sınıf: ${selectedClass?.name} | Rapor Tarih Aralığı: ${dateTitle}`, 14, 20);
+        
+        const summaryText = Object.entries(individualReportData.summary)
+            .map(([key, value]: [string, any]) => `${value.label}: ${value.count}`)
+            .join(' | ');
+        
+        doc.text('Genel Durum Özeti:', 14, 30);
+        doc.text(summaryText, 14, 35);
+
+        if (individualReportData.records.length > 0) {
+            (doc as any).autoTable({
+                startY: 45,
+                head: [['Tarih', 'Durum', 'Açıklama']],
+                body: individualReportData.records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => [
+                    format(new Date(r.date), 'd MMM yyyy, cccc', { locale: tr }),
+                    statusToTurkish[r.status!] || 'Belirtilmemiş',
+                    r.description || '-'
+                ]),
+                theme: 'grid'
+            });
+        }
+        doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    }
+  };
 
 
   const renderReportContent = () => {
@@ -236,31 +322,38 @@ export default function RaporlarPage() {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PieChart/> Sınıf Geneli Durum Dağılımı</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><Users/> Sınıf Geneli Performans Tablosu</CardTitle>
+                    <CardDescription>
+                        Seçilen tarih aralığında öğrencilerin aldığı işaretler ve toplam puanları.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="flex justify-center">
-                     <ChartContainer config={chartConfig} className="min-h-[300px] w-full max-w-lg">
-                        <ResponsiveContainer width="100%" height={300}>
-                            <PieChart>
-                            <ChartTooltip
-                                cursor={false}
-                                content={<ChartTooltipContent hideLabel />}
-                            />
-                            <Pie
-                                data={classReportData.dataByStatus}
-                                dataKey="value"
-                                nameKey="name"
-                                innerRadius={60}
-                                strokeWidth={5}
-                            >
-                            {classReportData.dataByStatus.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                            </Pie>
-                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
+                <CardContent>
+                     <div className="border rounded-lg overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead className="w-[80px]">No</TableHead>
+                                    <TableHead>Adı Soyadı</TableHead>
+                                    {statusOptions.map(opt => (
+                                        <TableHead key={opt.value} className="text-center">{opt.label}</TableHead>
+                                    ))}
+                                    <TableHead className="text-right font-bold">Toplam Puan</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {classReportData.studentSummaries.map(student => (
+                                    <TableRow key={student.id}>
+                                        <TableCell className="font-medium">{student.studentNumber}</TableCell>
+                                        <TableCell className="font-semibold">{student.firstName} {student.lastName}</TableCell>
+                                        {statusOptions.map(opt => (
+                                            <TableCell key={opt.value} className="text-center">{student.summary[opt.value]}</TableCell>
+                                        ))}
+                                        <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         )
@@ -279,7 +372,7 @@ export default function RaporlarPage() {
               Sınıf ve öğrenci performansını analiz edin.
             </p>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleDownloadPdf}>
             <Download className="mr-2 h-4 w-4" />
             PDF İndir
           </Button>
