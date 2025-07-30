@@ -23,19 +23,22 @@ type ImportStudentsDialogProps = {
   classId: string;
   onImport: (classId: string, students: StudentImportData[]) => void;
   isFirstImport?: boolean;
+  existingStudents: Pick<Student, 'studentNumber'>[];
 };
 
-export function ImportStudentsDialog({ onImport, classId, isFirstImport = false }: ImportStudentsDialogProps) {
+export function ImportStudentsDialog({ onImport, classId, isFirstImport = false, existingStudents }: ImportStudentsDialogProps) {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [importedStudents, setImportedStudents] = React.useState<StudentImportData[]>([]);
+  const [skippedCount, setSkippedCount] = React.useState(0);
 
   const resetState = () => {
     setIsLoading(false);
     setFileName(null);
     setImportedStudents([]);
+    setSkippedCount(0);
   };
 
   const handleDownloadTemplate = () => {
@@ -53,6 +56,7 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false 
     setIsLoading(true);
     setFileName(file.name);
     setImportedStudents([]);
+    setSkippedCount(0);
 
     try {
       const data = await file.arrayBuffer();
@@ -64,24 +68,42 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false 
         range: 1, // Skip header row
       }) as any[];
       
+      const existingNumbers = new Set(existingStudents.map(s => s.studentNumber));
+      const numbersInFile = new Set<number>();
+      let localSkippedCount = 0;
+      
       const validStudents = json.filter(row => 
           row.studentNumber && row.firstName && row.lastName &&
           typeof row.studentNumber === 'number' &&
           typeof row.firstName === 'string' &&
           typeof row.lastName === 'string'
-      ).map(row => ({
+      ).filter(row => {
+          if (existingNumbers.has(row.studentNumber) || numbersInFile.has(row.studentNumber)) {
+              localSkippedCount++;
+              return false;
+          }
+          numbersInFile.add(row.studentNumber);
+          return true;
+      }).map(row => ({
           studentNumber: row.studentNumber,
           firstName: row.firstName,
           lastName: row.lastName,
       }));
 
       setImportedStudents(validStudents);
+      setSkippedCount(localSkippedCount);
       
       if(validStudents.length === 0 && json.length > 0){
           toast({
               title: 'Dosya Hatası',
-              description: 'Dosyadaki veriler şablonla uyumlu değil veya boş. Lütfen şablonu kontrol edin.',
+              description: 'Dosyadaki veriler şablonla uyumlu değil veya tüm öğrenciler zaten mevcut.',
               variant: 'destructive',
+          });
+      } else if (localSkippedCount > 0) {
+           toast({
+              title: 'Mükerrer Kayıtlar Atlandı',
+              description: `${localSkippedCount} öğrenci, numarası zaten mevcut olduğu için atlandı.`,
+              variant: 'default',
           });
       }
 
@@ -168,7 +190,7 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false 
                   <span className='truncate'>{fileName}</span>
               </div>
                { !isLoading && importedStudents.length > 0 && <CheckCircle className='h-5 w-5 text-green-500' /> }
-               { !isLoading && importedStudents.length === 0 && <AlertTriangle className='h-5 w-5 text-yellow-500' /> }
+               { !isLoading && (importedStudents.length === 0 || skippedCount > 0) && <AlertTriangle className='h-5 w-5 text-yellow-500' /> }
             </div>
           )}
 

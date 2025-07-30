@@ -40,12 +40,27 @@ export default function SiniflarimPage() {
   };
 
   const handleAddStudent = (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
+    const isDuplicate = students.some(s => s.classId === classId && s.studentNumber === studentData.studentNumber);
+
+    if (isDuplicate) {
+        toast({
+            title: 'Hata: Mükerrer Kayıt',
+            description: `Bu sınıfta "${studentData.studentNumber}" numaralı bir öğrenci zaten mevcut.`,
+            variant: 'destructive',
+        });
+        return;
+    }
+
     const newStudent: Student = {
       ...studentData,
       id: `s${students.length + 1 + Math.random()}`,
       classId,
     };
     setStudents([...students, newStudent]);
+     toast({
+      title: 'Başarılı!',
+      description: `Öğrenci "${studentData.firstName} ${studentData.lastName}" eklendi.`,
+    });
   };
   
   const handleBulkAddStudents = (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
@@ -62,6 +77,17 @@ export default function SiniflarimPage() {
   };
 
   const handleUpdateStudent = (updatedStudent: Student) => {
+    const isDuplicate = students.some(s => s.id !== updatedStudent.id && s.classId === updatedStudent.classId && s.studentNumber === updatedStudent.studentNumber);
+
+    if(isDuplicate){
+        toast({
+            title: 'Hata: Mükerrer Kayıt',
+            description: `Bu sınıfta "${updatedStudent.studentNumber}" numaralı bir öğrenci zaten mevcut.`,
+            variant: 'destructive',
+        });
+        return;
+    }
+
     setStudents(students.map(s => (s.id === updatedStudent.id ? updatedStudent : s)));
     toast({
       title: 'Başarılı!',
@@ -82,6 +108,10 @@ export default function SiniflarimPage() {
   const getStudentCount = (classId: string) => {
     return students.filter(s => s.classId === classId).length;
   };
+  
+  const getStudentsForClass = (classId: string) => {
+      return students.filter(s => s.classId === c.id);
+  }
 
   return (
     <AppLayout>
@@ -112,8 +142,8 @@ export default function SiniflarimPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold">Öğrenci Listesi</h4>
                   <div className="flex items-center gap-2">
-                    <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} />
-                    <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} />
+                    <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} existingStudents={getStudentsForClass(c.id)} />
+                    <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} existingStudents={getStudentsForClass(c.id)} />
                   </div>
                 </div>
 
@@ -165,8 +195,8 @@ export default function SiniflarimPage() {
                     <h3 className="font-semibold">Öğrenci Bulunmuyor</h3>
                     <p className="text-sm">Bu sınıfa henüz öğrenci eklenmemiş.</p>
                     <div className="mt-4 flex items-center justify-center gap-2">
-                        <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} isFirstStudent={true}/>
-                        <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} isFirstImport={true} />
+                        <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} isFirstStudent={true} existingStudents={[]} />
+                        <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} isFirstImport={true} existingStudents={[]} />
                     </div>
                   </div>
                 )}
@@ -180,6 +210,7 @@ export default function SiniflarimPage() {
             onUpdateStudent={handleUpdateStudent}
             onClose={() => setEditingStudent(null)}
             isOpen={!!editingStudent}
+            existingStudents={getStudentsForClass(editingStudent.classId)}
           />
         )}
       </main>

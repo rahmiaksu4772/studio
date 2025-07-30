@@ -30,11 +30,21 @@ type EditStudentFormProps = {
   onUpdateStudent: (student: Student) => void;
   onClose: () => void;
   isOpen: boolean;
+  existingStudents: Pick<Student, 'id' | 'studentNumber'>[];
 };
 
-export function EditStudentForm({ student, onUpdateStudent, onClose, isOpen }: EditStudentFormProps) {
+export function EditStudentForm({ student, onUpdateStudent, onClose, isOpen, existingStudents }: EditStudentFormProps) {
+  
+  const dynamicFormSchema = formSchema.refine(
+    (data) => !existingStudents.some(s => s.id !== student.id && s.studentNumber === data.studentNumber),
+    {
+      message: 'Bu numaraya sahip bir öğrenci zaten mevcut.',
+      path: ['studentNumber'],
+    }
+  );
+
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(dynamicFormSchema),
     defaultValues: {
       studentNumber: student.studentNumber,
       firstName: student.firstName,

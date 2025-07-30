@@ -23,13 +23,23 @@ type AddStudentFormProps = {
   classId: string;
   onAddStudent: (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => void;
   isFirstStudent?: boolean;
+  existingStudents: Pick<Student, 'studentNumber'>[];
 };
 
-export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false }: AddStudentFormProps) {
+export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false, existingStudents }: AddStudentFormProps) {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
+  
+  const dynamicFormSchema = formSchema.refine(
+    (data) => !existingStudents.some(s => s.studentNumber === data.studentNumber),
+    {
+      message: 'Bu numaraya sahip bir öğrenci zaten mevcut.',
+      path: ['studentNumber'],
+    }
+  );
+
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(dynamicFormSchema),
     defaultValues: {
       studentNumber: '' as any, // Initialize with empty string to avoid uncontrolled input error
       firstName: '',
@@ -39,10 +49,6 @@ export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onAddStudent(classId, values);
-    toast({
-      title: 'Başarılı!',
-      description: `Öğrenci "${values.firstName} ${values.lastName}" eklendi.`,
-    });
     form.reset({ studentNumber: '' as any, firstName: '', lastName: '' });
     setOpen(false);
   }
