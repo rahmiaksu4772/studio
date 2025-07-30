@@ -76,11 +76,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarGroup className="mt-4">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href}>
-                    <SidebarMenuButton asChild tooltip={item.label} isActive={pathname === item.href}>
-                        <a>
-                            <item.icon /> <span>{item.label}</span>
-                        </a>
+                  <Link href={item.href} passHref legacyBehavior>
+                    <SidebarMenuButton as="a" tooltip={item.label} isActive={pathname === item.href}>
+                        <item.icon /> <span>{item.label}</span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -91,11 +89,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-                <Link href="/ayarlar">
-                    <SidebarMenuButton asChild tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
-                       <a>
-                        <Settings /> <span>Ayarlar</span>
-                       </a>
+                <Link href="/ayarlar" passHref legacyBehavior>
+                    <SidebarMenuButton as="a" tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
+                       <Settings /> <span>Ayarlar</span>
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
