@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Upload, Plus, FileText, Loader2 } from 'lucide-react';
+import { Upload, Plus, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -197,7 +197,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                     <FormControl>
                       <div>
                         <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
-                          <FileText className="mr-2 h-4 w-4" />
+                          <Folder className="mr-2 h-4 w-4 text-yellow-500" />
                           <span>{selectedFile?.[0]?.name ?? 'Dosya Seç'}</span>
                         </Button>
                         <Input
