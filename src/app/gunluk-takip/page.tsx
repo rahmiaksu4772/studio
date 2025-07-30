@@ -32,7 +32,6 @@ import { generateDescriptionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
@@ -70,6 +69,23 @@ export default function GunlukTakipPage() {
         description: newRecord.description !== undefined ? newRecord.description : prev[studentId]?.description,
       },
     }));
+  };
+
+  const handleBulkStatusUpdate = (status: AttendanceStatus) => {
+    setRecords(prevRecords => {
+      const newRecords = { ...prevRecords };
+      students.forEach(student => {
+        newRecords[student.id] = {
+          ...newRecords[student.id],
+          status: status,
+        };
+      });
+      return newRecords;
+    });
+    toast({
+      title: "Toplu Güncelleme Başarılı",
+      description: `${selectedClass.name} sınıfındaki tüm öğrencilerin durumu "${statusOptions.find(s=>s.value === status)?.label}" olarak ayarlandı.`,
+    });
   };
 
   const handleSave = () => {
@@ -158,10 +174,10 @@ export default function GunlukTakipPage() {
             <CardHeader>
                 <CardTitle>Genel Değerlendirme</CardTitle>
                 <CardDescription>
-                    Dersin veya günün geneli hakkında notlarınızı buraya ekleyebilirsiniz.
+                    Dersin veya günün geneli hakkında notlarınızı ve toplu işlemleri buradan yapabilirsiniz.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='space-y-4'>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                     <div className='space-y-2'>
                         <Label htmlFor="general-description" className='flex items-center gap-2'>
@@ -181,101 +197,110 @@ export default function GunlukTakipPage() {
                         Tüm Değişiklikleri Kaydet
                     </Button>
                 </div>
+                 <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                        Tüm Sınıfa Uygula
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                        {statusOptions.map(option => (
+                           <TooltipProvider key={option.value}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => handleBulkStatusUpdate(option.value)}
+                                            className={cn("h-10 w-10", option.color)}
+                                        >
+                                           {option.icon && <option.icon className="h-5 w-5" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Tümünü "{option.label}" olarak işaretle</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ))}
+                    </div>
+                </div>
             </CardContent>
         </Card>
         
-        <Card>
-            <CardHeader>
-                <CardTitle>Öğrenci Değerlendirmeleri</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className='w-[200px]'>Öğrenci</TableHead>
-                            <TableHead className='w-[300px]'>Durum</TableHead>
-                            <TableHead>Notlar</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {students.map(student => {
-                            const record = records[student.id];
-                            return (
-                                <TableRow key={student.id}>
-                                    <TableCell>
-                                        <div className='font-medium'>{student.firstName} {student.lastName}</div>
-                                        <div className='text-sm text-muted-foreground'>No: {student.studentNumber}</div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <RadioGroup 
-                                            value={record?.status || ""} 
-                                            onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                            className='grid grid-cols-5 gap-2'
-                                        >
-                                            {statusOptions.map(option => (
-                                                <TooltipProvider key={option.value}>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Label 
-                                                                htmlFor={`${student.id}-${option.value}`}
-                                                                className={cn(
-                                                                    "flex flex-col items-center justify-center gap-1.5 rounded-md p-2 border-2 text-muted-foreground cursor-pointer transition-colors hover:border-primary",
-                                                                    record?.status === option.value && "border-primary bg-primary/10 text-primary"
-                                                                    )}
-                                                                >
-                                                                    {option.icon && <option.icon className="h-5 w-5" />}
-                                                                    <span className='text-xs font-semibold'>{option.label}</span>
-                                                                    <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} className='sr-only'/>
-                                                                </Label>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>{option.label}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            ))}
-                                        </RadioGroup>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="relative">
-                                            <Textarea 
-                                                value={record?.description || ''}
-                                                onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                                placeholder='Öğrenci hakkında not...'
-                                                className='min-h-[40px] text-sm bg-white dark:bg-card pr-10'
-                                                rows={2}
-                                            />
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button 
-                                                            size='icon'
-                                                            variant='ghost'
-                                                            className='absolute top-1 right-1 h-8 w-8'
-                                                            onClick={() => handleGenerateDescription(student.id)}
-                                                            disabled={isPending && generatingFor === student.id}
-                                                        >
-                                                            {isPending && generatingFor === student.id ? (
-                                                                <Loader2 className="h-5 w-5 animate-spin" />
-                                                            ) : (
-                                                                <Sparkles className="h-5 w-5 text-primary" />
-                                                            )}
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>AI ile Not Oluştur</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+        <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Öğrenci Değerlendirmeleri</h2>
+            {students.map(student => {
+                const record = records[student.id];
+                return (
+                    <Card key={student.id}>
+                        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                            <div className='md:col-span-1'>
+                                <div className='font-medium'>{student.firstName} {student.lastName}</div>
+                                <div className='text-sm text-muted-foreground'>No: {student.studentNumber}</div>
+                            </div>
+                            <RadioGroup 
+                                value={record?.status || ""} 
+                                onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
+                                className='md:col-span-1 grid grid-cols-5 gap-2'
+                            >
+                                {statusOptions.map(option => (
+                                    <TooltipProvider key={option.value}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Label 
+                                                    htmlFor={`${student.id}-${option.value}`}
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center gap-1.5 rounded-md p-2 border-2 text-muted-foreground cursor-pointer transition-colors hover:border-primary",
+                                                        record?.status === option.value && "border-primary bg-primary/10 text-primary"
+                                                        )}
+                                                    >
+                                                        {option.icon && <option.icon className="h-5 w-5" />}
+                                                        <span className='text-xs font-semibold'>{option.label}</span>
+                                                        <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} className='sr-only'/>
+                                                    </Label>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{option.label}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                ))}
+                            </RadioGroup>
+                            <div className="relative md:col-span-1">
+                                <Textarea 
+                                    value={record?.description || ''}
+                                    onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
+                                    placeholder='Öğrenci hakkında not...'
+                                    className='min-h-[40px] text-sm bg-white dark:bg-card pr-10'
+                                    rows={2}
+                                />
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button 
+                                                size='icon'
+                                                variant='ghost'
+                                                className='absolute top-1 right-1 h-8 w-8'
+                                                onClick={() => handleGenerateDescription(student.id)}
+                                                disabled={isPending && generatingFor === student.id}
+                                            >
+                                                {isPending && generatingFor === student.id ? (
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                ) : (
+                                                    <Sparkles className="h-5 w-5 text-primary" />
+                                                )}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>AI ile Not Oluştur</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )
+            })}
+        </div>
       </main>
     </AppLayout>
   );
