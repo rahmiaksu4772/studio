@@ -10,9 +10,11 @@ import { classes as initialClasses, students as initialStudents } from '@/lib/mo
 import type { Student, ClassInfo } from '@/lib/types';
 import { AddClassForm } from '@/components/add-class-form';
 import { AddStudentForm } from '@/components/add-student-form';
+import { EditStudentForm } from '@/components/edit-student-form';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -20,8 +22,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SiniflarimPage() {
+  const { toast } = useToast();
   const [classes, setClasses] = React.useState<ClassInfo[]>(initialClasses);
   const [students, setStudents] = React.useState<Student[]>(initialStudents);
   const [editingStudent, setEditingStudent] = React.useState<Student | null>(null);
@@ -43,8 +47,22 @@ export default function SiniflarimPage() {
     setStudents([...students, newStudent]);
   };
 
+  const handleUpdateStudent = (updatedStudent: Student) => {
+    setStudents(students.map(s => (s.id === updatedStudent.id ? updatedStudent : s)));
+    toast({
+      title: 'Başarılı!',
+      description: `Öğrenci "${updatedStudent.firstName} ${updatedStudent.lastName}" güncellendi.`,
+    });
+    setEditingStudent(null);
+  };
+
   const handleStudentDelete = (id: string) => {
     setStudents(students.filter(s => s.id !== id));
+    toast({
+      title: 'Öğrenci Silindi',
+      description: 'Öğrenci başarıyla listeden kaldırıldı.',
+      variant: 'destructive'
+    });
   };
   
   const getStudentCount = (classId: string) => {
@@ -119,9 +137,27 @@ export default function SiniflarimPage() {
                               <Button variant="ghost" size="icon" onClick={() => setEditingStudent(student)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleStudentDelete(student.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Bu işlem geri alınamaz. "{student.firstName} {student.lastName}" adlı öğrenciyi kalıcı olarak silecektir.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleStudentDelete(student.id)} className='bg-destructive hover:bg-destructive/90'>
+                                            Sil
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           </li>
                         ))}
@@ -141,6 +177,14 @@ export default function SiniflarimPage() {
             </Card>
           ))}
         </div>
+        {editingStudent && (
+          <EditStudentForm
+            student={editingStudent}
+            onUpdateStudent={handleUpdateStudent}
+            onClose={() => setEditingStudent(null)}
+            isOpen={!!editingStudent}
+          />
+        )}
       </main>
     </AppLayout>
   );
