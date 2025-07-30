@@ -171,8 +171,9 @@ const Sidebar = React.forwardRef<
     }, []);
 
     if (!isMounted) {
-        return null; 
+        return null;
     }
+
 
     if (collapsible === "none") {
       return (
@@ -763,5 +764,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
