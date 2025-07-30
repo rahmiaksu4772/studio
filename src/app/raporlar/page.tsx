@@ -201,12 +201,6 @@ export default function RaporlarPage() {
             head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
             body: tableData,
             theme: 'grid',
-            didDrawCell: (data: any) => {
-              if (data.section === 'body' || data.section === 'head') {
-                data.cell.styles.font = 'normal';
-                data.cell.styles.fontStyle = 'normal';
-              }
-            },
         });
 
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -233,12 +227,6 @@ export default function RaporlarPage() {
                     r.description || '-'
                 ]),
                 theme: 'grid',
-                didDrawCell: (data: any) => {
-                  if (data.section === 'body' || data.section === 'head') {
-                    data.cell.styles.font = 'normal';
-                    data.cell.styles.fontStyle = 'normal';
-                  }
-                },
             });
         }
         doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -486,5 +474,7 @@ export default function RaporlarPage() {
     
 
 
+
+    
 
     
