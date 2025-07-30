@@ -18,7 +18,6 @@ export type AttendanceStatus = '+' | '½' | '-' | 'G' | 'Y';
 export type DailyRecord = {
   studentId: string;
   status: AttendanceStatus | null;
-  description: string;
 };
 
 export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string }[] = [

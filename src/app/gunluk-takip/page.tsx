@@ -6,11 +6,6 @@ import { useTransition } from 'react';
 import {
   FileText,
   Calendar as CalendarIcon,
-  Users,
-  UserCheck,
-  UserX,
-  ThumbsUp,
-  ThumbsDown,
   Sparkles,
   Loader2,
 } from 'lucide-react';
@@ -43,6 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateDescriptionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { UserCheck, UserX, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 
 export default function GunlukTakipPage() {
@@ -50,18 +46,17 @@ export default function GunlukTakipPage() {
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo>(classes[0]);
   const [recordDate, setRecordDate] = React.useState<Date>(new Date());
   const [isPending, startTransition] = useTransition();
+  const [classDescription, setClassDescription] = React.useState('');
 
   const initialRecords: Record<string, DailyRecord> = allStudents
     .filter(s => s.classId === selectedClass.id)
     .reduce((acc, student) => {
-        acc[student.id] = { studentId: student.id, status: null, description: '' };
+        acc[student.id] = { studentId: student.id, status: null };
         return acc;
     }, {} as Record<string, DailyRecord>);
   
   initialRecords['s1'].status = '+';
-  initialRecords['s1'].description = 'Derse aktif katıldı.';
   initialRecords['s3'].status = '-';
-  initialRecords['s3'].description = 'Ödevini yapmamış.';
   initialRecords['s5'].status = 'Y';
   
   const [records, setRecords] = React.useState<Record<string, DailyRecord>>(initialRecords);
@@ -75,7 +70,6 @@ export default function GunlukTakipPage() {
         ...prev[studentId],
         studentId,
         status: newRecord.status !== undefined ? newRecord.status : prev[studentId]?.status,
-        description: newRecord.description !== undefined ? newRecord.description : prev[studentId]?.description,
       },
     }));
   };
@@ -90,30 +84,6 @@ export default function GunlukTakipPage() {
     });
     setRecords(newRecords);
   }
-
-  const handleGenerateDescription = (studentId: string) => {
-    startTransition(async () => {
-        const result = await generateDescriptionAction({
-            studentId: studentId,
-            classId: selectedClass.id,
-            recordDate: format(recordDate, 'yyyy-MM-dd'),
-        });
-
-        if (result.error) {
-            toast({
-                title: 'Hata',
-                description: result.error,
-                variant: 'destructive',
-            });
-        } else if (result.description) {
-            handleRecordChange(studentId, { description: result.description });
-            toast({
-                title: 'Açıklama Oluşturuldu',
-                description: 'AI açıklaması başarıyla eklendi.',
-            });
-        }
-    });
-  };
 
   const getCounts = React.useCallback(() => {
     const counts = {
@@ -146,10 +116,10 @@ export default function GunlukTakipPage() {
   const counts = getCounts();
 
   const handleSave = () => {
-    console.log("Kaydedilen Veriler:", records);
+    console.log("Kaydedilen Veriler:", { records, classDescription });
     toast({
       title: "Kayıt Başarılı",
-      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar kaydedildi.`,
+      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar ve notlar kaydedildi.`,
     });
   };
 
@@ -232,12 +202,21 @@ export default function GunlukTakipPage() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Değerlendirme Tablosu</CardTitle>
-              <Button onClick={handleSave}>
-                <FileText className="mr-2 h-4 w-4" />
-                Değişiklikleri Kaydet
-              </Button>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <CardTitle>Değerlendirme Tablosu</CardTitle>
+                <div className="flex w-full md:w-auto items-center gap-2">
+                    <Textarea
+                        placeholder="Sınıf hakkında genel bir not ekleyin..."
+                        value={classDescription}
+                        onChange={(e) => setClassDescription(e.target.value)}
+                        className="min-h-[40px] flex-1"
+                        rows={1}
+                    />
+                    <Button onClick={handleSave} className="h-10">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Kaydet
+                    </Button>
+                </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -260,7 +239,6 @@ export default function GunlukTakipPage() {
                                    </div>
                                 </TableHead>
                             ))}
-                            <TableHead className="w-full min-w-[250px]">Açıklama</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -297,26 +275,6 @@ export default function GunlukTakipPage() {
                                             </TableCell>
                                         ))}
                                     </RadioGroup>
-
-                                    <TableCell>
-                                        <div className="relative">
-                                             <Textarea
-                                                placeholder="Öğrenci hakkında bir not ekleyin..."
-                                                value={record?.description || ''}
-                                                onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                                className="min-h-[60px] bg-card/80 pr-24"
-                                                rows={2}
-                                            />
-                                            <Button variant="ghost" size="sm" onClick={() => handleGenerateDescription(student.id)} disabled={isPending} className="absolute top-1 right-1 h-auto px-2 py-1 text-xs self-start gap-1">
-                                                {isPending && records[student.id]?.description === '' ? (
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                ) : (
-                                                    <Sparkles className="h-3 w-3 text-primary" />
-                                                )}
-                                                <span>AI Not</span>
-                                            </Button>
-                                        </div>
-                                    </TableCell>
                                 </TableRow>
                             )
                         })}
