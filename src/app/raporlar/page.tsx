@@ -201,7 +201,14 @@ export default function RaporlarPage() {
             head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
             body: tableData,
             theme: 'grid',
-            styles: { font: 'normal', fontStyle: 'normal' }
+            didDrawCell: (data: any) => {
+              // This is a workaround to ensure all characters are rendered correctly.
+              // We are forcing the font to be set for each cell.
+              if (data.section === 'body' || data.section === 'head') {
+                data.cell.styles.font = 'normal';
+                data.cell.styles.fontStyle = 'normal';
+              }
+            },
         });
 
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -228,7 +235,12 @@ export default function RaporlarPage() {
                     r.description || '-'
                 ]),
                 theme: 'grid',
-                styles: { font: 'normal', fontStyle: 'normal' }
+                didDrawCell: (data: any) => {
+                  if (data.section === 'body' || data.section === 'head') {
+                    data.cell.styles.font = 'normal';
+                    data.cell.styles.fontStyle = 'normal';
+                  }
+                },
             });
         }
         doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -474,3 +486,4 @@ export default function RaporlarPage() {
   );
 
     
+
