@@ -3,105 +3,117 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { BookOpenCheck, Clock, Sandwich } from 'lucide-react';
-import { addMinutes, format } from 'date-fns';
+import { BookOpenCheck, Clock } from 'lucide-react';
+import { weeklySchedule } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
+import { format, parse } from 'date-fns';
 
-interface Ders {
-  dersNo: number;
-  baslangic: Date;
-  bitis: Date;
-}
+const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+
+const getCurrentLessonIndex = (lessons: any[]) => {
+  const now = new Date();
+  for (let i = 0; i < lessons.length; i++) {
+    const lesson = lessons[i];
+    const [startTimeStr, endTimeStr] = lesson.time.split(' - ');
+    const startTime = parse(startTimeStr, 'HH:mm', new Date());
+    const endTime = parse(endTimeStr, 'HH:mm', new Date());
+    
+    // Set date to today for accurate comparison
+    const today = new Date();
+    startTime.setFullYear(today.getFullYear(), today.getMonth(), today.getDate());
+    endTime.setFullYear(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (now >= startTime && now <= endTime) {
+      return i;
+    }
+  }
+  return -1;
+};
+
 
 export default function DersProgrami() {
-  const [ilkDersSaati, setIlkDersSaati] = React.useState('08:30');
-  const [teneffusSuresi, setTeneffusSuresi] = React.useState(10);
-  const [dersSuresi] = React.useState(40);
-  const [dersProgrami, setDersProgrami] = React.useState<Ders[]>([]);
+    const todayStr = format(new Date(), 'EEEE'); // e.g., "Monday"
+    const todayTurkish = weeklySchedule.find(d => d.dayOfWeek === todayStr)?.day || '';
+    const [currentDay, setCurrentDay] = React.useState(todayTurkish || daysOfWeek[0]);
+    
+    const [currentLessonIndex, setCurrentLessonIndex] = React.useState(-1);
 
-  React.useEffect(() => {
-    const hesaplaProgram = () => {
-      const yeniProgram: Ders[] = [];
-      if (!ilkDersSaati) return;
+    React.useEffect(() => {
+        const todaySchedule = weeklySchedule.find(d => d.day === currentDay);
+        if (todaySchedule) {
+            const lessonIndex = getCurrentLessonIndex(todaySchedule.lessons);
+            setCurrentLessonIndex(lessonIndex);
+        }
 
-      const [saat, dakika] = ilkDersSaati.split(':').map(Number);
-      let dersBaslangic = new Date();
-      dersBaslangic.setHours(saat, dakika, 0, 0);
+        const interval = setInterval(() => {
+            if (todaySchedule) {
+                const lessonIndex = getCurrentLessonIndex(todaySchedule.lessons);
+                setCurrentLessonIndex(lessonIndex);
+            }
+        }, 60000); // Check every minute
 
-      for (let i = 1; i <= 8; i++) {
-        const dersBitis = addMinutes(dersBaslangic, dersSuresi);
-        yeniProgram.push({
-          dersNo: i,
-          baslangic: dersBaslangic,
-          bitis: dersBitis,
-        });
-        dersBaslangic = addMinutes(dersBitis, teneffusSuresi);
-      }
-      setDersProgrami(yeniProgram);
-    };
-
-    hesaplaProgram();
-  }, [ilkDersSaati, teneffusSuresi, dersSuresi]);
+        return () => clearInterval(interval);
+    }, [currentDay]);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BookOpenCheck className="h-5 w-5" />
-          Günlük Ders Programı
+          Haftalık Ders Programı
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="space-y-2">
-            <Label htmlFor="ilk-ders-saati" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              İlk Ders Saati
-            </Label>
-            <Input
-              id="ilk-ders-saati"
-              type="time"
-              value={ilkDersSaati}
-              onChange={(e) => setIlkDersSaati(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="teneffus-suresi" className="flex items-center gap-2">
-                <Sandwich className="h-4 w-4" />
-                Teneffüs (dakika)
-            </Label>
-            <Input
-              id="teneffus-suresi"
-              type="number"
-              value={teneffusSuresi}
-              onChange={(e) => setTeneffusSuresi(parseInt(e.target.value, 10) || 0)}
-              min="0"
-            />
+        <div className="mb-4 overflow-x-auto pb-2">
+          <div className="flex w-full space-x-2">
+            {daysOfWeek.map(day => (
+              <button
+                key={day}
+                onClick={() => setCurrentDay(day)}
+                className={cn(
+                  'px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                  currentDay === day
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80'
+                )}
+              >
+                {day}
+              </button>
+            ))}
           </div>
         </div>
-
-        <div className="border rounded-lg overflow-hidden">
-          <div className="grid grid-cols-3 bg-muted/50 font-semibold">
-            <div className="p-3 text-center border-r">Ders</div>
-            <div className="p-3 text-center border-r">Başlangıç</div>
-            <div className="p-3 text-center">Bitiş</div>
-          </div>
-          {dersProgrami.map((ders, index) => (
-            <div key={ders.dersNo}>
-                <div className="grid grid-cols-3 items-center">
-                    <div className="p-3 text-center border-r font-bold text-primary">{ders.dersNo}. Ders</div>
-                    <div className="p-3 text-center border-r">{format(ders.baslangic, 'HH:mm')}</div>
-                    <div className="p-3 text-center">{format(ders.bitis, 'HH:mm')}</div>
-                </div>
-                {index < dersProgrami.length - 1 && (
-                    <div className="grid grid-cols-3 items-center bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                        <div className="p-2 text-center border-r text-sm font-medium col-span-1">Teneffüs</div>
-                        <div className="p-2 text-center border-r text-sm col-span-2">{teneffusSuresi} dakika</div>
+        
+        <div className="rounded-lg border overflow-hidden">
+            {weeklySchedule.find(d => d.day === currentDay)?.lessons.map((lesson, index) => (
+                 <div key={index} 
+                    className={cn(
+                        "grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-4 transition-all",
+                        index < weeklySchedule.find(d => d.day === currentDay)!.lessons.length - 1 && "border-b",
+                        index === currentLessonIndex && todayTurkish === currentDay && "bg-primary/10 ring-2 ring-primary/50"
+                    )}
+                >
+                    <div className="flex items-center gap-3 font-semibold text-primary">
+                        <Clock className="h-5 w-5" />
+                        <span>{lesson.time}</span>
                     </div>
-                )}
-            </div>
-          ))}
+                    <div className="col-span-1 md:col-span-2">
+                        <p className="font-bold text-lg">{lesson.subject}</p>
+                        <p className="text-sm text-muted-foreground">{lesson.class}</p>
+                    </div>
+                    {index === currentLessonIndex && todayTurkish === currentDay && (
+                        <div className="flex items-center justify-start md:justify-end">
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-200 text-green-800 animate-pulse">
+                                Şimdi
+                            </span>
+                        </div>
+                    )}
+                 </div>
+            ))}
+            {weeklySchedule.find(d => d.day === currentDay)?.lessons.length === 0 && (
+                <div className="text-center p-8 text-muted-foreground">
+                    Bugün ders programı boş.
+                </div>
+            )}
         </div>
       </CardContent>
     </Card>

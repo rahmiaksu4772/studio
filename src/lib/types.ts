@@ -1,4 +1,5 @@
-import { type LucideIcon, ThumbsDown, UserCheck, UserX, CheckCheck, Check, X } from "lucide-react";
+
+import { type LucideIcon, UserCheck, UserX, CheckCheck, Check, X } from "lucide-react";
 
 export type Student = {
   id: string;
@@ -31,3 +32,15 @@ export const statusOptions: { value: AttendanceStatus; label: string, icon?: Luc
     { value: 'Y', label: 'Yok', icon: UserX, color: 'text-yellow-600' },
     { value: 'G', label: 'İzinli', icon: UserCheck, color: 'text-blue-600' },
 ];
+
+export interface Lesson {
+  time: string;
+  subject: string;
+  class: string;
+}
+
+export interface WeeklyScheduleItem {
+  day: string;
+  dayOfWeek: string;
+  lessons: Lesson[];
+}

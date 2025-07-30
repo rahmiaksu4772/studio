@@ -1,6 +1,6 @@
 
-import type { Student, ClassInfo, DailyRecord } from './types';
-import { format, subMonths, getDaysInMonth, setDate } from 'date-fns';
+import type { Student, ClassInfo, DailyRecord, WeeklyScheduleItem } from './types';
+import { format, subMonths, getDaysInMonth } from 'date-fns';
 
 export const classes: ClassInfo[] = [
   { id: 'c1', name: '6/A' },
@@ -38,11 +38,10 @@ function getDaysArrayForLastMonth() {
     return days;
 }
 
-
 const lastMonthDays = getDaysArrayForLastMonth();
 
 const allRecords: DailyRecord[] = [];
-const statuses: (DailyRecord['status'])[] = ['+', '+', '+', '½', '-', 'Y', 'G', '+', '+'];
+const statuses: (DailyRecord['status'])[] = ['+', '+', '+', 'P', '-', 'Y', 'G', '+', '+'];
 const descriptions = [
     'Derse harika katılım gösterdi.',
     'Ödevini zamanında ve eksiksiz teslim etti.',
@@ -56,7 +55,6 @@ const descriptions = [
     'Ailevi nedenlerle izinliydi.',
     'Okul gezisindeydi.',
 ];
-
 
 students.forEach(student => {
     lastMonthDays.forEach(day => {
@@ -85,3 +83,61 @@ students.forEach(student => {
 });
 
 export const dailyRecords: DailyRecord[] = allRecords;
+
+export const weeklySchedule: WeeklyScheduleItem[] = [
+  {
+    day: 'Pazartesi',
+    dayOfWeek: 'Monday',
+    lessons: [
+      { time: '08:30 - 09:10', subject: 'Matematik', class: '6/A' },
+      { time: '09:20 - 10:00', subject: 'Matematik', class: '6/A' },
+      { time: '10:10 - 10:50', subject: 'Türkçe', class: '7/B' },
+      { time: '11:00 - 11:40', subject: 'Fen Bilimleri', class: '6/A' },
+      { time: '12:40 - 13:20', subject: 'Matematik', class: '7/B' },
+      { time: '13:30 - 14:10', subject: 'Matematik', class: '7/B' },
+    ],
+  },
+  {
+    day: 'Salı',
+    dayOfWeek: 'Tuesday',
+    lessons: [
+      { time: '08:30 - 09:10', subject: 'Türkçe', class: '6/A' },
+      { time: '09:20 - 10:00', subject: 'Sosyal Bilgiler', class: '7/B' },
+      { time: '10:10 - 10:50', subject: 'Matematik', class: '6/A' },
+      { time: '11:00 - 11:40', subject: 'Matematik', class: '6/A' },
+      { time: '12:40 - 13:20', subject: 'Fen Bilimleri', class: '7/B' },
+      { time: '13:30 - 14:10', subject: 'İngilizce', class: '7/B' },
+    ],
+  },
+  {
+    day: 'Çarşamba',
+    dayOfWeek: 'Wednesday',
+    lessons: [
+      { time: '08:30 - 09:10', subject: 'Matematik', class: '7/B' },
+      { time: '09:20 - 10:00', subject: 'Matematik', class: '7/B' },
+      { time: '10:10 - 10:50', subject: 'Beden Eğitimi', class: '6/A' },
+      { time: '11:00 - 11:40', subject: 'Beden Eğitimi', class: '6/A' },
+      { time: '12:40 - 13:20', subject: 'Matematik', class: '6/A' },
+    ],
+  },
+  {
+    day: 'Perşembe',
+    dayOfWeek: 'Thursday',
+    lessons: [
+       { time: '09:20 - 10:00', subject: 'Fen Bilimleri', class: '6/A' },
+       { time: '10:10 - 10:50', subject: 'Fen Bilimleri', class: '6/A' },
+       { time: '11:00 - 11:40', subject: 'Matematik', class: '7/B' },
+       { time: '12:40 - 13:20', subject: 'Türkçe', class: '7/B' },
+       { time: '13:30 - 14:10', subject: 'Türkçe', class: '7/B' },
+    ],
+  },
+  {
+    day: 'Cuma',
+    dayOfWeek: 'Friday',
+    lessons: [
+       { time: '08:30 - 09:10', subject: 'Matematik', class: '6/A' },
+       { time: '09:20 - 10:00', subject: 'Görsel Sanatlar', class: '7/B' },
+       { time: '10:10 - 10:50', subject: 'Matematik', class: '7/B' },
+    ],
+  },
+];

@@ -18,8 +18,8 @@ export default function HomePage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+      <main className="flex-1 space-y-6 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Hoş Geldiniz, Ayşe Öğretmen!</h1>
             <p className="text-muted-foreground">
@@ -28,7 +28,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Toplam Sınıf</CardTitle>
