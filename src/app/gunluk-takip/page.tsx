@@ -9,7 +9,6 @@ import {
   Sparkles,
   Loader2,
   Book,
-  PlusCircle,
   Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -49,14 +48,17 @@ export default function GunlukTakipPage() {
     return allStudents
       .filter(s => s.classId === classId)
       .reduce((acc, student) => {
-        acc[student.id] = [{ 
-            id: `record-${Date.now()}`,
+        const baseRecord = { 
             studentId: student.id, 
             status: null, 
             description: '', 
             date: format(date, 'yyyy-MM-dd'), 
             classId: classId 
-        }];
+        };
+        acc[student.id] = [
+            { ...baseRecord, id: `record-${Date.now()}-1` },
+            { ...baseRecord, id: `record-${Date.now()}-2` }
+        ];
         return acc;
       }, {} as Record<string, DailyRecord[]>);
   };
@@ -74,23 +76,6 @@ export default function GunlukTakipPage() {
       [studentId]: prev[studentId].map(rec => 
         rec.id === recordId ? { ...rec, ...newRecord } : rec
       ),
-    }));
-  };
-
-  const addRecord = (studentId: string) => {
-    setRecords(prev => ({
-        ...prev,
-        [studentId]: [
-            ...prev[studentId],
-            {
-                id: `record-${Date.now()}-${Math.random()}`,
-                studentId: studentId,
-                classId: selectedClass.id,
-                date: format(recordDate, 'yyyy-MM-dd'),
-                status: null,
-                description: '',
-            }
-        ]
     }));
   };
 
@@ -116,7 +101,6 @@ export default function GunlukTakipPage() {
     setRecords(prevRecords => {
       const newRecords = { ...prevRecords };
       students.forEach(student => {
-        // Only update the first record for bulk updates
         if(newRecords[student.id] && newRecords[student.id][0]){
              newRecords[student.id] = [{
                 ...newRecords[student.id][0],
@@ -136,7 +120,7 @@ export default function GunlukTakipPage() {
     console.log("Kaydedilen Veriler:", { 
         date: format(recordDate, 'yyyy-MM-dd'), 
         classId: selectedClass.id, 
-        records: Object.values(records).flat(),
+        records: Object.values(records).flat().filter(r => r.status || r.description), // Sadece dolu olanları kaydet
         generalDescription: generalDescription,
      });
     toast({
@@ -356,10 +340,6 @@ export default function GunlukTakipPage() {
                                 </div>
                             </div>
                         ))}
-                         <Button variant="outline" size="sm" onClick={() => addRecord(student.id)} className="w-full">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Yeni Değerlendirme Ekle
-                        </Button>
                     </CardContent>
                 </Card>
             ))}
