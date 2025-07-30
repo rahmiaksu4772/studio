@@ -68,12 +68,16 @@ export default function PlanlarimPage() {
   const viewFile = (plan: Plan) => {
     if (plan.fileType.includes('pdf')) {
       const pdfWindow = window.open("");
-      pdfWindow?.document.write(`<iframe width='100%' height='100%' src='${plan.fileDataUrl}'></iframe>`);
-      pdfWindow?.document.title = plan.fileName;
+      if (pdfWindow) {
+        pdfWindow.document.write(`<iframe width='100%' height='100%' src='${plan.fileDataUrl}'></iframe>`);
+        pdfWindow.document.title = plan.fileName;
+      }
     } else {
+      // For Word/Excel, "View" will also download the file.
       downloadFile(plan.fileDataUrl, plan.fileName);
     }
   };
+
 
   if (isLoading) {
     return (
