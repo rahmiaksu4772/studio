@@ -25,6 +25,7 @@ import {
   useSidebar,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const menuItems = [
     { href: '/', label: 'Ana Sayfa', icon: Home },
@@ -36,7 +37,8 @@ const menuItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isMobile, setOpen } = useSidebar();
+  const { setOpen } = useSidebar();
+  const isMobile = useIsMobile();
 
   React.useEffect(() => {
     setOpen(!isMobile);
@@ -81,8 +83,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <SidebarGroup className="mt-4">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} passHref legacyBehavior>
-                    <SidebarMenuButton as="a" tooltip={item.label} isActive={pathname === item.href}>
+                  <Link href={item.href}>
+                    <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href}>
                         <item.icon /> <span>{item.label}</span>
                     </SidebarMenuButton>
                   </Link>
@@ -94,8 +96,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-                <Link href="/ayarlar" passHref legacyBehavior>
-                    <SidebarMenuButton as="a" tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
+                <Link href="/ayarlar">
+                    <SidebarMenuButton tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
                        <Settings /> <span>Ayarlar</span>
                     </SidebarMenuButton>
                 </Link>

@@ -180,10 +180,10 @@ export default function GunlukTakipPage() {
                  <Table>
                     <TableHeader>
                         <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableHead className="w-[50px] text-center">No</TableHead>
-                            <TableHead className="min-w-[150px]">Ad Soyad</TableHead>
+                            <TableHead className="w-[50px] text-center px-2 md:px-4">No</TableHead>
+                            <TableHead className="min-w-[150px] px-2 md:px-4">Ad Soyad</TableHead>
                              {statusOptions.map(option => (
-                                <TableHead key={option.value} className="w-[100px] text-center">
+                                <TableHead key={option.value} className="w-[100px] text-center px-2 md:px-4">
                                    <div className='flex flex-col items-center gap-2'>
                                         <div className='flex items-center justify-center gap-1.5'>
                                             {option.icon && <option.icon className={cn("h-5 w-5", option.color)} />}
@@ -195,7 +195,7 @@ export default function GunlukTakipPage() {
                                    </div>
                                 </TableHead>
                             ))}
-                            <TableHead className="min-w-[250px]">Açıklama</TableHead>
+                            <TableHead className="min-w-[250px] px-2 md:px-4">Açıklama</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -214,64 +214,69 @@ export default function GunlukTakipPage() {
                             const appliedColor = statusColorMapping[record?.status!] || '';
 
                             return (
-                                <TableRow key={student.id} className={cn("transition-colors", rowColorClass, appliedColor)}>
-                                    <TableCell className="text-center text-muted-foreground font-medium">{student.studentNumber}</TableCell>
-                                    <TableCell className="font-medium">{student.firstName} {student.lastName}</TableCell>
-                                    
-                                    {statusOptions.map(option => (
-                                        <TableCell key={option.value} className="text-center">
-                                            <TooltipProvider>
-                                             <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <RadioGroupItem 
-                                                        value={option.value} 
-                                                        id={`${student.id}-${option.value}`} 
-                                                        aria-label={option.label}
-                                                        checked={record?.status === option.value}
-                                                        onClick={() => handleRecordChange(student.id, { status: option.value })}
-                                                    />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>{option.label}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                            </TooltipProvider>
+                                <RadioGroup 
+                                    key={student.id} 
+                                    asChild 
+                                    value={record?.status || ""} 
+                                    onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
+                                >
+                                    <TableRow className={cn("transition-colors", rowColorClass, appliedColor)}>
+                                        <TableCell className="text-center text-muted-foreground font-medium px-2 md:px-4">{student.studentNumber}</TableCell>
+                                        <TableCell className="font-medium px-2 md:px-4">{student.firstName} {student.lastName}</TableCell>
+                                        
+                                        {statusOptions.map(option => (
+                                            <TableCell key={option.value} className="text-center px-2 md:px-4">
+                                                <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <RadioGroupItem 
+                                                            value={option.value} 
+                                                            id={`${student.id}-${option.value}`} 
+                                                            aria-label={option.label}
+                                                        />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{option.label}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                </TooltipProvider>
+                                            </TableCell>
+                                        ))}
+                                        
+                                        <TableCell className='min-w-[250px] px-2 md:px-4'>
+                                            <div className='flex items-center gap-2'>
+                                                <Textarea 
+                                                    value={record?.description || ''}
+                                                    onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
+                                                    placeholder='Öğrenci hakkında notunuzu girin...'
+                                                    className='min-h-[40px] flex-1 text-sm bg-white dark:bg-card'
+                                                    rows={1}
+                                                />
+                                                <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button 
+                                                            size='icon'
+                                                            variant='ghost'
+                                                            onClick={() => handleGenerateDescription(student.id)}
+                                                            disabled={isPending && generatingFor === student.id}
+                                                        >
+                                                            {isPending && generatingFor === student.id ? (
+                                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                                            ) : (
+                                                                <Sparkles className="h-5 w-5 text-primary" />
+                                                            )}
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>AI ile Not Oluştur</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
                                         </TableCell>
-                                    ))}
-                                    
-                                    <TableCell className='min-w-[250px]'>
-                                        <div className='flex items-center gap-2'>
-                                            <Textarea 
-                                                value={record?.description || ''}
-                                                onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                                placeholder='Öğrenci hakkında notunuzu girin...'
-                                                className='min-h-[40px] flex-1 text-sm bg-white dark:bg-card'
-                                                rows={1}
-                                            />
-                                            <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button 
-                                                        size='icon'
-                                                        variant='ghost'
-                                                        onClick={() => handleGenerateDescription(student.id)}
-                                                        disabled={isPending && generatingFor === student.id}
-                                                    >
-                                                        {isPending && generatingFor === student.id ? (
-                                                            <Loader2 className="h-5 w-5 animate-spin" />
-                                                        ) : (
-                                                            <Sparkles className="h-5 w-5 text-primary" />
-                                                        )}
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>AI ile Not Oluştur</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                            </TooltipProvider>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
+                                    </TableRow>
+                                </RadioGroup>
                             )
                         })}
                     </TableBody>
