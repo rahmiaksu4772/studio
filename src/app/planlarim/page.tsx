@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, X as CloseIcon } from 'lucide-react';
+import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,44 +25,11 @@ export default function PlanlarimPage() {
   const { toast } = useToast();
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
-  const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     // Simulate loading existing plans
     setIsLoading(false);
   }, []);
-  
-  // Effect to create and revoke blob URLs for PDF viewing
-  React.useEffect(() => {
-    if (viewingPlan && viewingPlan.fileType === 'application/pdf') {
-      try {
-        const byteCharacters = atob(viewingPlan.fileDataUrl.split(',')[1]);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-
-        // Cleanup function
-        return () => {
-          URL.revokeObjectURL(url);
-          setPdfUrl(null);
-        };
-      } catch (error) {
-          console.error("Error creating blob URL:", error);
-          toast({
-            title: 'PDF Görüntülenemedi',
-            description: 'Dosya verisi bozuk veya desteklenmiyor.',
-            variant: 'destructive',
-          });
-          setViewingPlan(null);
-      }
-    }
-  }, [viewingPlan, toast]);
 
   const handleAddPlan = (newPlan: Plan) => {
     setPlans(prevPlans => [newPlan, ...prevPlans]);
@@ -100,7 +67,17 @@ export default function PlanlarimPage() {
 
   const viewFile = (plan: Plan) => {
     if (plan.fileType.includes('pdf')) {
-        setViewingPlan(plan);
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(`<iframe src="${plan.fileDataUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        newWindow.document.title = plan.fileName;
+      } else {
+        toast({
+          title: 'Engellendi',
+          description: 'Lütfen tarayıcınızda açılır pencerelere izin verin.',
+          variant: 'destructive',
+        });
+      }
     } else {
       // For Word/Excel, "View" will also download the file.
       downloadFile(plan.fileDataUrl, plan.fileName);
@@ -198,27 +175,6 @@ export default function PlanlarimPage() {
               </Card>
             ))}
           </div>
-        )}
-
-        {viewingPlan && pdfUrl && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-                <div className="relative w-full h-full max-w-4xl bg-white rounded-lg shadow-xl flex flex-col">
-                    <div className="flex items-center justify-between p-4 border-b">
-                        <h3 className="text-lg font-semibold truncate">{viewingPlan.fileName}</h3>
-                        <Button variant="ghost" size="icon" onClick={() => setViewingPlan(null)}>
-                            <CloseIcon className="h-6 w-6" />
-                            <span className="sr-only">Kapat</span>
-                        </Button>
-                    </div>
-                    <div className="flex-1 p-0 overflow-hidden">
-                        <iframe
-                            src={pdfUrl}
-                            className="w-full h-full border-0"
-                            title={viewingPlan.fileName}
-                        />
-                    </div>
-                </div>
-            </div>
         )}
       </main>
     </AppLayout>
