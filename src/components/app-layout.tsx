@@ -36,7 +36,16 @@ const menuItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { toggleSidebar } = useSidebar();
+  const { isMobile, setOpen } = useSidebar();
+
+  React.useEffect(() => {
+    if (isMobile) {
+      setOpen(false);
+    } else {
+      setOpen(true);
+    }
+  }, [isMobile, setOpen]);
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
