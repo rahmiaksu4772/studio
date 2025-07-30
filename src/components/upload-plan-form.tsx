@@ -23,7 +23,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ACCEPTED_FILE_TYPES = [
     'application/pdf', 
     'application/msword', 
@@ -38,7 +38,7 @@ const formSchema = z.object({
   file: z
     .custom<FileList>()
     .refine((files) => files?.length > 0, 'Lütfen bir dosya seçin.')
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Maksimum dosya boyutu 5MB'dir.`)
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Maksimum dosya boyutu 25MB'dir.`)
     .refine(
       (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
       'Sadece .pdf, .doc, .docx, .xls, .xlsx formatları desteklenmektedir.'
