@@ -40,7 +40,7 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false 
 
   const handleDownloadTemplate = () => {
     const templateData = [['Okul Numarası', 'Adı', 'Soyadı']];
-    const ws = XLSX.utils.aoa_to_ws(templateData);
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Ogrenci Listesi');
     XLSX.writeFile(wb, 'ogrenci_sablonu.xlsx');
