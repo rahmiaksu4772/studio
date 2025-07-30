@@ -175,15 +175,15 @@ export default function RaporlarPage() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
-    doc.setFont('normal', 'normal');
+    doc.setFont('Verdana', 'normal');
 
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
     const pageHeader = (data: any) => {
+        doc.setFont('Verdana', 'bold');
         doc.setFontSize(16);
         doc.setTextColor(40);
-        doc.setFont('normal', 'bold');
         if (selectedReportType === 'sinif' && classReportData) {
             doc.text(`Sınıf Raporu: ${selectedClass?.name}`, data.settings.margin.left, 22);
         } else if (selectedReportType === 'bireysel' && individualReportData) {
@@ -194,6 +194,7 @@ export default function RaporlarPage() {
 
     const pageFooter = (data: any) => {
         const pageCount = doc.getNumberOfPages();
+        doc.setFont('Verdana', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(150);
         const text = `Sayfa ${data.pageNumber} / ${pageCount}`;
@@ -218,7 +219,8 @@ export default function RaporlarPage() {
             body: tableData,
             startY: 30,
             theme: 'grid',
-            headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+            headStyles: { font: 'Verdana', fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+            styles: { font: 'Verdana', fontStyle: 'normal' },
             alternateRowStyles: { fillColor: [240, 244, 255] },
             didDrawPage: (data: any) => {
                 pageHeader(data);
@@ -230,6 +232,7 @@ export default function RaporlarPage() {
     } else if (selectedReportType === 'bireysel' && individualReportData) {
         const selectedStudent = students.find(s => s.id === selectedStudentId);
         
+        doc.setFont('Verdana', 'normal');
         doc.setFontSize(11);
         doc.setTextColor(100);
         doc.text(`Sınıf: ${selectedClass?.name}`, 14, 32);
@@ -241,9 +244,9 @@ export default function RaporlarPage() {
         
         doc.setFontSize(12);
         doc.setTextColor(40);
-        doc.setFont('normal', 'bold');
+        doc.setFont('Verdana', 'bold');
         doc.text('Genel Durum Özeti', 14, 50);
-        doc.setFont('normal', 'normal');
+        doc.setFont('Verdana', 'normal');
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
 
@@ -257,7 +260,8 @@ export default function RaporlarPage() {
                     r.description || '-'
                 ]),
                 theme: 'striped',
-                headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+                headStyles: { font: 'Verdana', fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+                styles: { font: 'Verdana', fontStyle: 'normal' },
                 didDrawPage: (data: any) => {
                     pageHeader(data);
                     pageFooter(data);
@@ -512,6 +516,8 @@ export default function RaporlarPage() {
     
 
 
+
+    
 
     
 
