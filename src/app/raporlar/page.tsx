@@ -175,6 +175,8 @@ export default function RaporlarPage() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
+    doc.setFont('Verdana', 'normal');
+
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
 
@@ -198,7 +200,8 @@ export default function RaporlarPage() {
             startY: 25,
             head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
             body: tableData,
-            theme: 'grid'
+            theme: 'grid',
+            styles: { font: 'Verdana' }
         });
 
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -224,7 +227,8 @@ export default function RaporlarPage() {
                     statusToTurkish[r.status!] || 'Belirtilmemiş',
                     r.description || '-'
                 ]),
-                theme: 'grid'
+                theme: 'grid',
+                styles: { font: 'Verdana' }
             });
         }
         doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
