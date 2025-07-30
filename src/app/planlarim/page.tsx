@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, FileText, Plus, Loader2 } from 'lucide-react';
+import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm, type Plan } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function PlanlarimPage() {
   const { toast } = useToast();
@@ -48,6 +49,13 @@ export default function PlanlarimPage() {
       variant: 'destructive',
     });
   };
+  
+  const getFileIcon = (fileType: string) => {
+    if (fileType.includes('pdf')) return <FileText className="h-24 w-24 text-muted-foreground" />;
+    if (fileType.includes('word')) return <WordIcon className="h-24 w-24 text-muted-foreground" />;
+    if (fileType.includes('sheet') || fileType.includes('excel')) return <ExcelIcon className="h-24 w-24 text-muted-foreground" />;
+    return <FileText className="h-24 w-24 text-muted-foreground" />;
+  }
 
   if (isLoading) {
     return (
@@ -80,7 +88,7 @@ export default function PlanlarimPage() {
               </div>
               <h2 className="text-xl font-semibold mb-2">Henüz Plan Oluşturulmadı</h2>
               <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
-                Yeni bir ders planı yükleyerek başlayın. Yüklediğiniz PDF planları burada görüntülenecektir.
+                Yeni bir ders planı yükleyerek başlayın. Yüklediğiniz PDF, Word ve Excel planları burada görüntülenecektir.
               </p>
               <UploadPlanForm onAddPlan={handleAddPlan} isFirstPlan={true} />
             </div>
@@ -98,7 +106,7 @@ export default function PlanlarimPage() {
                                 {plan.type === 'annual' ? 'Yıllık Plan' : 'Haftalık Plan'}
                             </Badge>
                         </div>
-                        <CardDescription>Yüklenme Tarihi: {plan.uploadDate}</CardDescription>
+                        <CardDescription>Yüklenme Tarihi: {plan.uploadDate} | Dosya Türü: {plan.fileType.split('/')[1] || plan.fileType}</CardDescription>
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -125,13 +133,27 @@ export default function PlanlarimPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="w-full aspect-[4/3] sm:aspect-[16/9] rounded-md border bg-muted overflow-hidden">
-                    <iframe
-                      src={plan.fileDataUrl}
-                      className="w-full h-full"
-                      title={plan.title}
-                    />
-                  </div>
+                  {plan.fileType === 'application/pdf' ? (
+                     <div className="w-full aspect-[4/3] sm:aspect-[16/9] rounded-md border bg-muted overflow-hidden">
+                        <iframe
+                            src={plan.fileDataUrl}
+                            className="w-full h-full"
+                            title={plan.title}
+                        />
+                     </div>
+                  ) : (
+                    <div className="w-full aspect-[4/3] sm:aspect-[16/9] rounded-md border bg-muted flex flex-col items-center justify-center p-4">
+                        {getFileIcon(plan.fileType)}
+                        <p className='mt-4 font-semibold text-lg'>Önizleme mevcut değil</p>
+                        <p className='text-muted-foreground text-sm mb-6'>Bu dosya türü tarayıcıda görüntülenemez.</p>
+                        <a href={plan.fileDataUrl} download={plan.fileName}>
+                            <Button>
+                                <Download className="mr-2 h-4 w-4" />
+                                Dosyayı İndir
+                            </Button>
+                        </a>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

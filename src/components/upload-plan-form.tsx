@@ -21,10 +21,16 @@ import {
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format } from 'date-fns';
-import { useToast } from './ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_FILE_TYPES = ['application/pdf'];
+const ACCEPTED_FILE_TYPES = [
+    'application/pdf', 
+    'application/msword', 
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+];
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'Plan başlığı en az 3 karakter olmalıdır.' }),
@@ -35,7 +41,7 @@ const formSchema = z.object({
     .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Maksimum dosya boyutu 5MB'dir.`)
     .refine(
       (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      'Sadece .pdf formatı desteklenmektedir.'
+      'Sadece .pdf, .doc, .docx, .xls, .xlsx formatları desteklenmektedir.'
     ),
 });
 
@@ -47,6 +53,8 @@ export type Plan = {
     type: 'annual' | 'weekly';
     fileDataUrl: string;
     uploadDate: string;
+    fileType: string;
+    fileName: string;
 };
 
 type UploadPlanFormProps = {
@@ -80,6 +88,8 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
         type: values.type,
         fileDataUrl,
         uploadDate: format(new Date(), 'dd.MM.yyyy'),
+        fileType: file.type,
+        fileName: file.name
       };
       onAddPlan(newPlan);
       form.reset();
@@ -127,7 +137,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
         <DialogHeader>
           <DialogTitle>Yeni Ders Planı Yükle</DialogTitle>
           <DialogDescription>
-            Planınız için bir başlık girin, türünü seçin ve PDF dosyasını yükleyin.
+            Planınız için bir başlık girin, türünü seçin ve PDF, Word veya Excel dosyasını yükleyin.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -180,11 +190,11 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                 name="file"
                 render={({ field: { onChange, value, ...rest } }) => (
                   <FormItem>
-                    <FormLabel>PDF Dosyası</FormLabel>
+                    <FormLabel>Dosya</FormLabel>
                     <FormControl>
                         <Input
                             type="file"
-                            accept=".pdf"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             onChange={(e) => onChange(e.target.files)}
                             ref={fileInputRef}
                         />
