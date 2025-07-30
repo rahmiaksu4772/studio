@@ -179,12 +179,29 @@ export default function RaporlarPage() {
 
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
+    
+    const pageHeader = (data: any) => {
+        doc.setFontSize(16);
+        doc.setTextColor(40);
+        doc.setFont('normal', 'bold');
+        if (selectedReportType === 'sinif' && classReportData) {
+            doc.text(`Sınıf Raporu: ${selectedClass?.name}`, data.settings.margin.left, 22);
+        } else if (selectedReportType === 'bireysel' && individualReportData) {
+            const selectedStudent = students.find(s => s.id === selectedStudentId);
+            doc.text(`Bireysel Rapor: ${selectedStudent?.firstName} ${selectedStudent?.lastName}`, data.settings.margin.left, 22);
+        }
+    };
+
+    const pageFooter = (data: any) => {
+        const pageCount = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        const text = `Sayfa ${data.pageNumber} / ${pageCount}`;
+        const textWidth = doc.getStringUnitWidth(text) * doc.getFontSize() / doc.internal.scaleFactor;
+        doc.text(text, doc.internal.pageSize.width - data.settings.margin.right - textWidth, doc.internal.pageSize.height - 10);
+    };
 
     if (selectedReportType === 'sinif' && classReportData) {
-        doc.text(`Sınıf Raporu: ${selectedClass?.name}`, 14, 15);
-        doc.setFontSize(10);
-        doc.text(dateTitle, 14, 20);
-
         const tableData = classReportData.studentSummaries.map(s => [
             s.studentNumber,
             `${s.firstName} ${s.lastName}`,
@@ -197,37 +214,58 @@ export default function RaporlarPage() {
         ]);
 
         (doc as any).autoTable({
-            startY: 25,
             head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
             body: tableData,
+            startY: 30,
             theme: 'grid',
+            headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [240, 244, 255] },
+            didDrawPage: (data: any) => {
+                pageHeader(data);
+                pageFooter(data);
+            }
         });
 
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     } else if (selectedReportType === 'bireysel' && individualReportData) {
         const selectedStudent = students.find(s => s.id === selectedStudentId);
-        doc.text(`Bireysel Rapor: ${selectedStudent?.firstName} ${selectedStudent?.lastName}`, 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Sınıf: ${selectedClass?.name} | Rapor Tarih Aralığı: ${dateTitle}`, 14, 20);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Sınıf: ${selectedClass?.name}`, 14, 32);
+        doc.text(`Rapor Tarih Aralığı: ${dateTitle}`, 14, 38);
         
         const summaryText = Object.entries(individualReportData.summary)
             .map(([key, value]: [string, any]) => `${value.label}: ${value.count}`)
             .join(' | ');
         
-        doc.text('Genel Durum Özeti:', 14, 30);
-        doc.text(summaryText, 14, 35);
+        doc.setFontSize(12);
+        doc.setTextColor(40);
+        doc.setFont('normal', 'bold');
+        doc.text('Genel Durum Özeti', 14, 50);
+        doc.setFont('normal', 'normal');
+        doc.setFontSize(10);
+        doc.text(summaryText, 14, 56);
 
         if (individualReportData.records.length > 0) {
             (doc as any).autoTable({
-                startY: 45,
+                startY: 65,
                 head: [['Tarih', 'Durum', 'Açıklama']],
                 body: individualReportData.records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => [
                     format(new Date(r.date), 'd MMM yyyy, cccc', { locale: tr }),
                     statusToTurkish[r.status!] || 'Belirtilmemiş',
                     r.description || '-'
                 ]),
-                theme: 'grid',
+                theme: 'striped',
+                headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+                didDrawPage: (data: any) => {
+                    pageHeader(data);
+                    pageFooter(data);
+                }
             });
+        } else {
+            pageHeader({ settings: { margin: { left: 14 } } });
+            pageFooter({ pageNumber: 1, settings: { margin: { right: 14 } } });
         }
         doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     }
@@ -474,6 +512,8 @@ export default function RaporlarPage() {
     
 
 
+
+    
 
     
 
