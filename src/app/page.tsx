@@ -22,8 +22,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger,
-  SidebarProvider,
+  SidebarTrigger
 } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -93,7 +92,7 @@ export default function ClassPlanPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <div className="flex min-h-screen w-full flex-col">
         <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader>
               <h1 className="text-xl font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
