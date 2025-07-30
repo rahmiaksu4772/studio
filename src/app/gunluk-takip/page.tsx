@@ -37,7 +37,7 @@ import { tr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { generateDescriptionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
@@ -218,24 +218,27 @@ export default function GunlukTakipPage() {
                                     <TableCell className="text-center text-muted-foreground font-medium">{student.studentNumber}</TableCell>
                                     <TableCell className="font-medium">{student.firstName} {student.lastName}</TableCell>
                                     
-                                     <RadioGroup
-                                        value={record?.status || ''}
-                                        onValueChange={(value) => handleRecordChange(student.id, { status: value as AttendanceStatus })}
-                                        className="contents"
-                                    >
-                                        {statusOptions.map(option => (
-                                            <TableCell key={option.value} className="text-center">
-                                                 <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} aria-label={option.label} />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>{option.label}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TableCell>
-                                        ))}
-                                    </RadioGroup>
+                                    {statusOptions.map(option => (
+                                        <TableCell key={option.value} className="text-center">
+                                            <TooltipProvider>
+                                             <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <RadioGroupItem 
+                                                        value={option.value} 
+                                                        id={`${student.id}-${option.value}`} 
+                                                        aria-label={option.label}
+                                                        checked={record?.status === option.value}
+                                                        onClick={() => handleRecordChange(student.id, { status: option.value })}
+                                                    />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{option.label}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                            </TooltipProvider>
+                                        </TableCell>
+                                    ))}
+                                    
                                     <TableCell className='min-w-[250px]'>
                                         <div className='flex items-center gap-2'>
                                             <Textarea 
@@ -245,6 +248,7 @@ export default function GunlukTakipPage() {
                                                 className='min-h-[40px] flex-1 text-sm bg-white dark:bg-card'
                                                 rows={1}
                                             />
+                                            <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button 
@@ -264,6 +268,7 @@ export default function GunlukTakipPage() {
                                                     <p>AI ile Not Oluştur</p>
                                                 </TooltipContent>
                                             </Tooltip>
+                                            </TooltipProvider>
                                         </div>
                                     </TableCell>
                                 </TableRow>
