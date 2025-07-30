@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, FileDown, Save, ChevronsRight, Filter as FilterIcon, Home, Users, Settings, PanelLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, FileDown, Save, ChevronsRight, Filter as FilterIcon, Home, Users, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -23,7 +23,9 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarTrigger,
+  SidebarProvider,
 } from '@/components/ui/sidebar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export default function ClassPlanPage() {
   const { toast } = useToast();
@@ -90,6 +92,7 @@ export default function ClassPlanPage() {
   }, [records, students]);
 
   return (
+    <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
         <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader>
@@ -211,5 +214,6 @@ export default function ClassPlanPage() {
             </SidebarInset>
         </div>
       </div>
+    </TooltipProvider>
   );
 }
