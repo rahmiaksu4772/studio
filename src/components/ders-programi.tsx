@@ -18,6 +18,14 @@ export default function DersProgrami() {
   const [schedule, setSchedule] = React.useState<WeeklyScheduleItem[]>(initialSchedule);
   const [activeDay, setActiveDay] = React.useState<string>(daysOfWeek[0]);
 
+  React.useEffect(() => {
+    const todayIndex = new Date().getDay();
+    // Sunday is 0, Monday is 1... Adjust to match our array (Monday is 0)
+    const adjustedDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+    setActiveDay(daysOfWeek[adjustedDayIndex]);
+  }, []);
+
+
   const handleLessonChange = (dayIndex: number, lessonIndex: number, field: keyof Lesson, value: string) => {
     const newSchedule = [...schedule];
     (newSchedule[dayIndex].lessons[lessonIndex] as any)[field] = value;
@@ -25,6 +33,7 @@ export default function DersProgrami() {
   };
   
   const addLesson = (dayIndex: number) => {
+    if (dayIndex === -1) return;
     const newSchedule = [...schedule];
     newSchedule[dayIndex].lessons.push({ time: '00:00 - 00:00', subject: 'Yeni Ders', class: 'Sınıf' });
     setSchedule(newSchedule);
