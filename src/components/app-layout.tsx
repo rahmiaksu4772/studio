@@ -28,20 +28,23 @@ import {
 } from '@/components/ui/sidebar';
 
 const menuItems = [
-    { href: '#siniflarim', label: 'Sınıflarım', icon: GraduationCap },
+    { href: '/', label: 'Ana Panel', icon: Home },
+    { href: '#', label: 'Sınıflarım', icon: GraduationCap },
     { href: '#gunluk-takip', label: 'Günlük Takip', icon: Users },
-    { href: '#raporlar', label: 'Raporlar', icon: BarChart },
-    { href: '#planlarim', label: 'Planlarım', icon: Calendar },
-    { href: '#diger', label: 'Diğer', icon: Settings },
+    { href: '#', label: 'Raporlar', icon: BarChart },
+    { href: '#', label: 'Planlarım', icon: Calendar },
+    { href: '#', label: 'Erişim Kodları', icon: FileText },
+    { href: '#', label: 'Admin Panel', icon: Shield },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [activeMenu, setActiveMenu] = React.useState('#gunluk-takip');
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Sidebar variant="sidebar" collapsible="icon" className="border-r">
-        <SidebarHeader className="p-4 py-6 justify-start flex flex-row h-[140px] gap-2 items-center">
+        <SidebarHeader className="p-4 py-6 justify-start flex flex-row h-[64px] gap-2 items-center">
           <div className="flex items-center gap-3 w-full">
             <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
               <GraduationCap className="h-6 w-6 text-primary-foreground" />
@@ -73,19 +76,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </SidebarMenuItem>
             <SidebarGroup className="mt-4">
-              <SidebarMenuItem>
-                  <Link href="/" legacyBehavior passHref>
-                    <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Ana Panel">
-                      <a>
-                        <Home /> <span>Ana Panel</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </Link>
-              </SidebarMenuItem>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <a href={item.href}>
-                    <SidebarMenuButton asChild tooltip={item.label}>
+                  <a href={item.href} onClick={() => setActiveMenu(item.href)}>
+                    <SidebarMenuButton asChild tooltip={item.label} isActive={activeMenu === item.href}>
                         <a>
                             <item.icon /> <span>{item.label}</span>
                         </a>
@@ -110,7 +104,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <div className="flex flex-col sm:pl-[var(--sidebar-width-icon)] group-data-[state=expanded]:sm:pl-[var(--sidebar-width)] transition-[padding-left] duration-200">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <SidebarTrigger className="sm:hidden" />
         </header>
         {children}
