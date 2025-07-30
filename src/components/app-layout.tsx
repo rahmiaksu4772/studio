@@ -10,6 +10,7 @@ import {
   Calendar,
   GraduationCap,
   Settings,
+  Home,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -21,10 +22,11 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarGroup,
-  SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 const menuItems = [
+    { href: '/', label: 'Ana Sayfa', icon: Home },
     { href: '/gunluk-takip', label: 'Günlük Takip', icon: Users },
     { href: '/siniflarim', label: 'Sınıflarım', icon: GraduationCap },
     { href: '/raporlar', label: 'Raporlar', icon: BarChart },
@@ -33,22 +35,28 @@ const menuItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { toggleSidebar } = useSidebar();
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Sidebar variant="sidebar" collapsible="icon" className="border-r">
-        <SidebarHeader className="p-4 py-6 justify-start flex flex-row h-[64px] gap-2 items-center">
-          <div className="flex items-center gap-3 w-full">
-            <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
-              <GraduationCap className="h-6 w-6 text-primary-foreground" />
+        <SidebarHeader className="p-0">
+          <button
+            onClick={toggleSidebar}
+            className="flex h-[64px] w-full flex-row items-center gap-2 p-4 justify-start hover:bg-sidebar-accent transition-colors duration-200"
+          >
+            <div className="flex items-center gap-3 w-full">
+              <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
+                <GraduationCap className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                  SınıfPlanım
+                </h1>
+                <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
+              </div>
             </div>
-            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">
-                SınıfPlanım
-              </h1>
-              <p className="text-xs text-muted-foreground">Öğretmenin Dijital Asistanı</p>
-            </div>
-          </div>
+          </button>
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
@@ -72,7 +80,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <Link href={item.href}>
-                    <SidebarMenuButton asChild tooltip={item.label} isActive={pathname.startsWith(item.href)}>
+                    <SidebarMenuButton asChild tooltip={item.label} isActive={pathname === item.href}>
                         <a>
                             <item.icon /> <span>{item.label}</span>
                         </a>
@@ -99,9 +107,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <div className="flex flex-col sm:pl-[var(--sidebar-width-icon)] group-data-[state=expanded]:sm:pl-[var(--sidebar-width)] transition-[padding-left] duration-200">
-         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-            <SidebarTrigger />
-        </header>
         {children}
       </div>
     </div>
