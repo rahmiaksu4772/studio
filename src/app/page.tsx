@@ -6,7 +6,7 @@ import AppLayout from '@/components/app-layout';
 import DersProgrami from '@/components/ders-programi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, BarChart, GraduationCap, Edit, ArrowRight } from 'lucide-react';
+import { Users, GraduationCap, Edit, ArrowRight } from 'lucide-react';
 import { classes, students, dailyRecords } from '@/lib/mock-data';
 import { format } from 'date-fns';
 
@@ -21,9 +21,9 @@ export default function HomePage() {
       <main className="flex-1 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Hoş Geldiniz, Ayşe Öğretmen!</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Hoş Geldiniz, Ayşe Öğretmen!</h1>
             <p className="text-muted-foreground">
-              Bugün sizi harika bir gün bekliyor.
+              İşte bugünün özeti ve hızlı işlemler.
             </p>
           </div>
         </div>
@@ -59,18 +59,18 @@ export default function HomePage() {
                     <p className="text-xs text-muted-foreground">Bugün girilen değerlendirme</p>
                 </CardContent>
             </Card>
-             <Card className='bg-primary text-primary-foreground'>
+             <Card className='bg-primary/10 border-primary/20'>
                 <CardHeader className="pb-2">
-                    <CardTitle className="text-lg text-primary-foreground">Hızlı İşlemler</CardTitle>
+                    <CardTitle className="text-md font-semibold text-primary">Hızlı İşlemler</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2">
                    <Link href="/gunluk-takip">
-                     <Button variant="secondary" className="w-full justify-between">
+                     <Button variant="outline" className="w-full justify-between hover:bg-primary/10">
                         Bugünkü Takibi Yap <ArrowRight className="h-4 w-4" />
                      </Button>
                    </Link>
                    <Link href="/raporlar">
-                     <Button variant="secondary" className="w-full justify-between">
+                     <Button variant="outline" className="w-full justify-between hover:bg-primary/10">
                         Raporları Görüntüle <ArrowRight className="h-4 w-4" />
                      </Button>
                    </Link>

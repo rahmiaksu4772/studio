@@ -24,11 +24,11 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
-        <TooltipProvider>
-          <SidebarProvider>
-            {children}
-          </SidebarProvider>
-        </TooltipProvider>
+        <SidebarProvider>
+            <TooltipProvider>
+                {children}
+            </TooltipProvider>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>
