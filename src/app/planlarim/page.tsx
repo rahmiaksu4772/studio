@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, Eye } from 'lucide-react';
+import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, Eye, X as CloseIcon } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ export default function PlanlarimPage() {
   const { toast } = useToast();
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
+
 
   React.useEffect(() => {
     // Simulate loading existing plans
@@ -67,11 +69,7 @@ export default function PlanlarimPage() {
 
   const viewFile = (plan: Plan) => {
     if (plan.fileType.includes('pdf')) {
-      const pdfWindow = window.open("");
-      if (pdfWindow) {
-        pdfWindow.document.write(`<iframe width='100%' height='100%' src='${plan.fileDataUrl}'></iframe>`);
-        pdfWindow.document.title = plan.fileName;
-      }
+        setViewingPlan(plan);
     } else {
       // For Word/Excel, "View" will also download the file.
       downloadFile(plan.fileDataUrl, plan.fileName);
@@ -91,7 +89,7 @@ export default function PlanlarimPage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 p-4 sm:p-6">
+      <main className="flex-1 p-4 sm:p-6 relative">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Planlarım</h1>
@@ -170,7 +168,29 @@ export default function PlanlarimPage() {
             ))}
           </div>
         )}
+
+        {viewingPlan && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                <div className="relative w-full h-full max-w-4xl bg-white rounded-lg shadow-xl flex flex-col">
+                    <div className="flex items-center justify-between p-4 border-b">
+                        <h3 className="text-lg font-semibold truncate">{viewingPlan.fileName}</h3>
+                        <Button variant="ghost" size="icon" onClick={() => setViewingPlan(null)}>
+                            <CloseIcon className="h-6 w-6" />
+                            <span className="sr-only">Kapat</span>
+                        </Button>
+                    </div>
+                    <div className="flex-1 p-0 overflow-hidden">
+                        <iframe
+                            src={viewingPlan.fileDataUrl}
+                            className="w-full h-full border-0"
+                            title={viewingPlan.fileName}
+                        />
+                    </div>
+                </div>
+            </div>
+        )}
       </main>
     </AppLayout>
   );
 }
+
