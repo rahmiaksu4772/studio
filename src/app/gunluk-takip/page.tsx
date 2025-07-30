@@ -36,14 +36,13 @@ import { Label } from '@/components/ui/label';
 export default function GunlukTakipPage() {
   const { toast } = useToast();
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo>(classes[0]);
-  const [recordDate, setRecordDate] = React.useState<Date>(new Date());
+  const [recordDate, setRecordDate] = React.useState<Date | null>(null);
   const [generalDescription, setGeneralDescription] = React.useState('');
   const [isPending, startTransition] = useTransition();
   const [generatingFor, setGeneratingFor] = React.useState<string | null>(null);
-
-  const students = allStudents.filter((s) => s.classId === selectedClass.id);
-
+  
   const getInitialRecords = (classId: string, date: Date): Record<string, DailyRecord> => {
+      if (!date) return {};
     return allStudents
       .filter(s => s.classId === classId)
       .reduce((acc, student) => {
@@ -59,12 +58,20 @@ export default function GunlukTakipPage() {
       }, {} as Record<string, DailyRecord>);
   };
 
-  const [records, setRecords] = React.useState<Record<string, DailyRecord>>(getInitialRecords(selectedClass.id, recordDate));
-
+  const [records, setRecords] = React.useState<Record<string, DailyRecord>>({});
+  
   React.useEffect(() => {
-    setRecords(getInitialRecords(selectedClass.id, recordDate));
-    setGeneralDescription('');
+    setRecordDate(new Date());
+  }, []);
+  
+  React.useEffect(() => {
+    if (recordDate) {
+      setRecords(getInitialRecords(selectedClass.id, recordDate));
+      setGeneralDescription('');
+    }
   }, [selectedClass.id, recordDate]);
+
+  const students = allStudents.filter((s) => s.classId === selectedClass.id);
 
   const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id' | 'studentId'>>) => {
     setRecords((prev) => ({
@@ -93,6 +100,7 @@ export default function GunlukTakipPage() {
   };
 
   const handleSave = () => {
+    if (!recordDate) return;
     console.log("Kaydedilen Veriler:", { 
         date: format(recordDate, 'yyyy-MM-dd'), 
         classId: selectedClass.id, 
@@ -106,6 +114,8 @@ export default function GunlukTakipPage() {
   };
 
   const handleGenerateDescription = async (studentId: string) => {
+    if(!recordDate) return;
+
     setGeneratingFor(studentId);
     startTransition(async () => {
       try {
@@ -141,6 +151,16 @@ export default function GunlukTakipPage() {
   };
 
   const currentRecord = (studentId: string) => records[studentId];
+  
+  if (!recordDate) {
+    return (
+      <AppLayout>
+        <main className="flex-1 p-4 md:p-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </main>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

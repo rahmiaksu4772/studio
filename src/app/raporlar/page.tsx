@@ -7,6 +7,7 @@ import {
   BarChart2,
   PieChart,
   List,
+  Loader2,
 } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -70,10 +71,14 @@ export default function RaporlarPage() {
   const [selectedClassId, setSelectedClassId] = React.useState<string>(classes[0].id);
   const [selectedReportType, setSelectedReportType] = React.useState('bireysel');
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: new Date(),
-  });
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+
+  React.useEffect(() => {
+    setDateRange({
+      from: startOfMonth(new Date()),
+      to: new Date(),
+    });
+  }, []);
 
   const availableStudents = students.filter(s => s.classId === selectedClassId);
 
@@ -82,16 +87,17 @@ export default function RaporlarPage() {
   }, [selectedClassId]);
 
   const filteredData = React.useMemo(() => {
+    if (!dateRange?.from) return [];
     return dailyRecords.filter(record => {
       const recordDate = new Date(record.date);
-      const fromDate = dateRange?.from ? new Date(dateRange.from) : null;
-      const toDate = dateRange?.to ? new Date(dateRange.to) : null;
+      const fromDate = new Date(dateRange.from!);
+      const toDate = dateRange.to ? new Date(dateRange.to) : new Date();
 
-      if (fromDate) fromDate.setHours(0, 0, 0, 0);
-      if (toDate) toDate.setHours(23, 59, 59, 999);
+      fromDate.setHours(0, 0, 0, 0);
+      toDate.setHours(23, 59, 59, 999);
       
       const isClassMatch = record.classId === selectedClassId;
-      const isDateMatch = fromDate && toDate ? recordDate >= fromDate && recordDate <= toDate : true;
+      const isDateMatch = recordDate >= fromDate && recordDate <= toDate;
       const isStudentMatch = selectedReportType === 'bireysel' && selectedStudentId ? record.studentId === selectedStudentId : true;
       
       return isClassMatch && isDateMatch && isStudentMatch;
@@ -141,6 +147,14 @@ export default function RaporlarPage() {
 
 
   const renderReportContent = () => {
+    if (!dateRange) {
+        return (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        );
+    }
+
     if (selectedReportType === 'bireysel' && !selectedStudentId) {
         return <div className="text-center p-8 text-muted-foreground">Raporu görüntülemek için lütfen bir öğrenci seçin.</div>
     }
