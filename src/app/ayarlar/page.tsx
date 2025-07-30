@@ -17,16 +17,9 @@ import {
   Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { classes, students, dailyRecords } from '@/lib/mock-data';
 
 export default function AyarlarPage() {
   const [activeTheme, setActiveTheme] = React.useState('light');
-
-  const totalClasses = classes.length;
-  const totalStudents = students.length;
-  // This is a placeholder as we don't store total daily records count
-  const totalRecords = dailyRecords.length;
-
 
   return (
     <AppLayout>
@@ -137,26 +130,6 @@ export default function AyarlarPage() {
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Kullanım İstatistikleri</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-3xl font-bold text-primary">{totalClasses}</p>
-                    <p className="text-sm text-muted-foreground">Toplam Sınıf</p>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-3xl font-bold text-primary">{totalStudents}</p>
-                    <p className="text-sm text-muted-foreground">Toplam Öğrenci</p>
-                </div>
-                 <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-3xl font-bold text-primary">{totalRecords}</p>
-                    <p className="text-sm text-muted-foreground">Günlük Kayıt</p>
-                </div>
             </CardContent>
           </Card>
           
