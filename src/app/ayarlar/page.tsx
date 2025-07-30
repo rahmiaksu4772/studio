@@ -11,9 +11,6 @@ import {
   Mail,
   Book,
   MapPin,
-  Paintbrush,
-  Monitor,
-  Moon,
   Lock,
   Palette,
   Bell,
@@ -21,9 +18,41 @@ import {
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { EditProfileForm } from '@/components/edit-profile-form';
+import { useToast } from '@/hooks/use-toast';
+
+export type UserProfile = {
+  fullName: string;
+  title: string;
+  email: string;
+  branch: string;
+  workplace: string;
+  avatarUrl: string;
+};
+
+const initialProfile: UserProfile = {
+  fullName: 'Ayşe Öğretmen',
+  title: 'Matematik Öğretmeni',
+  email: 'rahmi.aksu.47@gmail.com',
+  branch: 'Matematik',
+  workplace: 'Atatürk İlkokulu',
+  avatarUrl: 'https://placehold.co/96x96.png',
+};
 
 export default function AyarlarPage() {
+  const { toast } = useToast();
   const [activeTheme, setActiveTheme] = React.useState('light');
+  const [profile, setProfile] = React.useState<UserProfile>(initialProfile);
+  const [isEditing, setIsEditing] = React.useState(false);
+
+  const handleProfileUpdate = (updatedProfile: Omit<UserProfile, 'email' | 'avatarUrl'>) => {
+    setProfile(prev => ({ ...prev, ...updatedProfile }));
+    toast({
+      title: 'Profil Güncellendi!',
+      description: 'Bilgileriniz başarıyla kaydedildi.',
+    });
+    setIsEditing(false);
+  };
 
   return (
     <AppLayout>
@@ -46,14 +75,14 @@ export default function AyarlarPage() {
                     </CardHeader>
                     <CardContent className='text-center flex flex-col items-center gap-4'>
                          <Avatar className="h-24 w-24 border-2 border-primary/10">
-                            <AvatarImage src="https://placehold.co/96x96.png" alt="Ayşe Öğretmen" data-ai-hint="teacher portrait" />
-                            <AvatarFallback>AÖ</AvatarFallback>
+                            <AvatarImage src={profile.avatarUrl} alt={profile.fullName} data-ai-hint="teacher portrait" />
+                            <AvatarFallback>{profile.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                         <div className='text-center'>
-                            <h2 className="text-xl font-semibold">Ayşe Öğretmen</h2>
-                            <p className="text-muted-foreground">Matematik Öğretmeni</p>
+                            <h2 className="text-xl font-semibold">{profile.fullName}</h2>
+                            <p className="text-muted-foreground">{profile.title}</p>
                         </div>
-                        <Button variant='outline' className='w-full'>Profili Düzenle</Button>
+                        <Button variant='outline' className='w-full' onClick={() => setIsEditing(true)}>Profili Düzenle</Button>
                     </CardContent>
                 </Card>
                 <Card>
@@ -84,28 +113,28 @@ export default function AyarlarPage() {
                       <User className="h-6 w-6 text-primary" />
                       <div>
                         <p className="text-muted-foreground">Ad Soyad</p>
-                        <p className="font-semibold">Ayşe Öğretmen</p>
+                        <p className="font-semibold">{profile.fullName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
                       <Mail className="h-6 w-6 text-primary" />
                       <div>
                         <p className="text-muted-foreground">E-posta</p>
-                        <p className="font-semibold">rahmi.aksu.47@gmail.com</p>
+                        <p className="font-semibold">{profile.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
                       <Book className="h-6 w-6 text-primary" />
                       <div>
                         <p className="text-muted-foreground">Branş</p>
-                        <p className="font-semibold">Matematik</p>
+                        <p className="font-semibold">{profile.branch}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
                       <MapPin className="h-6 w-6 text-primary" />
                       <div>
                         <p className="text-muted-foreground">Görev Yeri</p>
-                        <p className="font-semibold">Atatürk İlkokulu</p>
+                        <p className="font-semibold">{profile.workplace}</p>
                       </div>
                     </div>
                   </div>
@@ -133,7 +162,7 @@ export default function AyarlarPage() {
                       )}
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <Monitor className="h-6 w-6" />
+                        <User className="h-6 w-6" />
                         <h3 className="font-semibold text-lg">Açık Tema</h3>
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -150,7 +179,7 @@ export default function AyarlarPage() {
                       )}
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <Moon className="h-6 w-6" />
+                        <User className="h-6 w-6" />
                         <h3 className="font-semibold text-lg">Koyu Tema</h3>
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -189,6 +218,13 @@ export default function AyarlarPage() {
           </div>
         </div>
       </main>
+
+      <EditProfileForm
+        isOpen={isEditing}
+        onClose={() => setIsEditing(false)}
+        user={profile}
+        onUpdate={handleProfileUpdate}
+      />
     </AppLayout>
   );
 }
