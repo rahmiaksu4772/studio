@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, FileDown, Save, ChevronsRight, Filter as FilterIcon, Home, Users, Settings } from 'lucide-react';
+import { Calendar as CalendarIcon, FileDown, Save, ChevronsRight, Filter as FilterIcon, Home, Users, Settings, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -22,9 +22,14 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger
+  SidebarTrigger,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel
 } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function ClassPlanPage() {
   const { toast } = useToast();
@@ -49,7 +54,6 @@ export default function ClassPlanPage() {
   };
 
   const handleSave = () => {
-    // In a real app, this would send the `records` object to a server endpoint.
     console.log('Saving records:', {
       classId: selectedClass,
       date: format(date, 'yyyy-MM-dd'),
@@ -58,6 +62,7 @@ export default function ClassPlanPage() {
     toast({
       title: 'Başarılı!',
       description: 'Yoklama kayıtları başarıyla kaydedildi.',
+      variant: 'default',
     });
   };
   
@@ -78,7 +83,7 @@ export default function ClassPlanPage() {
   }
 
   const summary = useMemo(() => {
-    const counts: Record<string, number> = { '+': 0, '-': 0, 'G': 0, 'Y': 0, 'A': 0, 'unmarked': 0};
+    const counts: Record<string, number> = { '+': 0, '-': 0, 'G': 0, 'Y': 0, 'A': 0, 'unmarked': 0, '½': 0};
     students.forEach(s => {
         const status = records[s.id]?.status;
         if (status) {
@@ -94,40 +99,61 @@ export default function ClassPlanPage() {
     <TooltipProvider>
       <div className="flex min-h-screen w-full flex-col">
         <Sidebar variant="sidebar" collapsible="icon">
-            <SidebarHeader>
-              <h1 className="text-xl font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
+            <SidebarHeader className="p-4 justify-center flex">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
                 Sınıf<span className="text-primary">Planım</span>
               </h1>
             </SidebarHeader>
             <SidebarContent>
                 <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton isActive tooltip="Anasayfa"><Home/> Anasayfa</SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton tooltip="Sınıflar"><Users/> Sınıflar</SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton tooltip="Ayarlar"><Settings/> Ayarlar</SidebarMenuButton>
-                    </SidebarMenuItem>
+                  <SidebarGroup>
+                      <SidebarGroupLabel>Menü</SidebarGroupLabel>
+                      <SidebarMenuItem>
+                          <SidebarMenuButton isActive tooltip="Anasayfa"><Home/> Anasayfa</SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                          <SidebarMenuButton tooltip="Sınıflarım"><Users/> Sınıflarım</SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                          <SidebarMenuButton tooltip="Ayarlar"><Settings/> Ayarlar</SidebarMenuButton>
+                      </SidebarMenuItem>
+                  </SidebarGroup>
                 </SidebarMenu>
             </SidebarContent>
+            <SidebarFooter>
+                <div className="flex items-center gap-3 p-4 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="Öğretmen Adı" data-ai-hint="teacher portrait" />
+                        <AvatarFallback>ÖA</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                        <span className="font-semibold text-sm">Öğretmen Adı</span>
+                        <span className="text-xs text-muted-foreground">Branş</span>
+                    </div>
+                </div>
+            </SidebarFooter>
         </Sidebar>
         <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
             <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
                 <SidebarTrigger className="sm:hidden" />
-                <h1 className="text-xl font-semibold tracking-tight text-foreground hidden sm:block">
-                  Sınıf Yoklama
-                </h1>
+                <div className="flex-1">
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                      Hoş Geldiniz, Öğretmen Adı
+                    </h1>
+                    <p className="text-sm text-muted-foreground">Bugün {students.length} öğrenciyi takip ediyorsunuz.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Kaydet</Button>
+                </div>
             </header>
             <SidebarInset>
               <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
-                      <h3 className="tracking-tight text-sm font-medium">Sınıf</h3>
-                    </div>
-                    <div className="p-4 pt-0">
+                  <Card>
+                    <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Sınıf</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
                       <Select value={selectedClass} onValueChange={setSelectedClass}>
                         <SelectTrigger>
                           <SelectValue placeholder="Sınıf Seçin" />
@@ -140,13 +166,13 @@ export default function ClassPlanPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
-                  <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
-                      <h3 className="tracking-tight text-sm font-medium">Tarih</h3>
-                    </div>
-                    <div className="p-4 pt-0">
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Tarih</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -170,45 +196,53 @@ export default function ClassPlanPage() {
                           />
                         </PopoverContent>
                       </Popover>
-                    </div>
-                  </div>
-                  <div className="col-span-1 md:col-span-2 rounded-xl border bg-card text-card-foreground shadow p-4 flex flex-wrap items-center justify-start gap-2">
-                      <Button size="sm" onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Tümünü Kaydet</Button>
-                      <Button size="sm" variant="outline"><FileDown className="mr-2 h-4 w-4" /> PDF Aktar</Button>
-                      <Button size="sm" variant="outline"><FileDown className="mr-2 h-4 w-4" /> Excel Aktar</Button>
-                      <Button size="sm" variant="secondary" onClick={() => handleBulkAction('+')}><ChevronsRight className="mr-2 h-4 w-4"/> Herkesi "+" yap</Button>
-                  </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="col-span-1 md:col-span-2">
+                      <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+                         <CardTitle className="text-sm font-medium">Hızlı İşlemler</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0 flex flex-wrap items-center justify-start gap-2">
+                        <Button size="sm" variant="outline"><FileDown className="mr-2 h-4 w-4" /> PDF Aktar</Button>
+                        <Button size="sm" variant="outline"><FileDown className="mr-2 h-4 w-4" /> Excel Aktar</Button>
+                        <Button size="sm" variant="secondary" onClick={() => handleBulkAction('+')}><ChevronsRight className="mr-2 h-4 w-4"/> Herkesi "+" yap</Button>
+                      </CardContent>
+                  </Card>
                 </div>
 
-                <div className="rounded-xl border bg-card text-card-foreground shadow">
-                    <div className="p-4 flex flex-wrap items-center gap-2 border-b">
-                        <FilterIcon className="h-5 w-5 text-muted-foreground"/>
-                        <h3 className="text-sm font-semibold text-muted-foreground">Filtrele:</h3>
-                        <Button variant={filter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('all')}>Tümü</Button>
-                        <Button variant={filter === '+' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('+')}>Katıldı (+)</Button>
-                        <Button variant={filter === '-' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('-')}>İzinsiz (-)</Button>
-                        <Button variant={filter === 'G' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('G')}>Mazeretli (G)</Button>
-                        <Button variant={filter === 'Y' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('Y')}>Yarım Gün (Y)</Button>
-                        <Button variant={filter === 'A' ? 'default' : 'ghost'} size="sm" onClick={() => setFilter('A')}>Artılı (A)</Button>
-                    </div>
-                    <StudentAttendanceTable 
-                        students={students}
-                        records={records}
-                        onRecordChange={handleRecordChange}
-                        filter={filter}
-                        classId={selectedClass}
-                        recordDate={format(date, 'yyyy-MM-dd')}
-                    />
+                <Card>
+                    <CardHeader className="p-4 border-b">
+                      <div className="flex flex-wrap items-center gap-2">
+                          <FilterIcon className="h-5 w-5 text-muted-foreground"/>
+                          <h3 className="text-sm font-semibold text-muted-foreground">Filtrele:</h3>
+                          <Button variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('all')}>Tümü</Button>
+                          <Button variant={filter === '+' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('+')}>Artı (+)</Button>
+                          <Button variant={filter === '½' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('½')}>Yarım Artı (½)</Button>
+                          <Button variant={filter === '-' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('-')}>Eksi (-)</Button>
+                          <Button variant={filter === 'Y' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('Y')}>Yok (Y)</Button>
+                          <Button variant={filter === 'G' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('G')}>Mazeretli (G)</Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <StudentAttendanceTable 
+                          students={students}
+                          records={records}
+                          onRecordChange={handleRecordChange}
+                          filter={filter}
+                          classId={selectedClass}
+                          recordDate={format(date, 'yyyy-MM-dd')}
+                      />
+                    </CardContent>
                     <div className="p-4 border-t text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-2">
-                        <span>Katıldı: <strong className="text-foreground">{summary['+']}</strong></span>
-                        <span>İzinsiz: <strong className="text-foreground">{summary['-']}</strong></span>
+                        <span>Artı: <strong className="text-foreground">{summary['+']}</strong></span>
+                        <span>Yarım Artı: <strong className="text-foreground">{summary['½']}</strong></span>
+                        <span>Eksi: <strong className="text-foreground">{summary['-']}</strong></span>
+                        <span>Yok: <strong className="text-foreground">{summary['Y']}</strong></span>
                         <span>Mazeretli: <strong className="text-foreground">{summary['G']}</strong></span>
-                        <span>Yarım Gün: <strong className="text-foreground">{summary['Y']}</strong></span>
-                        <span>Artılı: <strong className="text-foreground">{summary['A']}</strong></span>
                         <span>İşaretlenmemiş: <strong className="text-foreground">{summary.unmarked}</strong></span>
                         <span className="ml-auto font-medium">Toplam Öğrenci: <strong className="text-foreground">{students.length}</strong></span>
                     </div>
-                </div>
+                </Card>
               </main>
             </SidebarInset>
         </div>

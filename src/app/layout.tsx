@@ -3,6 +3,12 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { Inter as FontSans } from "next/font/google"
+
+const fontSans = FontSans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+})
 
 export const metadata: Metadata = {
   title: 'SınıfPlanım | Öğretmenin Dijital Asistanı',
@@ -16,12 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+      <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
         <SidebarProvider>
           {children}
         </SidebarProvider>

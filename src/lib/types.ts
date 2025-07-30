@@ -1,3 +1,5 @@
+import { type LucideIcon } from "lucide-react";
+
 export type Student = {
   id: string;
   studentNumber: number;
@@ -11,7 +13,7 @@ export type ClassInfo = {
   name: string;
 };
 
-export type AttendanceStatus = '+' | '-' | 'G' | 'Y' | 'A';
+export type AttendanceStatus = '+' | '½' | '-' | 'G' | 'Y';
 
 export type DailyRecord = {
   studentId: string;
@@ -19,10 +21,10 @@ export type DailyRecord = {
   description: string;
 };
 
-export const statusOptions: { value: AttendanceStatus; label: string }[] = [
-  { value: '+', label: 'Katıldı' },
-  { value: '-', label: 'Katılmadı - İzinsiz' },
-  { value: 'G', label: 'Gelmedi - Mazeretli' },
-  { value: 'Y', label: 'Yarım Gün' },
-  { value: 'A', label: 'Artılı' },
+export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon }[] = [
+  { value: '+', label: 'Artı' },
+  { value: '½', label: 'Yarım Artı' },
+  { value: '-', label: 'Eksi' },
+  { value: 'Y', label: 'Yok' },
+  { value: 'G', label: 'Mazeretli' },
 ];

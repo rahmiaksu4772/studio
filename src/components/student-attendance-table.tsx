@@ -26,15 +26,39 @@ export default function StudentAttendanceTable({
   classId,
   recordDate
 }: StudentAttendanceTableProps) {
+  
+  const getFilteredStudents = () => {
+    if (filter === 'all') return students;
+    if (filter === 'Y' || filter === 'G') {
+       return students.filter(s => records[s.id]?.status === filter);
+    }
+    return students.filter(s => {
+      const record = records[s.id];
+      if (!record || !record.status) return false;
+      
+      if (filter === '+') return record.status === '+' || record.status === '½';
+      if (filter === '-') return record.status === '-';
+      
+      // A special case for unmarked students
+      if (filter === 'unmarked') return !record.status;
+      
+      return record.status === filter;
+    });
+  }
+
   const filteredStudents =
     filter === 'all'
       ? students
-      : students.filter((s) => records[s.id]?.status === filter);
+      : students.filter((s) => {
+          const status = records[s.id]?.status;
+          if (filter === 'unmarked') return !status;
+          return status === filter;
+        });
 
   if (filteredStudents.length === 0) {
     return (
       <div className="p-8 text-center text-muted-foreground">
-        Bu filtrede öğrenci bulunamadı.
+        Bu filtreye uygun öğrenci bulunamadı.
       </div>
     );
   }

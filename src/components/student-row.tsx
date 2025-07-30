@@ -64,9 +64,9 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
 
   const rowColorClass = {
     '+': 'bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/40',
+    '½': 'bg-green-50/70 dark:bg-green-900/20 hover:bg-green-100/80 dark:hover:bg-green-900/30',
     '-': 'bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40',
     'Y': 'bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/40',
-    'A': 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40',
     'G': 'bg-gray-100 dark:bg-gray-800/30 hover:bg-gray-200 dark:hover:bg-gray-800/40',
   }[status!] || 'hover:bg-muted/50';
 
@@ -90,7 +90,7 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
                   <p>{option.label}</p>
                 </TooltipContent>
               </Tooltip>
-              <Label htmlFor={`${student.id}-${option.value}`}>{option.value}</Label>
+              <Label htmlFor={`${student.id}-${option.value}`}>{option.icon ? <option.icon className="h-4 w-4" /> : option.value}</Label>
             </div>
           ))}
         </RadioGroup>
@@ -99,7 +99,7 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
         {status && (
           <div className="flex flex-col gap-2">
              <Textarea
-              placeholder="Öğrenci hakkında bir açıklama girin..."
+              placeholder="Öğrenci hakkında bir not ekleyin..."
               value={description}
               onChange={handleDescriptionChange}
               className="min-h-[60px] bg-card/80"
@@ -109,9 +109,9 @@ export default function StudentRow({ student, record, onRecordChange, classId, r
                 {isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                    <Sparkles className="h-4 w-4 text-accent" />
+                    <Sparkles className="h-4 w-4 text-primary" />
                 )}
-                <span>AI ile Doldur</span>
+                <span>AI ile Not Doldur</span>
             </Button>
           </div>
         )}
