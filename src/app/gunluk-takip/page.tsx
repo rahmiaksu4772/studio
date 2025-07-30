@@ -8,8 +8,9 @@ import {
   Calendar as CalendarIcon,
   Sparkles,
   Loader2,
+  Book,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,14 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { classes, students as allStudents } from '@/lib/mock-data';
@@ -38,11 +31,13 @@ import { useToast } from '@/hooks/use-toast';
 import { generateDescriptionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Label } from '@/components/ui/label';
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo>(classes[0]);
   const [recordDate, setRecordDate] = React.useState<Date>(new Date());
+  const [generalDescription, setGeneralDescription] = React.useState('');
   const [isPending, startTransition] = useTransition();
   const [generatingFor, setGeneratingFor] = React.useState<string | null>(null);
 
@@ -61,6 +56,7 @@ export default function GunlukTakipPage() {
 
   React.useEffect(() => {
     setRecords(getInitialRecords(selectedClass.id, recordDate));
+    setGeneralDescription('');
   }, [selectedClass.id, recordDate]);
 
   const handleRecordChange = (studentId: string, newRecord: Partial<DailyRecord>) => {
@@ -75,23 +71,16 @@ export default function GunlukTakipPage() {
     }));
   };
 
-  const handleAllStatusChange = (status: AttendanceStatus) => {
-    const newRecords = { ...records };
-    students.forEach(student => {
-      newRecords[student.id] = {
-        ...newRecords[student.id],
-        status: status
-      };
-    });
-    setRecords(newRecords);
-  }
-
   const handleSave = () => {
-    // In a real app, you would send this to your backend API
-    console.log("Kaydedilen Veriler:", { date: format(recordDate, 'yyyy-MM-dd'), classId: selectedClass.id, records: Object.values(records) });
+    console.log("Kaydedilen Veriler:", { 
+        date: format(recordDate, 'yyyy-MM-dd'), 
+        classId: selectedClass.id, 
+        records: Object.values(records),
+        generalDescription: generalDescription,
+     });
     toast({
       title: "Kayıt Başarılı",
-      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar ve notlar kaydedildi. (Konsolu kontrol edin)`,
+      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar, notlar ve genel açıklama kaydedildi. (Konsolu kontrol edin)`,
     });
   };
 
@@ -163,128 +152,120 @@ export default function GunlukTakipPage() {
             </Button>
           </div>
         </div>
+
         <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <CardTitle>Değerlendirme Tablosu</CardTitle>
-                <div className="flex w-full md:w-auto items-center gap-2">
-                    <Button onClick={handleSave} className="h-10">
+            <CardHeader>
+                <CardTitle>Genel Değerlendirme</CardTitle>
+                <CardDescription>
+                    Dersin veya günün geneli hakkında notlarınızı buraya ekleyebilirsiniz.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <div className='space-y-2'>
+                        <Label htmlFor="general-description" className='flex items-center gap-2'>
+                            <Book className="h-4 w-4" />
+                            Genel Açıklama
+                        </Label>
+                        <Textarea 
+                            id="general-description"
+                            placeholder='Örn: Bugün matematik dersinde kesirler konusunu işledik. Sınıfın genel katılımı iyiydi.'
+                            value={generalDescription}
+                            onChange={(e) => setGeneralDescription(e.target.value)}
+                            className='min-h-[60px]'
+                        />
+                    </div>
+                    <Button onClick={handleSave} className="h-10 w-full md:w-auto self-end">
                         <FileText className="mr-2 h-4 w-4" />
-                        Değişiklikleri Kaydet
+                        Tüm Değişiklikleri Kaydet
                     </Button>
                 </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-             <div className="w-full overflow-x-auto rounded-lg border">
-                 <Table>
-                    <TableHeader>
-                        <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableHead className="w-[50px] text-center px-2 md:px-4">No</TableHead>
-                            <TableHead className="min-w-[150px] px-2 md:px-4">Ad Soyad</TableHead>
-                             {statusOptions.map(option => (
-                                <TableHead key={option.value} className="w-[100px] text-center px-2 md:px-4">
-                                   <div className='flex flex-col items-center gap-2'>
-                                        <div className='flex items-center justify-center gap-1.5'>
-                                            {option.icon && <option.icon className={cn("h-5 w-5", option.color)} />}
-                                            <span>{option.label}</span>
-                                        </div>
-                                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => handleAllStatusChange(option.value)}>
-                                            Tümü
-                                        </Button>
-                                   </div>
-                                </TableHead>
-                            ))}
-                            <TableHead className="min-w-[250px] px-2 md:px-4">Açıklama</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {students.map(student => {
-                            const record = records[student.id];
-                            const rowColorClass = record?.status ? 'bg-opacity-50' : 'hover:bg-muted/50';
+            </CardContent>
+        </Card>
 
-                             const statusColorMapping: { [key in AttendanceStatus]?: string } = {
-                                '+': 'bg-green-100 dark:bg-green-900/40',
-                                '½': 'bg-green-50 dark:bg-green-900/20',
-                                '-': 'bg-red-100 dark:bg-red-900/40',
-                                'Y': 'bg-yellow-100 dark:bg-yellow-900/40',
-                                'G': 'bg-blue-100 dark:bg-blue-900/40',
-                            };
-
-                            const appliedColor = statusColorMapping[record?.status!] || '';
-
-                            return (
+        <div className='space-y-4'>
+            <h2 className='text-xl font-semibold'>Öğrenci Değerlendirmeleri</h2>
+            <div className="relative">
+                <div className="flex w-full gap-4 pb-4 overflow-x-auto">
+                {students.map(student => {
+                    const record = records[student.id];
+                    return (
+                        <Card key={student.id} className="min-w-[320px] flex-shrink-0">
+                            <CardHeader>
+                                <div className='flex items-start justify-between'>
+                                    <div>
+                                        <CardTitle className='text-base'>{student.firstName} {student.lastName}</CardTitle>
+                                        <CardDescription>No: {student.studentNumber}</CardDescription>
+                                    </div>
+                                    <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button 
+                                                size='icon'
+                                                variant='ghost'
+                                                className='-mr-2 -mt-2'
+                                                onClick={() => handleGenerateDescription(student.id)}
+                                                disabled={isPending && generatingFor === student.id}
+                                            >
+                                                {isPending && generatingFor === student.id ? (
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                ) : (
+                                                    <Sparkles className="h-5 w-5 text-primary" />
+                                                )}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>AI ile Not Oluştur</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
                                 <RadioGroup 
-                                    key={student.id} 
-                                    asChild 
                                     value={record?.status || ""} 
                                     onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
+                                    className='grid grid-cols-5 gap-2'
                                 >
-                                    <TableRow className={cn("transition-colors", rowColorClass, appliedColor)}>
-                                        <TableCell className="text-center text-muted-foreground font-medium px-2 md:px-4">{student.studentNumber}</TableCell>
-                                        <TableCell className="font-medium px-2 md:px-4">{student.firstName} {student.lastName}</TableCell>
-                                        
-                                        {statusOptions.map(option => (
-                                            <TableCell key={option.value} className="text-center px-2 md:px-4">
-                                                <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <RadioGroupItem 
-                                                            value={option.value} 
-                                                            id={`${student.id}-${option.value}`} 
-                                                            aria-label={option.label}
-                                                        />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>{option.label}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                                </TooltipProvider>
-                                            </TableCell>
-                                        ))}
-                                        
-                                        <TableCell className='min-w-[250px] px-2 md:px-4'>
-                                            <div className='flex items-center gap-2'>
-                                                <Textarea 
-                                                    value={record?.description || ''}
-                                                    onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                                    placeholder='Öğrenci hakkında notunuzu girin...'
-                                                    className='min-h-[40px] flex-1 text-sm bg-white dark:bg-card'
-                                                    rows={1}
-                                                />
-                                                <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button 
-                                                            size='icon'
-                                                            variant='ghost'
-                                                            onClick={() => handleGenerateDescription(student.id)}
-                                                            disabled={isPending && generatingFor === student.id}
-                                                        >
-                                                            {isPending && generatingFor === student.id ? (
-                                                                <Loader2 className="h-5 w-5 animate-spin" />
-                                                            ) : (
-                                                                <Sparkles className="h-5 w-5 text-primary" />
+                                    {statusOptions.map(option => (
+                                        <TooltipProvider key={option.value}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Label 
+                                                        htmlFor={`${student.id}-${option.value}`}
+                                                        className={cn(
+                                                            "flex flex-col items-center justify-center gap-1.5 rounded-md p-2 border-2 text-muted-foreground cursor-pointer transition-colors hover:border-primary",
+                                                            record?.status === option.value && "border-primary bg-primary/10 text-primary"
                                                             )}
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>AI ile Not Oluştur</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                                </TooltipProvider>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
+                                                        >
+                                                            {option.icon && <option.icon className="h-5 w-5" />}
+                                                            <span className='text-xs font-semibold'>{option.label}</span>
+                                                            <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} className='sr-only'/>
+                                                        </Label>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{option.label}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ))}
                                 </RadioGroup>
-                            )
-                        })}
-                    </TableBody>
-                 </Table>
-             </div>
-          </CardContent>
-        </Card>
+                                <Textarea 
+                                    value={record?.description || ''}
+                                    onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
+                                    placeholder='Öğrenci hakkında not...'
+                                    className='min-h-[40px] text-sm bg-white dark:bg-card'
+                                    rows={2}
+                                />
+                            </CardContent>
+                        </Card>
+                    )
+                })}
+                </div>
+            </div>
+        </div>
       </main>
     </AppLayout>
   );
-}
+
+    
