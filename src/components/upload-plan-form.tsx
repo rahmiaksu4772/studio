@@ -22,6 +22,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ACCEPTED_FILE_TYPES = [
@@ -127,6 +128,8 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
     </Button>
   );
 
+  const selectedFile = form.watch('file');
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
       if (!isOpen) form.reset();
@@ -188,16 +191,24 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
              <FormField
                 control={form.control}
                 name="file"
-                render={({ field: { onChange, value, ...rest } }) => (
+                render={({ field: { onChange, ...rest } }) => (
                   <FormItem>
                     <FormLabel>Dosya</FormLabel>
                     <FormControl>
+                      <div>
+                        <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          <span>{selectedFile?.[0]?.name ?? 'Dosya Seç'}</span>
+                        </Button>
                         <Input
                             type="file"
+                            className="hidden"
+                            ref={fileInputRef}
                             accept=".pdf,.doc,.docx,.xls,.xlsx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             onChange={(e) => onChange(e.target.files)}
-                            ref={fileInputRef}
+                            {...rest}
                         />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
