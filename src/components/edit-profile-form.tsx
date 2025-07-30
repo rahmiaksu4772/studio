@@ -18,48 +18,56 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import type { UserProfile } from '@/app/ayarlar/page';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Camera } from 'lucide-react';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'Ad soyad en az 2 karakter olmalıdır.' }),
   title: z.string().min(2, { message: 'Unvan en az 2 karakter olmalıdır.' }),
   branch: z.string().min(2, { message: 'Branş en az 2 karakter olmalıdır.' }),
   workplace: z.string().min(2, { message: 'Görev yeri en az 2 karakter olmalıdır.' }),
+  avatarUrl: z.string().url().or(z.string().startsWith('data:image/')),
 });
 
 type EditProfileFormValues = z.infer<typeof formSchema>;
 
 type EditProfileFormProps = {
   user: UserProfile;
-  onUpdate: (data: EditProfileFormValues) => void;
+  onUpdate: (data: UserProfile) => void;
   onClose: () => void;
   isOpen: boolean;
 };
 
 export function EditProfileForm({ user, onUpdate, onClose, isOpen }: EditProfileFormProps) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const form = useForm<EditProfileFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      fullName: user.fullName,
-      title: user.title,
-      branch: user.branch,
-      workplace: user.workplace,
-    },
+    defaultValues: user,
   });
 
   React.useEffect(() => {
     if (user) {
-      form.reset({
-        fullName: user.fullName,
-        title: user.title,
-        branch: user.branch,
-        workplace: user.workplace,
-      });
+      form.reset(user);
     }
   }, [user, form]);
 
   function onSubmit(values: EditProfileFormValues) {
-    onUpdate(values);
+    onUpdate({
+        ...user,
+        ...values
+    });
   }
+  
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        form.setValue('avatarUrl', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -72,6 +80,40 @@ export function EditProfileForm({ user, onUpdate, onClose, isOpen }: EditProfile
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <div className='flex justify-center'>
+                <FormField
+                  control={form.control}
+                  name="avatarUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                       <FormControl>
+                        <div className="relative group">
+                             <Avatar className="h-24 w-24 border-2 border-primary/10">
+                                <AvatarImage src={field.value} alt={user.fullName} data-ai-hint="teacher portrait" />
+                                <AvatarFallback>{user.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            </Avatar>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                accept="image/*" 
+                                onChange={handleAvatarChange} 
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <Camera className="h-8 w-8 text-white" />
+                            </button>
+                        </div>
+                       </FormControl>
+                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+
             <FormField
               control={form.control}
               name="fullName"

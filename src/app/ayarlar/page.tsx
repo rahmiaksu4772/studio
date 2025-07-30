@@ -14,6 +14,7 @@ import {
   Lock,
   Palette,
   Bell,
+  Camera,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -44,14 +45,27 @@ export default function AyarlarPage() {
   const [activeTheme, setActiveTheme] = React.useState('light');
   const [profile, setProfile] = React.useState<UserProfile>(initialProfile);
   const [isEditing, setIsEditing] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleProfileUpdate = (updatedProfile: Omit<UserProfile, 'email' | 'avatarUrl'>) => {
-    setProfile(prev => ({ ...prev, ...updatedProfile }));
+  const handleProfileUpdate = (updatedProfile: UserProfile) => {
+    setProfile(updatedProfile);
     toast({
       title: 'Profil Güncellendi!',
       description: 'Bilgileriniz başarıyla kaydedildi.',
     });
     setIsEditing(false);
+  };
+  
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfile(prev => ({ ...prev, avatarUrl: reader.result as string }));
+        setIsEditing(true); // Open the edit dialog after selecting a new photo
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -74,10 +88,25 @@ export default function AyarlarPage() {
                         <CardDescription>Temel hesap bilgileriniz.</CardDescription>
                     </CardHeader>
                     <CardContent className='text-center flex flex-col items-center gap-4'>
-                         <Avatar className="h-24 w-24 border-2 border-primary/10">
-                            <AvatarImage src={profile.avatarUrl} alt={profile.fullName} data-ai-hint="teacher portrait" />
-                            <AvatarFallback>{profile.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
+                        <div className="relative group">
+                             <Avatar className="h-24 w-24 border-2 border-primary/10">
+                                <AvatarImage src={profile.avatarUrl} alt={profile.fullName} data-ai-hint="teacher portrait" />
+                                <AvatarFallback>{profile.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            </Avatar>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                accept="image/*" 
+                                onChange={handleAvatarChange} 
+                            />
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <Camera className="h-8 w-8 text-white" />
+                            </button>
+                        </div>
                         <div className='text-center'>
                             <h2 className="text-xl font-semibold">{profile.fullName}</h2>
                             <p className="text-muted-foreground">{profile.title}</p>
