@@ -7,7 +7,6 @@ import {
   BarChart2,
   PieChart,
   List,
-  AlertCircle,
 } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -30,14 +29,14 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Pie, Cell } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, Pie, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
-import { format, subDays, startOfMonth } from 'date-fns';
+import { format, startOfMonth } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 
 import { classes, students, dailyRecords } from '@/lib/mock-data';
-import { statusOptions, Student } from '@/lib/types';
+import { statusOptions } from '@/lib/types';
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
@@ -108,12 +107,25 @@ export default function RaporlarPage() {
           return acc;
       }, {} as any);
 
+      const chartData: { date: string, [key: string]: number | string }[] = [];
+      const dateMap: { [key: string]: { date: string, [key: string]: number | string } } = {};
+
       filteredData.forEach(record => {
           if (record.status && summary[record.status]) {
               summary[record.status].count += 1;
           }
+
+          const formattedDate = format(new Date(record.date), 'dd/MM');
+          if (!dateMap[formattedDate]) {
+            dateMap[formattedDate] = { date: formattedDate };
+            statusOptions.forEach(opt => dateMap[formattedDate][opt.value] = 0);
+          }
+          if (record.status) {
+            (dateMap[formattedDate][record.status] as number) += 1;
+          }
       });
-      return { summary, records: filteredData };
+      
+      return { summary, records: filteredData, chartData: Object.values(dateMap) };
   }, [filteredData, selectedReportType, selectedStudentId]);
 
   const classReportData = React.useMemo(() => {
@@ -131,33 +143,46 @@ export default function RaporlarPage() {
 
   const renderReportContent = () => {
     if (selectedReportType === 'bireysel' && !selectedStudentId) {
-        return <div className="text-center p-8">Lütfen bir öğrenci seçin.</div>
+        return <div className="text-center p-8 text-muted-foreground">Raporu görüntülemek için lütfen bir öğrenci seçin.</div>
     }
     
     if (filteredData.length === 0) {
-        return <div className="text-center p-8">Seçilen kriterlere uygun veri bulunamadı.</div>
+        return <div className="text-center p-8 text-muted-foreground">Seçilen kriterlere uygun veri bulunamadı.</div>
     }
 
     if(selectedReportType === 'bireysel' && individualReportData){
-      const { summary, records } = individualReportData;
+      const { summary, records, chartData } = individualReportData;
       return (
         <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                {Object.entries(summary).map(([key, value]: [string, any]) => (
+                     <Card key={key} className="p-4">
+                        <div className="flex justify-center items-center mb-2">
+                            {value.icon && <value.icon className={cn("h-6 w-6", statusOptions.find(o => o.value === key)?.color)} />}
+                        </div>
+                        <p className="text-2xl font-bold">{value.count}</p>
+                        <p className="text-sm text-muted-foreground">{value.label}</p>
+                    </Card>
+                ))}
+            </div>
+            
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BarChart2 /> İstatistikler</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><BarChart2 /> İstatistik Grafiği</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
-                        {Object.entries(summary).map(([key, value]: [string, any]) => (
-                             <Card key={key} className="p-4">
-                                <div className="flex justify-center items-center mb-2">
-                                    {value.icon && <value.icon className={cn("h-6 w-6", statusOptions.find(o => o.value === key)?.color)} />}
-                                </div>
-                                <p className="text-2xl font-bold">{value.count}</p>
-                                <p className="text-sm text-muted-foreground">{value.label}</p>
-                            </Card>
-                        ))}
-                    </div>
+                    <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
+                        <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                            <YAxis />
+                            <ChartTooltip content={<ChartTooltipContent />} />
+                            <ChartLegend />
+                            {statusOptions.map(opt => (
+                                <Bar key={opt.value} dataKey={opt.value} fill={chartConfig[opt.value]?.color} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
+                            ))}
+                        </BarChart>
+                    </ChartContainer>
                 </CardContent>
             </Card>
 
@@ -168,7 +193,7 @@ export default function RaporlarPage() {
                 </CardHeader>
                 <CardContent>
                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
+                        {records.length > 0 ? records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
                             <div key={`${record.date}-${record.studentId}`} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
                                 <div className="font-semibold text-center w-24">
                                     <p>{format(new Date(record.date), 'dd MMMM', { locale: tr })}</p>
@@ -186,7 +211,7 @@ export default function RaporlarPage() {
                                     <p className="text-sm text-muted-foreground">{record.description || "Ek bir not girilmemiş."}</p>
                                 </div>
                             </div>
-                        ))}
+                        )) : <p className='text-sm text-muted-foreground'>Bu tarih aralığında not bulunmuyor.</p>}
                    </div>
                 </CardContent>
             </Card>
@@ -200,8 +225,8 @@ export default function RaporlarPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><PieChart/> Sınıf Geneli Durum Dağılımı</CardTitle>
                 </CardHeader>
-                <CardContent>
-                     <ChartContainer config={chartConfig} className="min-h-[200px] w-full aspect-auto">
+                <CardContent className="flex justify-center">
+                     <ChartContainer config={chartConfig} className="min-h-[300px] w-full max-w-lg aspect-auto">
                         <PieChart>
                           <ChartTooltip
                             cursor={false}
@@ -226,13 +251,13 @@ export default function RaporlarPage() {
         )
     }
 
-    return <div className="text-center p-8">Rapor oluşturuluyor...</div>;
+    return null;
   }
   
   return (
     <AppLayout>
       <main className="flex-1 p-4 sm:p-6 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">Raporlar</h1>
             <p className="text-muted-foreground">
@@ -250,7 +275,7 @@ export default function RaporlarPage() {
             <CardTitle>Filtreler</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="class-select">Sınıf Seçimi</Label>
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
@@ -301,11 +326,11 @@ export default function RaporlarPage() {
                         {dateRange?.from ? (
                         dateRange.to ? (
                             <>
-                            {format(dateRange.from, "LLL dd, y", { locale: tr })} -{" "}
-                            {format(dateRange.to, "LLL dd, y", { locale: tr })}
+                            {format(dateRange.from, "dd MMMM yyyy", { locale: tr })} -{' '}
+                            {format(dateRange.to, "dd MMMM yyyy", { locale: tr })}
                             </>
                         ) : (
-                            format(dateRange.from, "LLL dd, y", { locale: tr })
+                            format(dateRange.from, "dd MMMM yyyy", { locale: tr })
                         )
                         ) : (
                         <span>Tarih aralığı seçin</span>

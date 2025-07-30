@@ -1,4 +1,4 @@
-import { type LucideIcon, ThumbsUp, CircleSlash, ThumbsDown, UserCheck, UserX } from "lucide-react";
+import { type LucideIcon, ThumbsUp, ThumbsDown, UserCheck, UserX } from "lucide-react";
 
 export type Student = {
   id: string;
@@ -25,7 +25,7 @@ export type DailyRecord = {
 
 export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string }[] = [
     { value: '+', label: 'Artı', icon: ThumbsUp, color: 'text-green-600' },
-    { value: '½', label: 'Yarım', icon: CircleSlash, color: 'text-green-500' },
+    { value: '½', label: 'Yarım', icon: ThumbsUp, color: 'text-green-500' },
     { value: '-', label: 'Eksi', icon: ThumbsDown, color: 'text-red-600' },
     { value: 'Y', label: 'Yok', icon: UserX, color: 'text-yellow-600' },
     { value: 'G', label: 'İzinli', icon: UserCheck, color: 'text-blue-600' },

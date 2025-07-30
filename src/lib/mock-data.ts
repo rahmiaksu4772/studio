@@ -1,5 +1,6 @@
 
 import type { Student, ClassInfo, DailyRecord } from './types';
+import { format, subMonths, getDaysInMonth, setDate } from 'date-fns';
 
 export const classes: ClassInfo[] = [
   { id: 'c1', name: '6/A' },
@@ -13,29 +14,35 @@ export const students: Student[] = [
   { id: 's3', studentNumber: 125, firstName: 'Mehmet', lastName: 'Demir', classId: 'c1' },
   { id: 's4', studentNumber: 126, firstName: 'Zeynep', lastName: 'Özkan', classId: 'c1' },
   { id: 's5', studentNumber: 127, firstName: 'Can', lastName: 'Arslan', classId: 'c1' },
+  { id: 's6', studentNumber: 128, firstName: 'Elif', lastName: 'Doğan', classId: 'c1' },
+  { id: 's7', studentNumber: 129, firstName: 'Mustafa', lastName: 'Şahin', classId: 'c1' },
+  { id: 's8', studentNumber: 130, firstName: 'Selin', lastName: 'Çelik', classId: 'c1' },
+  
+  // 7/B
+  { id: 's9', studentNumber: 201, firstName: 'Emre', lastName: 'Koç', classId: 'c2' },
+  { id: 's10', studentNumber: 202, firstName: 'Fatma', lastName: 'Yıldız', classId: 'c2' },
+  { id: 's11', studentNumber: 203, firstName: 'Ali', lastName: 'Öztürk', classId: 'c2' },
+  { id: 's12', studentNumber: 204, firstName: 'Merve', lastName: 'Aydın', classId: 'c2' },
 ];
 
-
-function getDaysArray(year: number, month: number) {
-    const date = new Date(year, month - 1, 1);
+function getDaysArrayForLastMonth() {
+    const today = new Date();
+    const lastMonth = subMonths(today, 1);
+    const year = lastMonth.getFullYear();
+    const month = lastMonth.getMonth();
+    const daysInMonth = getDaysInMonth(lastMonth);
     const days = [];
-    while (date.getMonth() === month - 1) {
-        days.push(new Date(date));
-        date.setDate(date.getDate() + 1);
+    for (let i = 1; i <= daysInMonth; i++) {
+        days.push(new Date(year, month, i));
     }
     return days;
 }
 
-function formatDate(date: Date) {
-    return date.toISOString().split('T')[0];
-}
 
-const currentYear = new Date().getFullYear();
-const lastMonth = new Date().getMonth(); 
-const lastMonthDays = getDaysArray(currentYear, lastMonth);
+const lastMonthDays = getDaysArrayForLastMonth();
 
 const allRecords: DailyRecord[] = [];
-const statuses: (DailyRecord['status'])[] = ['+', '+', '+', '½', '-', 'Y', 'G'];
+const statuses: (DailyRecord['status'])[] = ['+', '+', '+', '½', '-', 'Y', 'G', '+', '+'];
 const descriptions = [
     'Derse harika katılım gösterdi.',
     'Ödevini zamanında ve eksiksiz teslim etti.',
@@ -58,18 +65,18 @@ students.forEach(student => {
             return;
         }
 
-        // Add some random chance of no record
-        if (Math.random() > 0.9) {
+        // Add some random chance of no record for a day
+        if (Math.random() > 0.95) {
             return;
         }
         
         const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-        const randomDescription = Math.random() > 0.7 ? descriptions[Math.floor(Math.random() * descriptions.length)] : '';
+        const randomDescription = Math.random() > 0.6 ? descriptions[Math.floor(Math.random() * descriptions.length)] : '';
         
         allRecords.push({
             studentId: student.id,
             classId: student.classId,
-            date: formatDate(day),
+            date: format(day, 'yyyy-MM-dd'),
             status: randomStatus,
             description: randomDescription,
         });

@@ -6,15 +6,12 @@ import {
   Plus,
   Upload,
   Trash2,
-  ArrowUp,
-  ArrowDown,
   Pencil,
   Users
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { classes, students as allStudents } from '@/lib/mock-data';
 import type { Student } from '@/lib/types';
@@ -48,10 +45,10 @@ export default function SiniflarimPage() {
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {classes.map((c, index) => (
             <Card key={c.id}>
-              <CardHeader className={cn("text-white rounded-t-xl", index === 0 ? 'bg-primary' : 'bg-green-600' )}>
+              <CardHeader className={cn("text-white rounded-t-lg", index % 2 === 0 ? 'bg-primary' : 'bg-secondary-foreground' )}>
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle>{c.name}</CardTitle>
+                        <CardTitle className='text-primary-foreground'>{c.name}</CardTitle>
                         <p className="text-sm text-primary-foreground/80">Sınıf Seviyesi: {c.name.split('/')[0]}</p>
                     </div>
                     <div className="text-right">
@@ -64,18 +61,20 @@ export default function SiniflarimPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold">Öğrenciler</h4>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon">
-                      <Plus className="h-5 w-5" />
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Öğrenci Ekle
                     </Button>
-                    <Button variant="ghost" size="icon">
-                      <Upload className="h-5 w-5" />
+                    <Button variant="outline" size="sm">
+                      <Upload className="h-4 w-4 mr-2" />
+                      İçe Aktar
                     </Button>
                   </div>
                 </div>
                 
                 {getStudentCount(c.id) > 0 ? (
-                  <ul className="space-y-2">
-                  {students.filter(s => s.classId === c.id).map(student => (
+                  <ul className="space-y-2 max-h-96 overflow-y-auto">
+                  {students.filter(s => s.classId === c.id).sort((a, b) => a.studentNumber - b.studentNumber).map(student => (
                     <li key={student.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</span>
@@ -83,15 +82,20 @@ export default function SiniflarimPage() {
                         </div>
                         <div className="flex items-center">
                             <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleStudentDelete(student.id)}><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleStudentDelete(student.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                     </li>
                   ))}
                 </ul>
                 ) : (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
                         <Users className="mx-auto h-8 w-8 mb-2" />
-                        <p>Bu sınıfa henüz öğrenci eklenmemiş.</p>
+                        <h3 className="font-semibold">Öğrenci Bulunmuyor</h3>
+                        <p className='text-sm'>Bu sınıfa henüz öğrenci eklenmemiş.</p>
+                         <Button size="sm" className="mt-4">
+                            <Plus className="h-4 w-4 mr-2" />
+                            İlk Öğrenciyi Ekle
+                        </Button>
                     </div>
                 )}
               </CardContent>
