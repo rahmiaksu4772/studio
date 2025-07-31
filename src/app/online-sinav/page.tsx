@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ListPlus, Trash2, Save, FilePenLine, ImagePlus, X as CloseIcon } from 'lucide-react';
+import { ListPlus, Trash2, Save, FilePenLine, ImagePlus, X as CloseIcon, Share2 } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { cn } from '@/lib/utils';
+import { 
+    AlertDialog, 
+    AlertDialogContent, 
+    AlertDialogHeader, 
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel
+} from '@/components/ui/alert-dialog';
+
 
 const examFormSchema = z.object({
   title: z.string().min(3, 'Sınav başlığı zorunludur.'),
@@ -27,11 +36,12 @@ const examFormSchema = z.object({
   })).min(1, "Sınavda en az bir soru olmalıdır."),
 });
 
-type ExamFormValues = z.infer<typeof examFormSchema>;
+export type ExamFormValues = z.infer<typeof examFormSchema>;
 
 export default function OnlineSinavPage() {
   const { toast } = useToast();
   const fileInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+  const [shareableLink, setShareableLink] = React.useState<string | null>(null);
 
   const examForm = useForm<ExamFormValues>({
     resolver: zodResolver(examFormSchema),
@@ -44,11 +54,19 @@ export default function OnlineSinavPage() {
   });
   
   const handleSaveExam = (values: ExamFormValues) => {
-      console.log("Kaydedilen Sınav:", values);
-      toast({
-          title: "Sınav Başarıyla Kaydedildi!",
-          description: "Sınavınız kaydedildi. (Detaylar için konsolu kontrol edin)"
-      });
+      const examId = `exam_${Date.now().toString(36)}`;
+      try {
+        localStorage.setItem(examId, JSON.stringify(values));
+        const link = `${window.location.origin}/sinav-yap/${examId}`;
+        setShareableLink(link);
+      } catch (error) {
+          console.error("Sınav kaydedilirken hata:", error);
+          toast({
+              title: "Kaydetme Başarısız",
+              description: "Sınav yerel depolamaya kaydedilemedi. Tarayıcınız bu özelliği desteklemiyor veya depolama alanı dolu olabilir.",
+              variant: "destructive"
+          });
+      }
   }
   
   const addQuestion = () => {
@@ -64,6 +82,16 @@ export default function OnlineSinavPage() {
     };
     reader.readAsDataURL(file);
   };
+  
+  const copyLink = () => {
+    if (shareableLink) {
+        navigator.clipboard.writeText(shareableLink);
+        toast({
+            title: "Link Kopyalandı!",
+            description: "Sınav linki panonuza kopyalandı."
+        });
+    }
+  }
 
   return (
     <AppLayout>
@@ -191,7 +219,7 @@ export default function OnlineSinavPage() {
                             </Button>
                              <Button type="submit">
                                 <Save className="mr-2 h-4 w-4" />
-                                Sınavı Kaydet
+                                Sınavı Kaydet ve Paylaş
                             </Button>
                            </div>
                         </CardContent>
@@ -221,9 +249,33 @@ export default function OnlineSinavPage() {
                 </Card>
             )}
         </div>
+        
+        <AlertDialog open={!!shareableLink} onOpenChange={(isOpen) => !isOpen && setShareableLink(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                       <Share2 className='h-5 w-5 text-primary' /> 
+                       Sınavınız Paylaşılmaya Hazır!
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Aşağıdaki linki kopyalayarak öğrencilerinizle paylaşabilirsiniz. Bu linke sahip olan herkes sınava erişebilir.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className='py-4'>
+                    <Input 
+                        readOnly
+                        value={shareableLink || ''}
+                        className="bg-muted"
+                    />
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Kapat</AlertDialogCancel>
+                    <Button onClick={copyLink}>Linki Kopyala</Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
       </main>
     </AppLayout>
   );
 }
-
-    
