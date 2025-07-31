@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { opticalScanAction } from '../actions';
-import type { OpticalScanOutput } from '@/ai/flows/optical-scan-flow';
+import type { OpticalScanOutput } from '@/ai/schemas/optical-scan-schemas';
 import {
   Table,
   TableBody,

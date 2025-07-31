@@ -3,7 +3,7 @@
 import { descriptionAutoFill } from '@/ai/flows/description-auto-fill';
 import type { DescriptionAutoFillInput } from '@/ai/flows/description-auto-fill';
 import { opticalScan } from '@/ai/flows/optical-scan-flow';
-import type { OpticalScanInput } from '@/ai/flows/optical-scan-flow';
+import type { OpticalScanInput } from '@/ai/schemas/optical-scan-schemas';
 
 
 export async function generateDescriptionAction(input: DescriptionAutoFillInput) {
