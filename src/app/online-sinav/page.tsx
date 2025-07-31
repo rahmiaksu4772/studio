@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { FilePenLine, Plus, Share2, Trash2, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -142,7 +143,7 @@ export default function OnlineSinavlarPage() {
                             </AlertDialogContent>
                         </AlertDialog>
                         <Button className='w-full col-span-2' onClick={() => handleShare(exam.id)}>
-                            <Share2 className="h-4 w-4" /> Paylaş & Görüntüle
+                            <Share2 className="h-4 w-4" /> Paylaş &amp; Görüntüle
                         </Button>
                     </CardFooter>
                 </Card>
@@ -167,17 +168,17 @@ export default function OnlineSinavlarPage() {
         )}
       </main>
 
-       <AlertDialog open={!!shareableLink} onOpenChange={(isOpen) => !isOpen && setShareableLink(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
+       <Dialog open={!!shareableLink} onOpenChange={(isOpen) => !isOpen && setShareableLink(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
                        <Share2 className='h-5 w-5 text-primary' /> 
                        Sınavı Paylaş
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
+                    </DialogTitle>
+                    <DialogDescription>
                         Aşağıdaki linki kopyalayarak öğrencilerinizle paylaşabilirsiniz. Bu linke sahip olan herkes sınava erişebilir.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
+                    </DialogDescription>
+                </DialogHeader>
                 <div className='py-4'>
                     <Input 
                         readOnly
@@ -185,18 +186,19 @@ export default function OnlineSinavlarPage() {
                         className="bg-muted"
                     />
                 </div>
-                <AlertDialogFooter>
+                <DialogFooter>
                      <Button variant="outline" asChild>
                         <a href={shareableLink || ''} target="_blank" rel="noopener noreferrer">
                             Önizleme
                         </a>
                     </Button>
                     <Button onClick={copyLink}>Linki Kopyala</Button>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                     <DialogClose asChild>
+                        <Button variant="secondary">Kapat</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
   );
 }
-
-    
