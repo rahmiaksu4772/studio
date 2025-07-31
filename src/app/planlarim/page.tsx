@@ -21,8 +21,9 @@ import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
 import type { Plan } from '@/lib/types';
-import { deletePlan } from '@/services/firestore';
-import { getPlansAction } from '@/app/actions';
+import { format } from 'date-fns';
+
+const PLANS_STORAGE_KEY = 'lesson-plans';
 
 export default function PlanlarimPage() {
   const { toast } = useToast();
@@ -32,26 +33,44 @@ export default function PlanlarimPage() {
   const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    async function fetchPlans() {
-        setIsLoading(true);
-        try {
-            const fetchedPlans = await getPlansAction();
-            setPlans(fetchedPlans);
-        } catch (error) {
-            console.error("Failed to load plans from Firestore", error);
-            toast({
-                title: "Planlar Yüklenemedi",
-                description: "Planlarınız yüklenirken bir sorun oluştu.",
-                variant: "destructive"
-            });
-        } finally {
-            setIsLoading(false);
+    setIsLoading(true);
+    try {
+        const savedPlans = localStorage.getItem(PLANS_STORAGE_KEY);
+        if (savedPlans) {
+            setPlans(JSON.parse(savedPlans));
         }
+    } catch (error) {
+        console.error("Failed to load plans from localStorage", error);
+        toast({
+            title: "Planlar Yüklenemedi",
+            description: "Planlarınız yüklenirken bir sorun oluştu.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsLoading(false);
     }
-    fetchPlans();
   }, [toast]);
 
-  const handleAddPlan = (newPlan: Plan) => {
+  React.useEffect(() => {
+    try {
+        localStorage.setItem(PLANS_STORAGE_KEY, JSON.stringify(plans));
+    } catch (error) {
+        console.error("Failed to save plans to localStorage", error);
+        toast({
+            title: "Planlar Kaydedilemedi",
+            description: "Değişiklikleriniz kaydedilirken bir sorun oluştu.",
+            variant: "destructive"
+        });
+    }
+  }, [plans, toast]);
+
+
+  const handleAddPlan = (planData: Omit<Plan, 'id' | 'uploadDate'>) => {
+    const newPlan: Plan = {
+      ...planData,
+      id: new Date().toISOString(),
+      uploadDate: format(new Date(), 'dd.MM.yyyy'),
+    };
     setPlans(prevPlans => [newPlan, ...prevPlans]);
     toast({
       title: 'Plan Başarıyla Yüklendi!',
@@ -61,22 +80,12 @@ export default function PlanlarimPage() {
 
   const handleDeletePlan = async (idToDelete: string) => {
     const planToDelete = plans.find(p => p.id === idToDelete);
-    try {
-        await deletePlan(idToDelete);
-        setPlans(prevPlans => prevPlans.filter(p => p.id !== idToDelete));
-        toast({
-          title: 'Plan Silindi',
-          description: `"${planToDelete?.title}" adlı planınız başarıyla silindi.`,
-          variant: 'destructive',
-        });
-    } catch (error) {
-        console.error("Failed to delete plan:", error);
-        toast({
-            title: "Hata",
-            description: "Plan silinirken bir sorun oluştu.",
-            variant: "destructive"
-        })
-    }
+    setPlans(prevPlans => prevPlans.filter(p => p.id !== idToDelete));
+    toast({
+      title: 'Plan Silindi',
+      description: `"${planToDelete?.title}" adlı planınız başarıyla silindi.`,
+      variant: 'destructive',
+    });
   };
   
   const getFileIcon = (fileType: string) => {

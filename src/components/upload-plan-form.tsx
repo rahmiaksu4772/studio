@@ -23,7 +23,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Plan } from '@/lib/types';
-import { addPlan } from '@/services/firestore';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ACCEPTED_FILE_TYPES = [
@@ -51,7 +50,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 
 type UploadPlanFormProps = {
-  onAddPlan: (plan: Plan) => void;
+  onAddPlan: (plan: Omit<Plan, 'id' | 'uploadDate'>) => void;
   isFirstPlan?: boolean;
 };
 
@@ -84,8 +83,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
         fileName: file.name
       };
       
-      const newPlan = await addPlan(planToAdd);
-      onAddPlan(newPlan);
+      onAddPlan(planToAdd);
 
       form.reset();
       setOpen(false);

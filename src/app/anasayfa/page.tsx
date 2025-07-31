@@ -8,47 +8,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, GraduationCap, Edit, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { getClassesAction, getRecordsForReportAction } from '@/app/actions';
 import React from 'react';
-import type { ClassInfo, Student } from '@/lib/types';
+import { useDailyRecords } from '@/hooks/use-daily-records';
+import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
 
 export default function AnaSayfaPage() {
+  const { classes, students, isLoading: isClassesLoading } = useClassesAndStudents();
+  const { records, isLoading: isRecordsLoading } = useDailyRecords();
+  
   const [totalClasses, setTotalClasses] = React.useState(0);
   const [totalStudents, setTotalStudents] = React.useState(0);
   const [todaysRecords, setTodaysRecords] = React.useState(0);
-  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
-    async function fetchDashboardData() {
-        setIsLoading(true);
-        try {
-            const today = format(new Date(), 'yyyy-MM-dd');
-            const classes = await getClassesAction();
-            
-            // This is a simplified student count. For a precise count, 
-            // you might need a separate query or aggregate data in Firestore.
-            // For now, we'll just show class count. A more robust solution
-            // would involve fetching all students for all classes, which can be slow.
-            // A better approach in a real app is to store studentCount on the class document.
-            // For this demo, we'll keep it simple.
-            
-            // We can get today's records count for ALL classes.
-            const recordsPromises = classes.map(c => getRecordsForReportAction(c.id, today, today));
-            const recordsPerClass = await Promise.all(recordsPromises);
-            const totalTodaysRecords = recordsPerClass.reduce((acc, records) => acc + records.length, 0);
-
-            setTotalClasses(classes.length);
-            setTodaysRecords(totalTodaysRecords);
-            // student count will be left as 0 for now to avoid many reads.
-            
-        } catch (error) {
-            console.error("Failed to fetch dashboard data:", error);
-        } finally {
-            setIsLoading(false);
-        }
+    if (!isClassesLoading) {
+      setTotalClasses(classes.length);
+      const studentCount = classes.reduce((acc, curr) => acc + curr.students.length, 0);
+      setTotalStudents(studentCount);
     }
-    fetchDashboardData();
-  }, []);
+  }, [classes, isClassesLoading]);
+
+  React.useEffect(() => {
+    if (!isRecordsLoading) {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const todayRecordsCount = records.filter(r => r.date === today).length;
+      setTodaysRecords(todayRecordsCount);
+    }
+  }, [records, isRecordsLoading]);
+
+  const isLoading = isClassesLoading || isRecordsLoading;
 
   return (
     <AppLayout>
@@ -79,7 +67,7 @@ export default function AnaSayfaPage() {
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">N/A</div>
+                     {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{totalStudents}</div>}
                      <p className="text-xs text-muted-foreground">Tüm sınıflardaki öğrenci sayısı</p>
                 </CardContent>
             </Card>

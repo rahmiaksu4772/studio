@@ -34,13 +34,14 @@ import { statusOptions } from '@/lib/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { generateDescriptionAction, getClassesAction, getStudentsAction, getDailyRecordsAction } from '@/app/actions';
-import { saveDailyRecords } from '@/services/firestore';
+import { generateDescriptionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { useDailyRecords } from '@/hooks/use-daily-records';
+import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
 
 
 type StudentRecordsState = {
@@ -49,55 +50,41 @@ type StudentRecordsState = {
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
-  const [classes, setClasses] = React.useState<ClassInfo[]>([]);
+  const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
+  const { getRecordsForDate, updateDailyRecords, isLoading: isRecordsLoading } = useDailyRecords();
+  
   const [students, setStudents] = React.useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo | null>(null);
   const [recordDate, setRecordDate] = React.useState<Date | null>(new Date());
   const [generalDescription, setGeneralDescription] = React.useState('');
   const [generatingFor, setGeneratingFor] = React.useState<string | null>(null);
   const [studentRecords, setStudentRecords] = React.useState<StudentRecordsState>({});
-  const [isLoading, setIsLoading] = React.useState(true);
   
-  // Fetch classes on mount
+  // Set initial class
   React.useEffect(() => {
-    async function fetchClasses() {
-      setIsLoading(true);
-      const fetchedClasses = await getClassesAction();
-      setClasses(fetchedClasses);
-      if (fetchedClasses.length > 0) {
-        setSelectedClass(fetchedClasses[0]);
-      } else {
-        setIsLoading(false);
-      }
+    if (classes.length > 0 && !selectedClass) {
+      setSelectedClass(classes[0]);
     }
-    fetchClasses();
-  }, []);
-
+  }, [classes, selectedClass]);
+  
   // Fetch students and records when class or date changes
   React.useEffect(() => {
-    async function fetchData() {
-      if (!selectedClass || !recordDate) return;
-      
-      setIsLoading(true);
-      const dateStr = format(recordDate, 'yyyy-MM-dd');
-      
-      const [fetchedStudents, fetchedRecords] = await Promise.all([
-        getStudentsAction(selectedClass.id),
-        getDailyRecordsAction(selectedClass.id, dateStr)
-      ]);
+    if (!selectedClass || !recordDate) return;
+    
+    const currentClass = classes.find(c => c.id === selectedClass.id);
+    const sortedStudents = currentClass?.students.sort((a, b) => a.studentNumber - b.studentNumber) || [];
+    setStudents(sortedStudents);
 
-      setStudents(fetchedStudents.sort((a, b) => a.studentNumber - b.studentNumber));
-
-      const recordsByStudent = fetchedRecords.reduce((acc, record) => {
-        acc[record.studentId] = { status: record.status, description: record.description };
-        return acc;
-      }, {} as StudentRecordsState);
+    const dateStr = format(recordDate, 'yyyy-MM-dd');
+    const existingRecords = getRecordsForDate(selectedClass.id, dateStr);
+    
+    const recordsByStudent = existingRecords.reduce((acc, record) => {
+      acc[record.studentId] = { status: record.status, description: record.description };
+      return acc;
+    }, {} as StudentRecordsState);
       
-      setStudentRecords(recordsByStudent);
-      setIsLoading(false);
-    }
-    fetchData();
-  }, [selectedClass, recordDate]);
+    setStudentRecords(recordsByStudent);
+  }, [selectedClass, recordDate, classes, getRecordsForDate]);
 
   
   const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date'>>) => {
@@ -114,7 +101,7 @@ export default function GunlukTakipPage() {
     const newRecords: StudentRecordsState = {};
     students.forEach(student => {
       newRecords[student.id] = {
-        ...studentRecords[student.id], // Preserve existing description
+        ...studentRecords[student.id],
         status,
       };
     });
@@ -149,7 +136,7 @@ export default function GunlukTakipPage() {
     }
 
     try {
-        await saveDailyRecords(recordsToUpdate);
+        updateDailyRecords(selectedClass.id, dateStr, recordsToUpdate);
         toast({
           title: "Kayıt Başarılı",
           description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar başarıyla kaydedildi.`,
@@ -202,6 +189,8 @@ export default function GunlukTakipPage() {
     }
   };
   
+  const isLoading = isClassesLoading || isRecordsLoading;
+
   if (!recordDate || isLoading) {
     return (
       <AppLayout>

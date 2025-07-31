@@ -23,14 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { 
-    addClass, 
-    addStudent, 
-    addMultipleStudents, 
-    updateStudent,
-    deleteStudent 
-} from '@/services/firestore';
-import { getClassesAction, getStudentsAction } from '@/app/actions';
+import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
 
 type ClassWithStudents = ClassInfo & {
     students: Student[];
@@ -38,106 +31,75 @@ type ClassWithStudents = ClassInfo & {
 
 export default function SiniflarimPage() {
   const { toast } = useToast();
-  const [classes, setClasses] = React.useState<ClassWithStudents[]>([]);
+  const { classes, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, isLoading } = useClassesAndStudents();
   const [editingStudent, setEditingStudent] = React.useState<Student | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
 
-  const fetchAllData = React.useCallback(async () => {
-    setIsLoading(true);
+  const sortedClasses = React.useMemo(() => {
+    return classes.map(c => ({
+      ...c,
+      students: [...c.students].sort((a, b) => a.studentNumber - b.studentNumber)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [classes]);
+
+  const handleAddClass = (className: string) => {
     try {
-        const fetchedClasses = await getClassesAction();
-        const classesWithStudents = await Promise.all(
-            fetchedClasses.map(async (c) => {
-                const students = await getStudentsAction(c.id);
-                return { ...c, students: students.sort((a,b) => a.studentNumber - b.studentNumber) };
-            })
-        );
-        setClasses(classesWithStudents);
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-            title: "Veri Yükleme Hatası",
-            description: "Sınıf ve öğrenciler yüklenirken bir hata oluştu.",
-            variant: "destructive"
-        })
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast]);
-
-  React.useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
-
-
-  const handleAddClass = async (className: string) => {
-    try {
-        const newClass = await addClass(className);
-        setClasses(prev => [{ ...newClass, students: [] }, ...prev]);
-    } catch (error) {
-         toast({ title: 'Hata', description: 'Sınıf eklenirken bir hata oluştu.', variant: 'destructive'});
+        addClass(className);
+         toast({
+          title: 'Başarılı!',
+          description: `"${className}" sınıfı eklendi.`,
+        });
+    } catch (error: any) {
+         toast({ title: 'Hata', description: error.message, variant: 'destructive'});
     }
   };
 
-  const handleAddStudent = async (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
+  const handleAddStudent = (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
     try {
-        const newStudent = await addStudent(classId, studentData);
-        setClasses(prev => prev.map(c => 
-            c.id === classId ? { ...c, students: [...c.students, newStudent].sort((a,b) => a.studentNumber - b.studentNumber) } : c
-        ));
+        addStudent(classId, studentData);
          toast({
           title: 'Başarılı!',
           description: `Öğrenci "${studentData.firstName} ${studentData.lastName}" eklendi.`,
         });
-    } catch (error) {
-         toast({ title: 'Hata', description: 'Öğrenci eklenirken bir hata oluştu.', variant: 'destructive'});
+    } catch (error: any) {
+         toast({ title: 'Hata', description: error.message, variant: 'destructive'});
     }
   };
   
-  const handleBulkAddStudents = async (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
+  const handleBulkAddStudents = (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
     try {
-        await addMultipleStudents(classId, newStudents);
-        await fetchAllData(); // Re-fetch all data to get new students with their IDs
+        addMultipleStudents(classId, newStudents);
         toast({
             title: "Öğrenciler Başarıyla Aktarıldı!",
             description: `${newStudents.length} öğrenci "${classes.find(c=>c.id === classId)?.name}" sınıfına eklendi.`
         })
-    } catch (error) {
-        toast({ title: 'Hata', description: 'Öğrenciler aktarılırken bir hata oluştu.', variant: 'destructive'});
+    } catch (error: any) {
+        toast({ title: 'Hata', description: error.message, variant: 'destructive'});
     }
   };
 
-  const handleUpdateStudent = async (updatedStudent: Student) => {
+  const handleUpdateStudent = (updatedStudent: Student) => {
     try {
-        await updateStudent(updatedStudent.classId, updatedStudent);
-        setClasses(prev => prev.map(c =>
-            c.id === updatedStudent.classId 
-            ? { ...c, students: c.students.map(s => s.id === updatedStudent.id ? updatedStudent : s).sort((a,b) => a.studentNumber - b.studentNumber)} 
-            : c
-        ));
+        updateStudent(updatedStudent.classId, updatedStudent);
         toast({
           title: 'Başarılı!',
           description: `Öğrenci "${updatedStudent.firstName} ${updatedStudent.lastName}" güncellendi.`,
         });
         setEditingStudent(null);
-    } catch (error) {
-        toast({ title: 'Hata', description: 'Öğrenci güncellenirken bir hata oluştu.', variant: 'destructive'});
+    } catch (error: any) {
+        toast({ title: 'Hata', description: error.message, variant: 'destructive'});
     }
   };
 
-  const handleStudentDelete = async (classId: string, studentId: string) => {
+  const handleStudentDelete = (classId: string, studentId: string) => {
     try {
-        await deleteStudent(classId, studentId);
-        setClasses(prev => prev.map(c => 
-            c.id === classId ? { ...c, students: c.students.filter(s => s.id !== studentId) } : c
-        ));
+        deleteStudent(classId, studentId);
         toast({
           title: 'Öğrenci Silindi',
           description: 'Öğrenci başarıyla listeden kaldırıldı.',
           variant: 'destructive'
         });
-    } catch (error) {
-         toast({ title: 'Hata', description: 'Öğrenci silinirken bir hata oluştu.', variant: 'destructive'});
+    } catch (error: any) {
+         toast({ title: 'Hata', description: error.message, variant: 'destructive'});
     }
   };
 
@@ -162,7 +124,7 @@ export default function SiniflarimPage() {
           <AddClassForm onAddClass={handleAddClass} />
         </div>
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-          {classes.map((c) => (
+          {sortedClasses.map((c) => (
             <Card key={c.id}>
               <CardHeader className="bg-muted/50">
                 <div className="flex items-start justify-between">

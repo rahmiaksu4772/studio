@@ -48,7 +48,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
-import { getClassesAction, getStudentsAction, getRecordsForReportAction } from '@/app/actions';
+import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
+import { useDailyRecords } from '@/hooks/use-daily-records';
 
 
 const statusToTurkish: Record<string, string> = {
@@ -81,7 +82,9 @@ const chartConfig = {
 
 
 export default function RaporlarPage() {
-  const [classes, setClasses] = React.useState<ClassInfo[]>([]);
+  const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
+  const { records, isLoading: isRecordsLoading } = useDailyRecords();
+  
   const [students, setStudents] = React.useState<Student[]>([]);
   const [filteredData, setFilteredData] = React.useState<DailyRecord[]>([]);
 
@@ -92,47 +95,47 @@ export default function RaporlarPage() {
       from: startOfMonth(new Date()),
       to: new Date(),
   });
-  const [isLoading, setIsLoading] = React.useState(true);
   const [isGenerating, setIsGenerating] = React.useState(false);
   
+  // Set initial class
   React.useEffect(() => {
-    async function fetchInitialData() {
-        const fetchedClasses = await getClassesAction();
-        setClasses(fetchedClasses);
-        if (fetchedClasses.length > 0) {
-            setSelectedClassId(fetchedClasses[0].id);
-        }
-        setIsLoading(false);
+    if (classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0].id);
     }
-    fetchInitialData();
-  }, []);
+  }, [classes, selectedClassId]);
 
   React.useEffect(() => {
-    async function fetchStudentsForClass() {
-        if (!selectedClassId) return;
-        const fetchedStudents = await getStudentsAction(selectedClassId);
-        setStudents(fetchedStudents.sort((a,b) => a.studentNumber - b.studentNumber));
-        setSelectedStudentId(null);
-    }
-    fetchStudentsForClass();
-  }, [selectedClassId]);
+    if (!selectedClassId) return;
+    const currentClass = classes.find(c => c.id === selectedClassId);
+    const sortedStudents = currentClass?.students.sort((a,b) => a.studentNumber - b.studentNumber) || [];
+    setStudents(sortedStudents);
+    setSelectedStudentId(null);
+  }, [selectedClassId, classes]);
 
-  const handleGenerateReport = React.useCallback(async () => {
+  const handleGenerateReport = React.useCallback(() => {
     if (!selectedClassId || !dateRange?.from) return;
     
     setIsGenerating(true);
     try {
-        const startDate = format(dateRange.from, 'yyyy-MM-dd');
-        const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : startDate;
+        const startDate = dateRange.from;
+        const endDate = dateRange.to || dateRange.from;
         
-        const records = await getRecordsForReportAction(selectedClassId, startDate, endDate);
-        setFilteredData(records);
+        const filteredRecords = records.filter(record => {
+            const recordDate = new Date(record.date);
+            return (
+                record.classId === selectedClassId &&
+                recordDate >= startDate &&
+                recordDate <= endDate
+            );
+        });
+
+        setFilteredData(filteredRecords);
     } catch (error) {
         console.error("Error generating report:", error);
     } finally {
         setIsGenerating(false);
     }
-  }, [selectedClassId, dateRange]);
+  }, [selectedClassId, dateRange, records]);
 
 
   const individualReportData = React.useMemo(() => {
@@ -287,6 +290,8 @@ export default function RaporlarPage() {
     }
   };
 
+  const isLoading = isClassesLoading || isRecordsLoading;
+  
   const renderReportContent = () => {
     if (isLoading) {
         return (

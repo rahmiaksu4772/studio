@@ -1,10 +1,36 @@
 
-import type { WeeklyScheduleItem, Lesson } from './types';
+import type { ClassInfo, DailyRecord, Lesson, Note, Plan, Student, WeeklyScheduleItem } from './types';
 
-// All data is now fetched from Firestore. Mock data is no longer needed.
-export const classes = [];
-export const students = [];
-export const dailyRecords = [];
+export const classes: (ClassInfo & { students: Student[] })[] = [
+    { 
+        id: '6A', 
+        name: '6/A',
+        students: [
+            { id: '6A-1', studentNumber: 101, firstName: 'Zeynep', lastName: 'Demir', classId: '6A' },
+            { id: '6A-2', studentNumber: 102, firstName: 'Emir', lastName: 'Çelik', classId: '6A' },
+            { id: '6A-3', studentNumber: 103, firstName: 'Elif', lastName: 'Şahin', classId: '6A' },
+            { id: '6A-4', studentNumber: 104, firstName: 'Yusuf', lastName: 'Turan', classId: '6A' },
+        ]
+    },
+    { 
+        id: '7B', 
+        name: '7/B',
+        students: [
+            { id: '7B-1', studentNumber: 201, firstName: 'Hiranur', lastName: 'Aydın', classId: '7B' },
+            { id: '7B-2', studentNumber: 202, firstName: 'Ömer Asaf', lastName: 'Öztürk', classId: '7B' },
+            { id: '7B-3', studentNumber: 203, firstName: 'Ecrin', lastName: 'Kılıç', classId: '7B' },
+        ]
+    },
+];
+
+export const students: Student[] = classes.flatMap(c => c.students);
+
+export const dailyRecords: DailyRecord[] = [
+    { id: 'rec-1', studentId: '6A-1', classId: '6A', date: '2024-05-20', status: '+', description: 'Derse aktif katıldı.' },
+    { id: 'rec-2', studentId: '6A-2', classId: '6A', date: '2024-05-20', status: 'P', description: 'Ödevini yarım yapmış.' },
+    { id: 'rec-3', studentId: '6A-3', classId: '6A', date: '2024-05-20', status: '-', description: 'Arkadaşıyla konuştu.' },
+    { id: 'rec-4', studentId: '7B-1', classId: '7B', date: '2024-05-20', status: 'Y', description: '' },
+];
 
 
 export const weeklySchedule: WeeklyScheduleItem[] = [

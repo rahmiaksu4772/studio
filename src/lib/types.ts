@@ -17,7 +17,7 @@ export type ClassInfo = {
 export type AttendanceStatus = '+' | 'P' | '-' | 'G' | 'Y';
 
 export type DailyRecord = {
-  id: string; // Firestore document ID
+  id: string; 
   studentId: string;
   classId: string;
   date: string; // YYYY-MM-DD
@@ -56,4 +56,10 @@ export type Lesson = {
   time: string;
   subject: string;
   class: string;
+}
+
+export type WeeklyScheduleItem = {
+  day: string;
+  lessons: Lesson[];
+  color: string;
 }

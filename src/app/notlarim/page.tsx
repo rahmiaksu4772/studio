@@ -32,9 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Note } from '@/lib/types';
-import { addNote, deleteNote } from '@/services/firestore';
-import { getNotesAction } from '@/app/actions';
-
+import { format } from 'date-fns';
 
 const noteColors = [
   'bg-yellow-100 border-yellow-200 dark:bg-yellow-900/40 dark:border-yellow-800/60',
@@ -43,6 +41,8 @@ const noteColors = [
   'bg-pink-100 border-pink-200 dark:bg-pink-900/40 dark:border-pink-800/60',
   'bg-purple-100 border-purple-200 dark:bg-purple-900/40 dark:border-purple-800/60',
 ];
+
+const NOTES_STORAGE_KEY = 'personal-notes';
 
 export default function NotlarimPage() {
   const { toast } = useToast();
@@ -61,25 +61,37 @@ export default function NotlarimPage() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   
   React.useEffect(() => {
-    async function fetchNotes() {
-        setIsLoading(true);
-        try {
-            const fetchedNotes = await getNotesAction();
-            setNotes(fetchedNotes);
-        } catch (error) {
-            console.error("Failed to load notes from Firestore", error);
-            toast({
-                title: "Notlar Yüklenemedi",
-                description: "Notlarınız yüklenirken bir sorun oluştu.",
-                variant: "destructive"
-            })
-        } finally {
-            setIsLoading(false);
-        }
+    setIsLoading(true);
+    try {
+      const savedNotes = localStorage.getItem(NOTES_STORAGE_KEY);
+      if (savedNotes) {
+        setNotes(JSON.parse(savedNotes));
+      }
+    } catch (error) {
+        console.error("Failed to load notes from localStorage", error);
+        toast({
+            title: "Notlar Yüklenemedi",
+            description: "Notlarınız yüklenirken bir sorun oluştu.",
+            variant: "destructive"
+        })
+    } finally {
+        setIsLoading(false);
     }
-    fetchNotes();
   }, [toast]);
   
+  React.useEffect(() => {
+    try {
+        localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+    } catch(error) {
+        console.error("Failed to save notes to localStorage", error);
+         toast({
+            title: "Notlar Kaydedilemedi",
+            description: "Değişiklikleriniz kaydedilirken bir sorun oluştu.",
+            variant: "destructive"
+        })
+    }
+  }, [notes, toast]);
+
   React.useEffect(() => {
     const getCameraPermission = async () => {
       try {
@@ -112,7 +124,7 @@ export default function NotlarimPage() {
     }
   }, [isCameraOpen, toast]);
 
-  const handleAddNote = async (e: React.FormEvent) => {
+  const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (newNoteContent.trim() === '' && !newNoteImage) {
       toast({
@@ -128,49 +140,32 @@ export default function NotlarimPage() {
         setIsRecording(false);
     }
 
-    try {
-        const noteToAdd = {
-          title: newNoteTitle,
-          content: newNoteContent,
-          imageUrl: newNoteImage || undefined,
-          color: noteColors[Math.floor(Math.random() * noteColors.length)],
-        };
-        const newNote = await addNote(noteToAdd);
-        setNotes([newNote, ...notes]);
-        setNewNoteTitle('');
-        setNewNoteContent('');
-        setNewNoteImage(null);
-        toast({
-          title: 'Not Eklendi!',
-          description: 'Yeni notunuz başarıyla eklendi.',
-        });
-    } catch (error) {
-        console.error("Failed to add note:", error);
-        toast({
-            title: "Hata",
-            description: "Not eklenirken bir sorun oluştu.",
-            variant: "destructive"
-        })
-    }
+    const newNote: Note = {
+      id: new Date().toISOString(),
+      title: newNoteTitle,
+      content: newNoteContent,
+      imageUrl: newNoteImage || undefined,
+      color: noteColors[Math.floor(Math.random() * noteColors.length)],
+      date: format(new Date(), 'dd.MM.yyyy')
+    };
+
+    setNotes([newNote, ...notes]);
+    setNewNoteTitle('');
+    setNewNoteContent('');
+    setNewNoteImage(null);
+    toast({
+      title: 'Not Eklendi!',
+      description: 'Yeni notunuz başarıyla eklendi.',
+    });
   };
 
-  const handleDeleteNote = async (id: string) => {
-    try {
-        await deleteNote(id);
-        setNotes(notes.filter((note) => note.id !== id));
-        toast({
-            title: 'Not Silindi',
-            description: 'Notunuz başarıyla silindi.',
-            variant: 'destructive',
-        })
-    } catch(error) {
-        console.error("Failed to delete note:", error);
-        toast({
-            title: "Hata",
-            description: "Not silinirken bir sorun oluştu.",
-            variant: "destructive"
-        })
-    }
+  const handleDeleteNote = (id: string) => {
+    setNotes(notes.filter((note) => note.id !== id));
+    toast({
+        title: 'Not Silindi',
+        description: 'Notunuz başarıyla silindi.',
+        variant: 'destructive',
+    })
   };
   
   const handleCapture = () => {
@@ -270,7 +265,7 @@ export default function NotlarimPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Notlarım</h1>
             <p className="text-muted-foreground">
-              Kişisel not alma alanınız. Veriler online olarak saklanır.
+              Kişisel not alma alanınız. Verileriniz tarayıcınızda saklanır.
             </p>
           </div>
         </div>
