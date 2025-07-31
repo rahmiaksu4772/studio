@@ -28,7 +28,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Note } from '@/lib/types';
@@ -418,6 +418,9 @@ export default function NotlarimPage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Kameradan Fotoğraf Ekle</DialogTitle>
+            <DialogDescription>
+                Notunuza eklemek için bir fotoğraf çekin.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {hasCameraPermission === false && (
@@ -455,3 +458,5 @@ export default function NotlarimPage() {
     </AppLayout>
   );
 }
+
+    
