@@ -78,7 +78,7 @@ export default function GunlukTakipPage() {
 
   const students = allStudents.filter((s) => s.classId === selectedClass.id);
   
-  const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id'>>) => {
+  const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date'>>) => {
     setStudentRecords(prev => ({
       ...prev,
       [studentId]: {
@@ -308,7 +308,7 @@ export default function GunlukTakipPage() {
                                                         key={`${student.id}-${option.value}`}
                                                         htmlFor={`${student.id}-${option.value}`}
                                                         className={cn(
-                                                          "flex items-center gap-1.5 cursor-pointer rounded-md border p-2 transition-colors",
+                                                          "flex items-center gap-1.5 cursor-pointer rounded-md border p-1 px-2 transition-colors text-xs",
                                                           "hover:bg-opacity-20",
                                                           record.status === option.value
                                                             ? cn("font-semibold", option.color, option.bgColor, "border-current")
@@ -367,7 +367,3 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
-
-    
-
-    
