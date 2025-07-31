@@ -316,16 +316,18 @@ export default function RaporlarPage() {
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
-                        <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-                            <CartesianGrid vertical={false} />
-                            <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                            <YAxis />
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <ChartLegend />
-                            {statusOptions.map(opt => (
-                                <Bar key={opt.value} dataKey={opt.value} fill={chartConfig[opt.value]?.color} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
-                            ))}
-                        </BarChart>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                <YAxis />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <ChartLegend />
+                                {statusOptions.map(opt => (
+                                    <Bar key={opt.value} dataKey={opt.value} fill={chartConfig[opt.value]?.color} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
                     </ChartContainer>
                 </CardContent>
             </Card>
