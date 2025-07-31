@@ -232,8 +232,8 @@ export default function PlanlarimPage() {
         )}
 
         {viewingPlan && pdfUrl && (
-          <div className="fixed inset-0 z-50 bg-black/80 flex flex-col p-4">
-            <div className="flex justify-between items-center mb-4">
+          <div className="fixed inset-0 z-50 bg-black/80 flex flex-col p-4 animate-in fade-in-0">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <h2 className="text-lg font-semibold text-white">{viewingPlan.title}</h2>
                 <Button variant="destructive" size="icon" onClick={closeViewer}>
                     <CloseIcon className="h-6 w-6" />
@@ -242,9 +242,13 @@ export default function PlanlarimPage() {
             </div>
             <div className="flex-1 w-full h-full bg-gray-800 rounded-lg overflow-hidden">
                 <object data={pdfUrl} type="application/pdf" width="100%" height="100%">
-                    <div className="flex items-center justify-center h-full text-white">
-                        <p>PDF görüntüleyici yüklenemedi. Tarayıcınız bu dosyayı desteklemiyor olabilir veya dosya bozuk olabilir.</p>
-                        <a href={pdfUrl} download={viewingPlan.fileName} className="underline ml-2">Dosyayı indirmeyi deneyin.</a>
+                    <div className="flex flex-col items-center justify-center h-full text-white p-4">
+                        <p className='text-center'>PDF görüntüleyici yüklenemedi. Tarayıcınız bu dosyayı desteklemiyor olabilir veya dosya bozuk olabilir.</p>
+                        <Button asChild variant="secondary" className='mt-4'>
+                          <a href={pdfUrl} download={viewingPlan.fileName}>
+                            <Download className="mr-2 h-4 w-4"/> Dosyayı İndir
+                          </a>
+                        </Button>
                     </div>
                 </object>
             </div>
