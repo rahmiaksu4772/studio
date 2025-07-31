@@ -20,9 +20,10 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import type { Plan } from '@/lib/types';
+import { addPlan } from '@/services/firestore';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const ACCEPTED_FILE_TYPES = [
@@ -48,15 +49,6 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export type Plan = {
-    id: string;
-    title: string;
-    type: 'annual' | 'weekly';
-    fileDataUrl: string;
-    uploadDate: string;
-    fileType: string;
-    fileName: string;
-};
 
 type UploadPlanFormProps = {
   onAddPlan: (plan: Plan) => void;
@@ -84,22 +76,23 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
     const file = values.file[0];
     try {
       const fileDataUrl = await readFileAsDataURL(file);
-      const newPlan: Plan = {
-        id: `plan-${Date.now()}`,
+      const planToAdd = {
         title: values.title,
         type: values.type,
         fileDataUrl,
-        uploadDate: format(new Date(), 'dd.MM.yyyy'),
         fileType: file.type,
         fileName: file.name
       };
+      
+      const newPlan = await addPlan(planToAdd);
       onAddPlan(newPlan);
+
       form.reset();
       setOpen(false);
     } catch (error) {
       toast({
-        title: 'Dosya Okuma Hatası',
-        description: 'Dosya okunurken bir sorun oluştu. Lütfen tekrar deneyin.',
+        title: 'Plan Yükleme Hatası',
+        description: 'Plan yüklenirken bir sorun oluştu. Lütfen tekrar deneyin.',
         variant: 'destructive',
       });
     } finally {

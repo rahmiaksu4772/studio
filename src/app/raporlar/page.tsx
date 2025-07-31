@@ -46,9 +46,9 @@ import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { classes, students } from '@/lib/mock-data';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
-import { useDailyRecords } from '@/hooks/use-daily-records';
+import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
+import { getClasses, getStudents, getRecordsForReport } from '@/services/firestore';
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
@@ -80,47 +80,65 @@ const chartConfig = {
 
 
 export default function RaporlarPage() {
-  const { dailyRecords } = useDailyRecords();
-  const [selectedClassId, setSelectedClassId] = React.useState<string>(classes[0].id);
+  const [classes, setClasses] = React.useState<ClassInfo[]>([]);
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [filteredData, setFilteredData] = React.useState<DailyRecord[]>([]);
+
+  const [selectedClassId, setSelectedClassId] = React.useState<string>('');
   const [selectedReportType, setSelectedReportType] = React.useState('bireysel');
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
-
-  React.useEffect(() => {
-    setDateRange({
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
       from: startOfMonth(new Date()),
       to: new Date(),
-    });
+  });
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  
+  React.useEffect(() => {
+    async function fetchInitialData() {
+        const fetchedClasses = await getClasses();
+        setClasses(fetchedClasses);
+        if (fetchedClasses.length > 0) {
+            setSelectedClassId(fetchedClasses[0].id);
+        }
+        setIsLoading(false);
+    }
+    fetchInitialData();
   }, []);
 
-  const availableStudents = students.filter(s => s.classId === selectedClassId);
-
   React.useEffect(() => {
-    setSelectedStudentId(null);
+    async function fetchStudentsForClass() {
+        if (!selectedClassId) return;
+        const fetchedStudents = await getStudents(selectedClassId);
+        setStudents(fetchedStudents.sort((a,b) => a.studentNumber - b.studentNumber));
+        setSelectedStudentId(null);
+    }
+    fetchStudentsForClass();
   }, [selectedClassId]);
 
-  const filteredData = React.useMemo(() => {
-    if (!dateRange?.from) return [];
-    return dailyRecords.filter(record => {
-      const recordDate = new Date(record.date);
-      const fromDate = new Date(dateRange.from!);
-      const toDate = dateRange.to ? new Date(dateRange.to) : new Date();
-
-      fromDate.setHours(0, 0, 0, 0);
-      toDate.setHours(23, 59, 59, 999);
-      
-      const isClassMatch = record.classId === selectedClassId;
-      const isDateMatch = recordDate >= fromDate && recordDate <= toDate;
-      const isStudentMatch = selectedReportType === 'bireysel' && selectedStudentId ? record.studentId === selectedStudentId : true;
-      
-      return isClassMatch && isDateMatch && isStudentMatch;
-    });
-  }, [selectedClassId, selectedStudentId, selectedReportType, dateRange, dailyRecords]);
+  const handleGenerateReport = React.useCallback(async () => {
+    if (!selectedClassId || !dateRange?.from) return;
+    
+    setIsGenerating(true);
+    try {
+        const startDate = format(dateRange.from, 'yyyy-MM-dd');
+        const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : startDate;
+        
+        const records = await getRecordsForReport(selectedClassId, startDate, endDate);
+        setFilteredData(records);
+    } catch (error) {
+        console.error("Error generating report:", error);
+    } finally {
+        setIsGenerating(false);
+    }
+  }, [selectedClassId, dateRange]);
 
 
   const individualReportData = React.useMemo(() => {
       if (selectedReportType !== 'bireysel' || !selectedStudentId) return null;
       
+      const studentRecords = filteredData.filter(r => r.studentId === selectedStudentId);
+
       const summary = statusOptions.reduce((acc, option) => {
           acc[option.value] = { count: 0, label: option.label, icon: option.icon };
           return acc;
@@ -128,7 +146,7 @@ export default function RaporlarPage() {
 
       const dateMap: { [key: string]: { date: string, [key: string]: number | string } } = {};
 
-      filteredData.forEach(record => {
+      studentRecords.forEach(record => {
           if (record.status && summary[record.status]) {
               summary[record.status].count += 1;
           }
@@ -143,13 +161,13 @@ export default function RaporlarPage() {
           }
       });
       
-      return { summary, records: filteredData, chartData: Object.values(dateMap) };
+      return { summary, records: studentRecords, chartData: Object.values(dateMap) };
   }, [filteredData, selectedReportType, selectedStudentId]);
 
   const classReportData = React.useMemo(() => {
     if (selectedReportType !== 'sinif') return null;
 
-    const studentSummaries = availableStudents.map(student => {
+    const studentSummaries = students.map(student => {
       const studentRecords = filteredData.filter(r => r.studentId === student.id);
       const summary: Record<AttendanceStatus, number> = {
         '+': 0, 'P': 0, '-': 0, 'Y': 0, 'G': 0
@@ -171,7 +189,7 @@ export default function RaporlarPage() {
     }).sort((a, b) => a.studentNumber - b.studentNumber);
     
     return { studentSummaries };
-  }, [filteredData, selectedReportType, availableStudents]);
+  }, [filteredData, selectedReportType, students]);
 
 
   const handleDownloadPdf = () => {
@@ -269,7 +287,7 @@ export default function RaporlarPage() {
   };
 
   const renderReportContent = () => {
-    if (!dateRange) {
+    if (isLoading) {
         return (
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -277,14 +295,14 @@ export default function RaporlarPage() {
         );
     }
     
+    if (filteredData.length === 0) {
+        return <div className="text-center p-8 text-muted-foreground">Rapor oluşturmak için yukarıdaki filtreleri kullanın ve "Raporu Oluştur" düğmesine tıklayın.</div>
+    }
+
     if (selectedReportType === 'bireysel' && !individualReportData) {
         return <div className="text-center p-8 text-muted-foreground">Raporu görüntülemek için lütfen bir öğrenci seçin.</div>
     }
     
-    if (filteredData.length === 0) {
-        return <div className="text-center p-8 text-muted-foreground">Seçilen kriterlere uygun veri bulunamadı.</div>
-    }
-
     if(selectedReportType === 'bireysel' && individualReportData){
       const { summary, records, chartData } = individualReportData;
       return (
@@ -436,7 +454,7 @@ export default function RaporlarPage() {
             <CardDescription>Rapor oluşturmak için aşağıdaki kriterleri seçin.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div className="space-y-2">
                 <Label htmlFor="class-select">Sınıf Seçimi</Label>
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
@@ -450,7 +468,10 @@ export default function RaporlarPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="report-type">Rapor Türü</Label>
-                <Select value={selectedReportType} onValueChange={setSelectedReportType}>
+                <Select value={selectedReportType} onValueChange={(value) => {
+                    setSelectedReportType(value);
+                    setFilteredData([]);
+                }}>
                   <SelectTrigger id="report-type">
                     <SelectValue placeholder="Rapor türü seçin" />
                   </SelectTrigger>
@@ -462,14 +483,12 @@ export default function RaporlarPage() {
               </div>
               <div className="space-y-2" style={{ display: selectedReportType === 'bireysel' ? 'block' : 'none' }}>
                 <Label htmlFor="student-select">Öğrenci</Label>
-                <Select value={selectedStudentId || ''} onValueChange={setSelectedStudentId} disabled={availableStudents.length === 0}>
+                <Select value={selectedStudentId || ''} onValueChange={setSelectedStudentId} disabled={students.length === 0}>
                   <SelectTrigger id="student-select">
                     <SelectValue placeholder="Öğrenci seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableStudents
-                      .sort((a, b) => a.studentNumber - b.studentNumber)
-                      .map(s => <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>)}
+                    {students.map(s => <SelectItem key={s.id} value={s.id}>{s.studentNumber} - {s.firstName} {s.lastName}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -515,6 +534,12 @@ export default function RaporlarPage() {
               </div>
             </div>
           </CardContent>
+          <CardFooter>
+            <Button onClick={handleGenerateReport} disabled={isGenerating}>
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSearch className="mr-2 h-4 w-4" />}
+                Raporu Oluştur
+            </Button>
+          </CardFooter>
         </Card>
         
         <div className="mt-6">
@@ -524,5 +549,3 @@ export default function RaporlarPage() {
     </AppLayout>
   );
 }
-
-    

@@ -1,33 +1,9 @@
+import type { WeeklyScheduleItem } from './types';
 
-
-import type { Student, ClassInfo, DailyRecord, WeeklyScheduleItem } from './types';
-
-export const classes: ClassInfo[] = [
-  { id: 'c1', name: '6/A' },
-  { id: 'c2', name: '7/B' },
-];
-
-export const students: Student[] = [
-  // 6/A
-  { id: 's1', studentNumber: 123, firstName: 'Ahmet', lastName: 'Yılmaz', classId: 'c1' },
-  { id: 's2', studentNumber: 124, firstName: 'Ayşe', lastName: 'Kaya', classId: 'c1' },
-  { id: 's3', studentNumber: 125, firstName: 'Mehmet', lastName: 'Demir', classId: 'c1' },
-  { id: 's4', studentNumber: 126, firstName: 'Zeynep', lastName: 'Özkan', classId: 'c1' },
-  { id: 's5', studentNumber: 127, firstName: 'Can', lastName: 'Arslan', classId: 'c1' },
-  { id: 's6', studentNumber: 128, firstName: 'Elif', lastName: 'Doğan', classId: 'c1' },
-  { id: 's7', studentNumber: 129, firstName: 'Mustafa', lastName: 'Şahin', classId: 'c1' },
-  { id: 's8', studentNumber: 130, firstName: 'Selin', lastName: 'Çelik', classId: 'c1' },
-  
-  // 7/B
-  { id: 's9', studentNumber: 201, firstName: 'Emre', lastName: 'Koç', classId: 'c2' },
-  { id: 's10', studentNumber: 202, firstName: 'Fatma', lastName: 'Yıldız', classId: 'c2' },
-  { id: 's11', studentNumber: 203, firstName: 'Ali', lastName: 'Öztürk', classId: 'c2' },
-  { id: 's12', studentNumber: 204, firstName: 'Merve', lastName: 'Aydın', classId: 'c2' },
-];
-
-// Initial daily records are now an empty array.
-// Data will be populated and managed via localStorage in the useDailyRecords hook.
-export const dailyRecords: DailyRecord[] = [];
+// All data is now fetched from Firestore. Mock data is no longer needed.
+export const classes = [];
+export const students = [];
+export const dailyRecords = [];
 
 
 export type Lesson = {
@@ -110,5 +86,3 @@ export const weeklySchedule: WeeklyScheduleItem[] = [
     lessons: [],
   },
 ];
-
-    

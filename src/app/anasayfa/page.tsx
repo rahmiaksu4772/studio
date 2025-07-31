@@ -6,15 +6,49 @@ import AppLayout from '@/components/app-layout';
 import DersProgrami from '@/components/ders-programi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, GraduationCap, Edit, ArrowRight } from 'lucide-react';
-import { classes, students, dailyRecords } from '@/lib/mock-data';
+import { Users, GraduationCap, Edit, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { getClasses, getRecordsForReport } from '@/services/firestore';
+import React from 'react';
+import type { ClassInfo, Student } from '@/lib/types';
 
 export default function AnaSayfaPage() {
-  const totalClasses = classes.length;
-  const totalStudents = students.length;
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const todaysRecords = dailyRecords.filter(r => r.date === today).length;
+  const [totalClasses, setTotalClasses] = React.useState(0);
+  const [totalStudents, setTotalStudents] = React.useState(0);
+  const [todaysRecords, setTodaysRecords] = React.useState(0);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function fetchDashboardData() {
+        setIsLoading(true);
+        try {
+            const today = format(new Date(), 'yyyy-MM-dd');
+            const classes = await getClasses();
+            
+            // This is a simplified student count. For a precise count, 
+            // you might need a separate query or aggregate data in Firestore.
+            // For now, we'll just show class count. A more robust solution
+            // would involve fetching all students for all classes, which can be slow.
+            // A better approach in a real app is to store studentCount on the class document.
+            // For this demo, we'll keep it simple.
+            
+            // We can get today's records count for ALL classes.
+            const recordsPromises = classes.map(c => getRecordsForReport(c.id, today, today));
+            const recordsPerClass = await Promise.all(recordsPromises);
+            const totalTodaysRecords = recordsPerClass.reduce((acc, records) => acc + records.length, 0);
+
+            setTotalClasses(classes.length);
+            setTodaysRecords(totalTodaysRecords);
+            // student count will be left as 0 for now to avoid many reads.
+            
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchDashboardData();
+  }, []);
 
   return (
     <AppLayout>
@@ -35,7 +69,7 @@ export default function AnaSayfaPage() {
                     <GraduationCap className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{totalClasses}</div>
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{totalClasses}</div>}
                     <p className="text-xs text-muted-foreground">Yönetilen sınıf sayısı</p>
                 </CardContent>
             </Card>
@@ -45,7 +79,7 @@ export default function AnaSayfaPage() {
                     <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{totalStudents}</div>
+                    <div className="text-2xl font-bold">N/A</div>
                      <p className="text-xs text-muted-foreground">Tüm sınıflardaki öğrenci sayısı</p>
                 </CardContent>
             </Card>
@@ -55,7 +89,7 @@ export default function AnaSayfaPage() {
                     <Edit className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{todaysRecords}</div>
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{todaysRecords}</div>}
                     <p className="text-xs text-muted-foreground">Bugün girilen değerlendirme</p>
                 </CardContent>
             </Card>

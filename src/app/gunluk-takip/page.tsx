@@ -2,7 +2,6 @@
 'use client';
 
 import * as React from 'react';
-import { useTransition } from 'react';
 import {
   FileText,
   Calendar as CalendarIcon,
@@ -30,7 +29,6 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { classes, students as allStudents } from '@/lib/mock-data';
 import type { Student, DailyRecord, AttendanceStatus, ClassInfo } from '@/lib/types';
 import { statusOptions } from '@/lib/types';
 import { format } from 'date-fns';
@@ -42,7 +40,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/comp
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { useDailyRecords } from '@/hooks/use-daily-records';
+import { getClasses, getStudents, getDailyRecords, saveDailyRecords } from '@/services/firestore';
 
 type StudentRecordsState = {
   [studentId: string]: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >>;
@@ -50,37 +48,55 @@ type StudentRecordsState = {
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
-  const { dailyRecords, updateDailyRecords } = useDailyRecords();
-  const [selectedClass, setSelectedClass] = React.useState<ClassInfo>(classes[0]);
-  const [recordDate, setRecordDate] = React.useState<Date | null>(null);
+  const [classes, setClasses] = React.useState<ClassInfo[]>([]);
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [selectedClass, setSelectedClass] = React.useState<ClassInfo | null>(null);
+  const [recordDate, setRecordDate] = React.useState<Date | null>(new Date());
   const [generalDescription, setGeneralDescription] = React.useState('');
-  const [isPending, startTransition] = useTransition();
   const [generatingFor, setGeneratingFor] = React.useState<string | null>(null);
   const [studentRecords, setStudentRecords] = React.useState<StudentRecordsState>({});
+  const [isLoading, setIsLoading] = React.useState(true);
   
+  // Fetch classes on mount
   React.useEffect(() => {
-    setRecordDate(new Date());
+    async function fetchClasses() {
+      const fetchedClasses = await getClasses();
+      setClasses(fetchedClasses);
+      if (fetchedClasses.length > 0) {
+        setSelectedClass(fetchedClasses[0]);
+      } else {
+        setIsLoading(false);
+      }
+    }
+    fetchClasses();
   }, []);
-  
+
+  // Fetch students and records when class or date changes
   React.useEffect(() => {
-    if (recordDate) {
-      const dateStr = format(recordDate, 'yyyy-MM-dd');
-      const filteredRecords = dailyRecords.filter(r => r.classId === selectedClass.id && r.date === dateStr);
+    async function fetchData() {
+      if (!selectedClass || !recordDate) return;
       
-      const recordsByStudent = filteredRecords.reduce((acc, record) => {
+      setIsLoading(true);
+      const dateStr = format(recordDate, 'yyyy-MM-dd');
+      
+      const [fetchedStudents, fetchedRecords] = await Promise.all([
+        getStudents(selectedClass.id),
+        getDailyRecords(selectedClass.id, dateStr)
+      ]);
+
+      setStudents(fetchedStudents.sort((a, b) => a.studentNumber - b.studentNumber));
+
+      const recordsByStudent = fetchedRecords.reduce((acc, record) => {
         acc[record.studentId] = { status: record.status, description: record.description };
         return acc;
       }, {} as StudentRecordsState);
-
-      setStudentRecords(recordsByStudent);
       
-      // Note: General description is not stored per class/date yet.
-      // We can add this logic if needed. For now, it resets.
-      setGeneralDescription(''); 
+      setStudentRecords(recordsByStudent);
+      setIsLoading(false);
     }
-  }, [selectedClass.id, recordDate, dailyRecords]);
+    fetchData();
+  }, [selectedClass, recordDate]);
 
-  const students = allStudents.filter((s) => s.classId === selectedClass.id);
   
   const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date'>>) => {
     setStudentRecords(prev => ({
@@ -96,25 +112,24 @@ export default function GunlukTakipPage() {
     const newRecords: StudentRecordsState = {};
     students.forEach(student => {
       newRecords[student.id] = {
+        ...studentRecords[student.id], // Preserve existing description
         status,
-        description: `Toplu olarak "${statusOptions.find(s=>s.value === status)?.label}" eklendi.`,
       };
     });
     setStudentRecords(newRecords);
      toast({
-      title: "Toplu Güncelleme Başarılı",
-      description: `${selectedClass.name} sınıfındaki tüm öğrenciler için "${statusOptions.find(s=>s.value === status)?.label}" durumu ayarlandı. Değişiklikleri kaydetmeyi unutmayın.`,
+      title: "Toplu Güncelleme Uygulandı",
+      description: `${selectedClass?.name} sınıfındaki tüm öğrenciler için "${statusOptions.find(s=>s.value === status)?.label}" durumu ayarlandı. Değişiklikleri kaydetmeyi unutmayın.`,
     });
   };
 
-  const handleSave = () => {
-    if (!recordDate) return;
+  const handleSave = async () => {
+    if (!recordDate || !selectedClass) return;
 
     const dateStr = format(recordDate, 'yyyy-MM-dd');
-    const recordsToUpdate: DailyRecord[] = Object.entries(studentRecords)
-        .filter(([_, record]) => record.status || record.description) // Only save if there's data
+    const recordsToUpdate: Omit<DailyRecord, 'id'>[] = Object.entries(studentRecords)
+        .filter(([_, record]) => record.status || record.description)
         .map(([studentId, record]) => ({
-            id: `record-${studentId}-${dateStr}`,
             studentId,
             classId: selectedClass.id,
             date: dateStr,
@@ -122,56 +137,69 @@ export default function GunlukTakipPage() {
             description: record.description || '',
         }));
 
-    updateDailyRecords(selectedClass.id, dateStr, recordsToUpdate);
+    if (recordsToUpdate.length === 0) {
+        toast({
+            title: "Kaydedilecek Değişiklik Yok",
+            description: "Lütfen en az bir öğrenci için veri girin.",
+            variant: "destructive"
+        });
+        return;
+    }
 
-    toast({
-      title: "Kayıt Başarılı",
-      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar başarıyla kaydedildi.`,
-    });
-
-    // Reset the form for new entries
-    setStudentRecords({});
-    setGeneralDescription('');
+    try {
+        await saveDailyRecords(recordsToUpdate);
+        toast({
+          title: "Kayıt Başarılı",
+          description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar başarıyla kaydedildi.`,
+        });
+        setStudentRecords({});
+        setGeneralDescription('');
+    } catch (error) {
+        console.error("Error saving records:", error);
+        toast({
+            title: "Kayıt Hatası",
+            description: "Kayıtlar kaydedilirken bir hata oluştu.",
+            variant: "destructive"
+        });
+    }
   };
 
   const handleGenerateDescription = async (studentId: string) => {
-    if(!recordDate) return;
+    if(!recordDate || !selectedClass) return;
 
     setGeneratingFor(studentId);
-    startTransition(async () => {
-      try {
-        const result = await generateDescriptionAction({
-          studentId: studentId,
-          classId: selectedClass.id,
-          recordDate: format(recordDate, 'yyyy-MM-dd'),
+    try {
+      const result = await generateDescriptionAction({
+        studentId: studentId,
+        classId: selectedClass.id,
+        recordDate: format(recordDate, 'yyyy-MM-dd'),
+      });
+      
+      if (result.description) {
+        handleRecordChange(studentId, { description: result.description });
+         toast({
+          title: "AI Notu Oluşturuldu",
+          description: "Otomatik not başarıyla oluşturuldu.",
         });
-        
-        if (result.description) {
-          handleRecordChange(studentId, { description: result.description });
+      } else if (result.error) {
            toast({
-            title: "AI Notu Oluşturuldu",
-            description: "Otomatik not başarıyla oluşturuldu.",
+              title: "Hata",
+              description: result.error,
+              variant: "destructive",
           });
-        } else if (result.error) {
-             toast({
-                title: "Hata",
-                description: result.error,
-                variant: "destructive",
-            });
-        }
-      } catch (error) {
-        toast({
-            title: "Hata",
-            description: "AI notu oluşturulurken bir hata oluştu.",
-            variant: "destructive",
-        });
-      } finally {
-        setGeneratingFor(null);
       }
-    });
+    } catch (error) {
+      toast({
+          title: "Hata",
+          description: "AI notu oluşturulurken bir hata oluştu.",
+          variant: "destructive",
+      });
+    } finally {
+      setGeneratingFor(null);
+    }
   };
   
-  if (!recordDate) {
+  if (!recordDate || isLoading) {
     return (
       <AppLayout>
         <main className="flex-1 p-4 md:p-6 flex items-center justify-center">
@@ -186,12 +214,12 @@ export default function GunlukTakipPage() {
       <main className="flex-1 p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className='flex-1'>
-            <h1 className="text-2xl font-bold tracking-tight">{selectedClass.name} - Günlük Takip</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{selectedClass?.name || "Sınıf Yükleniyor..."} - Günlük Takip</h1>
             <p className="text-muted-foreground">{format(recordDate, 'dd MMMM yyyy, cccc', { locale: tr })}</p>
           </div>
           <div className="flex items-center gap-4">
             <Select
-              value={selectedClass.id}
+              value={selectedClass?.id}
               onValueChange={(classId) => {
                 const newClass = classes.find(c => c.id === classId);
                 if (newClass) setSelectedClass(newClass);
@@ -304,11 +332,9 @@ export default function GunlukTakipPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {students
-                                .sort((a, b) => a.studentNumber - b.studentNumber)
-                                .map(student => {
+                            {students.map(student => {
                                 const record = studentRecords[student.id] || { status: null, description: '' };
-                                const isGenerating = isPending && generatingFor === student.id;
+                                const isGenerating = generatingFor === student.id;
 
                                 return (
                                     <TableRow key={student.id}>
@@ -384,5 +410,3 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
-
-    

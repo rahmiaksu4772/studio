@@ -1,5 +1,4 @@
 
-
 import { type LucideIcon, UserCheck, UserX, CheckCheck, Check, X, FileCheck } from "lucide-react";
 
 export type Student = {
@@ -18,7 +17,7 @@ export type ClassInfo = {
 export type AttendanceStatus = '+' | 'P' | '-' | 'G' | 'Y';
 
 export type DailyRecord = {
-  id: string;
+  id: string; // Firestore document ID
   studentId: string;
   classId: string;
   date: string; // YYYY-MM-DD
@@ -34,3 +33,21 @@ export const statusOptions: { value: AttendanceStatus; label: string, icon?: Luc
     { value: 'G', label: 'İzinli', icon: FileCheck, color: 'text-blue-600', bgColor: 'bg-blue-100/60' },
 ];
 
+export type Note = {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  color: string;
+  imageUrl?: string;
+};
+
+export type Plan = {
+    id: string;
+    title: string;
+    type: 'annual' | 'weekly';
+    fileDataUrl: string;
+    uploadDate: string;
+    fileType: string;
+    fileName: string;
+};

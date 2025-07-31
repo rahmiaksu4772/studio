@@ -2,11 +2,10 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Upload, Trash2, Pencil, Users } from 'lucide-react';
+import { Plus, Trash2, Pencil, Users, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
-import { classes as initialClasses, students as initialStudents } from '@/lib/mock-data';
 import type { Student, ClassInfo } from '@/lib/types';
 import { AddClassForm } from '@/components/add-class-form';
 import { AddStudentForm } from '@/components/add-student-form';
@@ -24,71 +23,137 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { 
+    getClasses, 
+    getStudents, 
+    addClass, 
+    addStudent, 
+    addMultipleStudents, 
+    updateStudent,
+    deleteStudent 
+} from '@/services/firestore';
+
+type ClassWithStudents = ClassInfo & {
+    students: Student[];
+};
 
 export default function SiniflarimPage() {
   const { toast } = useToast();
-  const [classes, setClasses] = React.useState<ClassInfo[]>(initialClasses);
-  const [students, setStudents] = React.useState<Student[]>(initialStudents);
+  const [classes, setClasses] = React.useState<ClassWithStudents[]>([]);
   const [editingStudent, setEditingStudent] = React.useState<Student | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const handleAddClass = (className: string) => {
-    const newClass: ClassInfo = {
-      id: `c${classes.length + 1}`,
-      name: className,
-    };
-    setClasses([newClass, ...classes]);
+  const fetchAllData = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const fetchedClasses = await getClasses();
+        const classesWithStudents = await Promise.all(
+            fetchedClasses.map(async (c) => {
+                const students = await getStudents(c.id);
+                return { ...c, students: students.sort((a,b) => a.studentNumber - b.studentNumber) };
+            })
+        );
+        setClasses(classesWithStudents);
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+            title: "Veri Yükleme Hatası",
+            description: "Sınıf ve öğrenciler yüklenirken bir hata oluştu.",
+            variant: "destructive"
+        })
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+
+  const handleAddClass = async (className: string) => {
+    try {
+        const newClass = await addClass(className);
+        setClasses(prev => [{ ...newClass, students: [] }, ...prev]);
+        toast({
+            title: 'Başarılı!',
+            description: `"${className}" sınıfı eklendi.`,
+        });
+    } catch (error) {
+        toast({ title: 'Hata', description: 'Sınıf eklenirken bir hata oluştu.', variant: 'destructive'});
+    }
   };
 
-  const handleAddStudent = (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
-    const newStudent: Student = {
-      ...studentData,
-      id: `s${students.length + 1 + Math.random()}`,
-      classId,
-    };
-    setStudents([...students, newStudent]);
-     toast({
-      title: 'Başarılı!',
-      description: `Öğrenci "${studentData.firstName} ${studentData.lastName}" eklendi.`,
-    });
+  const handleAddStudent = async (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
+    try {
+        const newStudent = await addStudent(classId, studentData);
+        setClasses(prev => prev.map(c => 
+            c.id === classId ? { ...c, students: [...c.students, newStudent].sort((a,b) => a.studentNumber - b.studentNumber) } : c
+        ));
+         toast({
+          title: 'Başarılı!',
+          description: `Öğrenci "${studentData.firstName} ${studentData.lastName}" eklendi.`,
+        });
+    } catch (error) {
+         toast({ title: 'Hata', description: 'Öğrenci eklenirken bir hata oluştu.', variant: 'destructive'});
+    }
   };
   
-  const handleBulkAddStudents = (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
-    const studentsToAdd: Student[] = newStudents.map((studentData, index) => ({
-      ...studentData,
-      id: `s${students.length + index + 1 + Math.random()}`,
-      classId,
-    }));
-    setStudents([...students, ...studentsToAdd]);
-    toast({
-        title: "Öğrenciler Başarıyla Aktarıldı!",
-        description: `${newStudents.length} öğrenci "${classes.find(c=>c.id === classId)?.name}" sınıfına eklendi.`
-    })
+  const handleBulkAddStudents = async (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
+    try {
+        await addMultipleStudents(classId, newStudents);
+        await fetchAllData(); // Re-fetch all data to get new students with their IDs
+        toast({
+            title: "Öğrenciler Başarıyla Aktarıldı!",
+            description: `${newStudents.length} öğrenci "${classes.find(c=>c.id === classId)?.name}" sınıfına eklendi.`
+        })
+    } catch (error) {
+        toast({ title: 'Hata', description: 'Öğrenciler aktarılırken bir hata oluştu.', variant: 'destructive'});
+    }
   };
 
-  const handleUpdateStudent = (updatedStudent: Student) => {
-    setStudents(students.map(s => (s.id === updatedStudent.id ? updatedStudent : s)));
-    toast({
-      title: 'Başarılı!',
-      description: `Öğrenci "${updatedStudent.firstName} ${updatedStudent.lastName}" güncellendi.`,
-    });
-    setEditingStudent(null);
+  const handleUpdateStudent = async (updatedStudent: Student) => {
+    try {
+        await updateStudent(updatedStudent.classId, updatedStudent);
+        setClasses(prev => prev.map(c =>
+            c.id === updatedStudent.classId 
+            ? { ...c, students: c.students.map(s => s.id === updatedStudent.id ? updatedStudent : s).sort((a,b) => a.studentNumber - b.studentNumber)} 
+            : c
+        ));
+        toast({
+          title: 'Başarılı!',
+          description: `Öğrenci "${updatedStudent.firstName} ${updatedStudent.lastName}" güncellendi.`,
+        });
+        setEditingStudent(null);
+    } catch (error) {
+        toast({ title: 'Hata', description: 'Öğrenci güncellenirken bir hata oluştu.', variant: 'destructive'});
+    }
   };
 
-  const handleStudentDelete = (id: string) => {
-    setStudents(students.filter(s => s.id !== id));
-    toast({
-      title: 'Öğrenci Silindi',
-      description: 'Öğrenci başarıyla listeden kaldırıldı.',
-      variant: 'destructive'
-    });
+  const handleStudentDelete = async (classId: string, studentId: string) => {
+    try {
+        await deleteStudent(classId, studentId);
+        setClasses(prev => prev.map(c => 
+            c.id === classId ? { ...c, students: c.students.filter(s => s.id !== studentId) } : c
+        ));
+        toast({
+          title: 'Öğrenci Silindi',
+          description: 'Öğrenci başarıyla listeden kaldırıldı.',
+          variant: 'destructive'
+        });
+    } catch (error) {
+         toast({ title: 'Hata', description: 'Öğrenci silinirken bir hata oluştu.', variant: 'destructive'});
+    }
   };
-  
-  const getStudentCount = (classId: string) => {
-    return students.filter(s => s.classId === classId).length;
-  };
-  
-  const getStudentsForClass = (classId: string) => {
-      return students.filter(s => s.classId === classId);
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <main className="flex-1 p-4 sm:p-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+      </AppLayout>
+    );
   }
 
   return (
@@ -112,7 +177,7 @@ export default function SiniflarimPage() {
                   </div>
                   <div className="flex items-center gap-2 text-right text-primary font-bold">
                     <Users className="h-5 w-5" />
-                    <span>{getStudentCount(c.id)} Öğrenci</span>
+                    <span>{c.students.length} Öğrenci</span>
                   </div>
                 </div>
               </CardHeader>
@@ -120,18 +185,15 @@ export default function SiniflarimPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold">Öğrenci Listesi</h4>
                   <div className="flex items-center gap-2">
-                    <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} existingStudents={getStudentsForClass(c.id)} />
-                    <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} existingStudents={getStudentsForClass(c.id)} />
+                    <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} existingStudents={c.students} />
+                    <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} existingStudents={c.students} />
                   </div>
                 </div>
 
-                {getStudentCount(c.id) > 0 ? (
+                {c.students.length > 0 ? (
                   <div className="border rounded-lg max-h-96 overflow-y-auto">
                     <ul className="divide-y">
-                      {students
-                        .filter(s => s.classId === c.id)
-                        .sort((a, b) => a.studentNumber - b.studentNumber)
-                        .map(student => (
+                      {c.students.map(student => (
                           <li key={student.id} className="flex items-center justify-between p-3 hover:bg-muted/50">
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-bold text-primary w-8 text-center">{student.studentNumber}</span>
@@ -156,7 +218,7 @@ export default function SiniflarimPage() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>İptal</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleStudentDelete(student.id)} className='bg-destructive hover:bg-destructive/90'>
+                                        <AlertDialogAction onClick={() => handleStudentDelete(c.id, student.id)} className='bg-destructive hover:bg-destructive/90'>
                                             Sil
                                         </AlertDialogAction>
                                     </AlertDialogFooter>
@@ -188,7 +250,7 @@ export default function SiniflarimPage() {
             onUpdateStudent={handleUpdateStudent}
             onClose={() => setEditingStudent(null)}
             isOpen={!!editingStudent}
-            existingStudents={getStudentsForClass(editingStudent.classId)}
+            existingStudents={classes.find(c => c.id === editingStudent.classId)?.students || []}
           />
         )}
       </main>
