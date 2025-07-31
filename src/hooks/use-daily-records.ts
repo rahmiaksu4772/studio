@@ -3,10 +3,16 @@
 
 import * as React from 'react';
 import { useToast } from './use-toast';
-import type { DailyRecord } from '@/lib/types';
+import type { DailyRecord, Student, ClassInfo } from '@/lib/types';
 import { dailyRecords as initialRecords } from '@/lib/mock-data';
 
 const RECORDS_STORAGE_KEY = 'daily-records';
+const CLASSES_STORAGE_KEY = 'classes-and-students';
+
+// Type for the stored data
+type ClassWithStudents = ClassInfo & {
+    students: Student[];
+};
 
 export function useDailyRecords() {
   const { toast } = useToast();
@@ -22,6 +28,7 @@ export function useDailyRecords() {
       } else {
         // Load initial mock data if nothing is in localStorage
         setRecords(initialRecords);
+        localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(initialRecords));
       }
     } catch (error) {
       console.error("Failed to load records from localStorage", error);
@@ -39,6 +46,7 @@ export function useDailyRecords() {
   const updateLocalStorage = (updatedRecords: DailyRecord[]) => {
     try {
       localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(updatedRecords));
+      setRecords(updatedRecords);
     } catch (error) {
       console.error("Failed to save records to localStorage", error);
       toast({
@@ -55,30 +63,19 @@ export function useDailyRecords() {
 
   const updateDailyRecords = React.useCallback((classId: string, date: string, newRecords: Omit<DailyRecord, 'id'>[]) => {
       setRecords(prevRecords => {
-          // Create a map of the new records for quick lookup
           const newRecordsMap = new Map(newRecords.map(r => [r.studentId, r]));
-
-          // Get all records EXCEPT for the current class and date
           const otherRecords = prevRecords.filter(r => r.classId !== classId || r.date !== date);
-
-          // Get the existing records for the current class and date
           const existingRecordsForDate = prevRecords.filter(r => r.classId === classId && r.date === date);
-          
-          // Create a set of student IDs that have new records
           const updatedStudentIds = new Set(newRecords.map(r => r.studentId));
 
-          // Update existing records if they are in the new batch, otherwise keep them
           const updatedOrKeptRecords = existingRecordsForDate.map(existingRecord => {
               if (newRecordsMap.has(existingRecord.studentId)) {
-                  // This student's record is being updated. Use the new one.
                   const newRecord = newRecordsMap.get(existingRecord.studentId)!;
                   return { ...existingRecord, ...newRecord };
               }
-              // This student's record was not in the new batch, so keep the old one.
               return existingRecord;
           });
 
-          // Add brand new records (for students who didn't have a record for this date before)
           const brandNewRecords = newRecords
               .filter(nr => !existingRecordsForDate.some(er => er.studentId === nr.studentId))
               .map(nr => ({ ...nr, id: `${nr.studentId}-${nr.date}` }));
@@ -90,22 +87,22 @@ export function useDailyRecords() {
           return allRecords;
       });
   }, []);
+  
+  const deleteRecordsForClass = (classId: string) => {
+    setRecords(prevRecords => {
+      const remainingRecords = prevRecords.filter(r => r.classId !== classId);
+      updateLocalStorage(remainingRecords);
+      return remainingRecords;
+    });
+  };
 
-  return { records, isLoading, getRecordsForDate, updateDailyRecords };
+  return { records, isLoading, getRecordsForDate, updateDailyRecords, deleteRecordsForClass };
 }
 
-// A new hook to manage classes and students from localStorage
-const CLASSES_STORAGE_KEY = 'classes-and-students';
-
-// Type for the stored data
-type ClassWithStudents = {
-    id: string;
-    name: string;
-    students: Student[];
-};
 
 export function useClassesAndStudents() {
     const { toast } = useToast();
+    const { deleteRecordsForClass } = useDailyRecords();
     const [classes, setClasses] = React.useState<ClassWithStudents[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
@@ -116,14 +113,13 @@ export function useClassesAndStudents() {
         if (savedData) {
           setClasses(JSON.parse(savedData));
         } else {
-           // Provide some default data if nothing is in storage
-           const defaultClasses = [
-                { id: '1A', name: '1/A', students: [
-                    { id: '1A-1', studentNumber: 1, firstName: 'Ahmet', lastName: 'Yılmaz', classId: '1A' },
-                    { id: '1A-2', studentNumber: 2, firstName: 'Ayşe', lastName: 'Kaya', classId: '1A' },
+           const defaultClasses: ClassWithStudents[] = [
+                { id: '6A', name: '6/A', students: [
+                    { id: '6A-1', studentNumber: 101, firstName: 'Zeynep', lastName: 'Demir', classId: '6A' },
+                    { id: '6A-2', studentNumber: 102, firstName: 'Emir', lastName: 'Çelik', classId: '6A' },
                 ]},
-                { id: '2B', name: '2/B', students: [
-                     { id: '2B-1', studentNumber: 1, firstName: 'Mehmet', lastName: 'Demir', classId: '2B' },
+                { id: '7B', name: '7/B', students: [
+                     { id: '7B-1', studentNumber: 201, firstName: 'Hiranur', lastName: 'Aydın', classId: '7B' },
                 ]}
            ];
            setClasses(defaultClasses);
@@ -147,15 +143,32 @@ export function useClassesAndStudents() {
     }
 
     const addClass = (name: string) => {
+        if (classes.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+            throw new Error(`"${name}" adında bir sınıf zaten mevcut.`);
+        }
         const newClass: ClassWithStudents = {
             id: new Date().toISOString(),
             name,
             students: []
         };
-        if (classes.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-            throw new Error(`"${name}" adında bir sınıf zaten mevcut.`);
-        }
         updateStorage([...classes, newClass]);
+    };
+    
+    const updateClass = (classId: string, newName: string) => {
+        if (classes.some(c => c.id !== classId && c.name.toLowerCase() === newName.toLowerCase())) {
+             throw new Error(`"${newName}" adında bir sınıf zaten mevcut.`);
+        }
+        const updatedClasses = classes.map(c => 
+            c.id === classId ? { ...c, name: newName } : c
+        );
+        updateStorage(updatedClasses);
+    };
+
+    const deleteClass = (classId: string) => {
+        const updatedClasses = classes.filter(c => c.id !== classId);
+        updateStorage(updatedClasses);
+        // Also delete all associated daily records
+        deleteRecordsForClass(classId);
     };
     
     const addStudent = (classId: string, studentData: Omit<Student, 'id'|'classId'>) => {
@@ -219,5 +232,5 @@ export function useClassesAndStudents() {
         updateStorage(updatedClasses);
     };
 
-    return { classes, isLoading, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent };
+    return { classes, isLoading, addClass, updateClass, deleteClass, addStudent, addMultipleStudents, updateStudent, deleteStudent };
 }

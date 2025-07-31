@@ -24,15 +24,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useClassesAndStudents } from '@/hooks/use-daily-records';
-
-type ClassWithStudents = ClassInfo & {
-    students: Student[];
-};
+import { EditClassForm } from '@/components/edit-class-form';
 
 export default function SiniflarimPage() {
   const { toast } = useToast();
-  const { classes, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, isLoading } = useClassesAndStudents();
+  const { classes, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, updateClass, deleteClass, isLoading } = useClassesAndStudents();
   const [editingStudent, setEditingStudent] = React.useState<Student | null>(null);
+  const [editingClass, setEditingClass] = React.useState<ClassInfo | null>(null);
 
   const sortedClasses = React.useMemo(() => {
     return classes.map(c => ({
@@ -44,12 +42,34 @@ export default function SiniflarimPage() {
   const handleAddClass = (className: string) => {
     try {
         addClass(className);
-         toast({
-          title: 'Başarılı!',
-          description: `"${className}" sınıfı eklendi.`,
-        });
     } catch (error: any) {
          toast({ title: 'Hata', description: error.message, variant: 'destructive'});
+    }
+  };
+  
+  const handleUpdateClass = (classId: string, newName: string) => {
+    try {
+        updateClass(classId, newName);
+        toast({
+            title: 'Başarılı!',
+            description: 'Sınıf adı güncellendi.',
+        });
+        setEditingClass(null);
+    } catch (error: any) {
+        toast({ title: 'Hata', description: error.message, variant: 'destructive' });
+    }
+  };
+  
+  const handleDeleteClass = (classId: string) => {
+    try {
+        deleteClass(classId);
+        toast({
+          title: 'Sınıf Silindi',
+          description: 'Sınıf ve içindeki tüm öğrenciler başarıyla silindi.',
+          variant: 'destructive'
+        });
+    } catch (error: any) {
+        toast({ title: 'Hata', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -121,18 +141,44 @@ export default function SiniflarimPage() {
             <h1 className="text-2xl font-bold tracking-tight">Sınıflarım</h1>
             <p className="text-muted-foreground">Sınıflarınızı ve öğrencilerinizi buradan yönetin.</p>
           </div>
-          <AddClassForm onAddClass={handleAddClass} />
+          <AddClassForm onAddClass={handleAddClass} existingClasses={classes} />
         </div>
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {sortedClasses.map((c) => (
             <Card key={c.id}>
               <CardHeader className="bg-muted/50">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{c.name}</CardTitle>
+                  <div className='flex-grow'>
+                    <div className='flex items-center gap-2'>
+                        <CardTitle className="text-xl">{c.name}</CardTitle>
+                        <Button variant="ghost" size="icon" className='h-7 w-7' onClick={() => setEditingClass(c)}>
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className='h-7 w-7'>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Sınıfı Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Bu işlem geri alınamaz. "{c.name}" sınıfını, içindeki tüm öğrencileri ve bu sınıfa ait tüm geçmiş kayıtları kalıcı olarak silecektir.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>İptal</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteClass(c.id)} className='bg-destructive hover:bg-destructive/90'>
+                                        Evet, Sil
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                     <CardDescription>Sınıf Seviyesi: {c.name.split('/')[0]}</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2 text-right text-primary font-bold">
+                  <div className="flex items-center gap-2 text-right text-primary font-bold flex-shrink-0">
                     <Users className="h-5 w-5" />
                     <span>{c.students.length} Öğrenci</span>
                   </div>
@@ -208,6 +254,15 @@ export default function SiniflarimPage() {
             onClose={() => setEditingStudent(null)}
             isOpen={!!editingStudent}
             existingStudents={classes.find(c => c.id === editingStudent.classId)?.students || []}
+          />
+        )}
+        {editingClass && (
+          <EditClassForm
+            classInfo={editingClass}
+            onUpdateClass={handleUpdateClass}
+            onClose={() => setEditingClass(null)}
+            isOpen={!!editingClass}
+            existingClasses={classes}
           />
         )}
       </main>

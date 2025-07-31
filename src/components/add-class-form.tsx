@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import type { ClassInfo } from '@/lib/types';
 
 const formSchema = z.object({
   className: z.string().min(2, { message: 'Sınıf adı en az 2 karakter olmalıdır.' }),
@@ -18,26 +19,41 @@ const formSchema = z.object({
 
 type AddClassFormProps = {
   onAddClass: (className: string) => void;
+  existingClasses: ClassInfo[];
 };
 
-export function AddClassForm({ onAddClass }: AddClassFormProps) {
+export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps) {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
+
+  const dynamicFormSchema = formSchema.refine(
+    (data) => !existingClasses.some(c => c.name.toLowerCase() === data.className.toLowerCase()),
+    {
+      message: 'Bu isimde bir sınıf zaten mevcut.',
+      path: ['className'],
+    }
+  );
+
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(dynamicFormSchema),
     defaultValues: {
       className: '',
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onAddClass(values.className);
-    toast({
-      title: 'Başarılı!',
-      description: `"${values.className}" sınıfı eklendi.`,
-    });
-    form.reset();
-    setOpen(false);
+    try {
+        onAddClass(values.className);
+        toast({
+          title: 'Başarılı!',
+          description: `"${values.className}" sınıfı eklendi.`,
+        });
+        form.reset();
+        setOpen(false);
+    } catch (error: any) {
+        // This will be caught by the hook's try-catch, but as a fallback:
+        form.setError("className", { type: "manual", message: error.message });
+    }
   }
 
   return (
