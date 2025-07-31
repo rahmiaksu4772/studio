@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ListPlus, Trash2, Save, FilePenLine } from 'lucide-react';
+import { ListPlus, Trash2, Save, FilePenLine, ImagePlus, X as CloseIcon } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,11 +15,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 const examFormSchema = z.object({
   title: z.string().min(3, 'Sınav başlığı zorunludur.'),
   questions: z.array(z.object({
     question: z.string().min(5, 'Soru metni zorunludur.'),
+    imageUrl: z.string().optional(),
     options: z.array(z.string().min(1, 'Seçenek boş olamaz.')).length(4, '4 seçenek olmalıdır.'),
     correctAnswer: z.string({ required_error: 'Doğru cevap seçimi zorunludur.'}),
   })).min(1, "Sınavda en az bir soru olmalıdır."),
@@ -29,13 +31,14 @@ type ExamFormValues = z.infer<typeof examFormSchema>;
 
 export default function OnlineSinavPage() {
   const { toast } = useToast();
+  const fileInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 
   const examForm = useForm<ExamFormValues>({
     resolver: zodResolver(examFormSchema),
     defaultValues: { title: 'Yeni Sınav', questions: [] },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control: examForm.control,
     name: 'questions',
   });
@@ -49,7 +52,17 @@ export default function OnlineSinavPage() {
   }
   
   const addQuestion = () => {
-    append({ question: '', options: ['', '', '', ''], correctAnswer: '' });
+    append({ question: '', imageUrl: undefined, options: ['', '', '', ''], correctAnswer: '' });
+  };
+  
+  const handleImageUpload = (file: File, index: number) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const field = fields[index];
+        update(index, { ...field, imageUrl: e.target?.result as string });
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -93,18 +106,46 @@ export default function OnlineSinavPage() {
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
-                                 <FormField
-                                    control={examForm.control}
-                                    name={`questions.${index}.question`}
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormControl>
-                                            <Textarea placeholder="Soru metnini yazın..." {...field} className="bg-background"/>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
+
+                                {field.imageUrl && (
+                                    <div className="relative mb-2">
+                                        <img src={field.imageUrl} alt={`Soru ${index + 1} resmi`} className="rounded-lg w-full max-h-80 object-contain border bg-white" />
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="icon"
+                                            className="absolute top-2 right-2 h-7 w-7 rounded-full"
+                                            onClick={() => update(index, { ...field, imageUrl: undefined })}
+                                        >
+                                            <CloseIcon className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
+
+                                <div className="flex items-start gap-2">
+                                     <FormField
+                                        control={examForm.control}
+                                        name={`questions.${index}.question`}
+                                        render={({ field }) => (
+                                        <FormItem className='flex-1'>
+                                            <FormControl>
+                                                <Textarea placeholder="Soru metnini yazın..." {...field} className="bg-background"/>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                    <Button type='button' variant='outline' size='icon' onClick={() => fileInputRefs.current[index]?.click()}>
+                                        <ImagePlus className='h-5 w-5' />
+                                    </Button>
+                                    <input 
+                                        type="file" 
+                                        className="hidden"
+                                        accept="image/*"
+                                        ref={el => fileInputRefs.current[index] = el}
+                                        onChange={(e) => e.target.files && handleImageUpload(e.target.files[0], index)}
+                                    />
+                                </div>
                                 <div className='mt-4'>
                                 <FormField
                                     control={examForm.control}
@@ -184,3 +225,5 @@ export default function OnlineSinavPage() {
     </AppLayout>
   );
 }
+
+    
