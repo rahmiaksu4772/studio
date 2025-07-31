@@ -2,8 +2,6 @@
 
 import { descriptionAutoFill } from '@/ai/flows/description-auto-fill';
 import type { DescriptionAutoFillInput } from '@/ai/flows/description-auto-fill';
-import { generateExam } from '@/ai/flows/generate-exam-flow';
-import type { GenerateExamInput } from '@/ai/schemas/exam-schemas';
 import { opticalScan } from '@/ai/flows/optical-scan-flow';
 import type { OpticalScanInput } from '@/ai/schemas/optical-scan-schemas';
 
@@ -34,12 +32,3 @@ export async function opticalScanAction(input: OpticalScanInput) {
     }
   }
 
-export async function generateExamAction(input: GenerateExamInput) {
-  try {
-    const result = await generateExam(input);
-    return result;
-  } catch (error) {
-    console.error('AI exam generation failed:', error);
-    return { error: 'Yapay zeka ile sınav oluşturulurken bir hata oluştu.' };
-  }
-}

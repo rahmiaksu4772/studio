@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Wand2, Loader2, ListPlus, Trash2, Save, FilePenLine } from 'lucide-react';
+import { ListPlus, Trash2, Save, FilePenLine } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,15 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { generateExamAction } from '../actions';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-
-const examGeneratorSchema = z.object({
-  topic: z.string().min(3, 'Konu en az 3 karakter olmalıdır.'),
-  gradeLevel: z.string().min(1, 'Sınıf seviyesi zorunludur.'),
-  questionCount: z.coerce.number().min(1, 'En az 1 soru olmalıdır.').max(20, 'En fazla 20 soru olabilir.'),
-});
 
 const examFormSchema = z.object({
   title: z.string().min(3, 'Sınav başlığı zorunludur.'),
@@ -32,52 +25,20 @@ const examFormSchema = z.object({
   })).min(1, "Sınavda en az bir soru olmalıdır."),
 });
 
-type ExamGeneratorValues = z.infer<typeof examGeneratorSchema>;
 type ExamFormValues = z.infer<typeof examFormSchema>;
 
 export default function OnlineSinavPage() {
   const { toast } = useToast();
-  const [isGenerating, setIsGenerating] = React.useState(false);
-
-  const generatorForm = useForm<ExamGeneratorValues>({
-    resolver: zodResolver(examGeneratorSchema),
-    defaultValues: { topic: '', gradeLevel: '8. Sınıf', questionCount: 5 },
-  });
 
   const examForm = useForm<ExamFormValues>({
     resolver: zodResolver(examFormSchema),
-    defaultValues: { title: '', questions: [] },
+    defaultValues: { title: 'Yeni Sınav', questions: [] },
   });
 
   const { fields, append, remove } = useFieldArray({
     control: examForm.control,
     name: 'questions',
   });
-
-  const handleGenerateExam = async (values: ExamGeneratorValues) => {
-    setIsGenerating(true);
-    examForm.reset({ title: `${values.gradeLevel} ${values.topic} Sınavı`, questions: [] });
-    
-    try {
-      const result = await generateExamAction(values);
-      if (result.error) {
-        toast({ title: 'Sınav Oluşturulamadı', description: result.error, variant: 'destructive' });
-      } else {
-        const mappedQuestions = result.exam.questions.map(q => ({
-          question: q.question,
-          options: [q.options.a, q.options.b, q.options.c, q.options.d],
-          correctAnswer: q.correctAnswer,
-        }));
-        examForm.setValue('questions', mappedQuestions);
-        examForm.setValue('title', `${values.gradeLevel} ${values.topic} Sınavı`);
-        toast({ title: 'Sınav Oluşturuldu!', description: `${result.exam.questions.length} soru başarıyla oluşturuldu.` });
-      }
-    } catch (e) {
-      toast({ title: 'Bir Hata Oluştu', description: 'Sınav oluşturulurken beklenmedik bir hata oluştu.', variant: 'destructive' });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
   
   const handleSaveExam = (values: ExamFormValues) => {
       console.log("Kaydedilen Sınav:", values);
@@ -98,76 +59,13 @@ export default function OnlineSinavPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Online Sınav Oluşturucu</h1>
             <p className="text-muted-foreground">
-              AI ile hızlıca sınav oluşturun veya soruları kendiniz ekleyin.
+              Soruları manuel olarak ekleyerek kendi sınavınızı oluşturun.
             </p>
           </div>
         </div>
         
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
-          <Card className="lg:col-span-1 sticky top-20">
-            <CardHeader>
-              <CardTitle>AI Sınav Üretici</CardTitle>
-              <CardDescription>Yapay zeka ile hızlı bir başlangıç yapın.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...generatorForm}>
-                <form onSubmit={generatorForm.handleSubmit(handleGenerateExam)} className="space-y-4">
-                  <FormField
-                    control={generatorForm.control}
-                    name="topic"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Konu</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Örn: Üslü Sayılar" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={generatorForm.control}
-                    name="gradeLevel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sınıf Seviyesi</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Örn: 8. Sınıf" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={generatorForm.control}
-                    name="questionCount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Soru Sayısı</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" disabled={isGenerating} className="w-full">
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                    Yapay Zeka ile Oluştur
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          <div className="lg:col-span-2">
-            {isGenerating ? (
-                <Card className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                    <h3 className="text-xl font-semibold">Sınavınız Oluşturuluyor...</h3>
-                    <p className="text-muted-foreground">Yapay zeka, sorularınızı hazırlıyor. Bu işlem birkaç saniye sürebilir.</p>
-                </Card>
-            ) : fields.length > 0 ? (
+        <div className="max-w-4xl mx-auto">
+            {fields.length > 0 ? (
               <Form {...examForm}>
                 <form onSubmit={examForm.handleSubmit(handleSaveExam)} className="space-y-6">
                     <Card>
@@ -272,7 +170,7 @@ export default function OnlineSinavPage() {
                         </div>
                         <h2 className="text-xl font-semibold mb-2">Başlamaya Hazır</h2>
                         <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
-                           Soldaki formu kullanarak AI ile bir sınav oluşturun veya "Soru Ekle" butonuyla kendi sınavınızı hazırlamaya başlayın.
+                           "Soru Ekle" butonuyla kendi sınavınızı hazırlamaya başlayın.
                         </p>
                         <Button type="button" variant="default" size="lg" onClick={addQuestion}>
                             <ListPlus className="mr-2 h-4 w-4" />
@@ -281,7 +179,6 @@ export default function OnlineSinavPage() {
                     </div>
                 </Card>
             )}
-          </div>
         </div>
       </main>
     </AppLayout>
