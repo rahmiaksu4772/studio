@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,7 +28,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type Note = {
   id: string;
@@ -36,6 +38,7 @@ type Note = {
   content: string;
   date: string;
   color: string;
+  imageUrl?: string;
 };
 
 const noteColors = [
@@ -51,11 +54,17 @@ export default function NotlarimPage() {
   const [notes, setNotes] = React.useState<Note[]>([]);
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
   const [newNoteContent, setNewNoteContent] = React.useState('');
+  const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRecording, setIsRecording] = React.useState(false);
+  const [isCameraOpen, setIsCameraOpen] = React.useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
+  const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
   
   const recognitionRef = React.useRef<any>(null);
-
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  
   React.useEffect(() => {
     try {
       const savedNotes = localStorage.getItem('my-notes');
@@ -88,13 +97,43 @@ export default function NotlarimPage() {
         })
     }
   }, [notes, isLoading, toast]);
+  
+  React.useEffect(() => {
+    if (isCameraOpen) {
+      const getCameraPermission = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Kamera Erişimi Reddedildi',
+            description: 'Lütfen tarayıcı ayarlarınızdan kamera izinlerini etkinleştirin.',
+          });
+        }
+      };
+      getCameraPermission();
+    } else {
+        // Stop camera stream when modal is closed
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+    }
+  }, [isCameraOpen, toast]);
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newNoteContent.trim() === '') {
+    if (newNoteContent.trim() === '' && !newNoteImage) {
       toast({
         title: 'Boş Not',
-        description: 'Lütfen not içeriğini girin.',
+        description: 'Lütfen not içeriği girin veya bir fotoğraf ekleyin.',
         variant: 'destructive',
       });
       return;
@@ -109,6 +148,7 @@ export default function NotlarimPage() {
       id: `note-${Date.now()}`,
       title: newNoteTitle,
       content: newNoteContent,
+      imageUrl: newNoteImage || undefined,
       date: new Date().toLocaleDateString('tr-TR'),
       color: noteColors[Math.floor(Math.random() * noteColors.length)],
     };
@@ -116,6 +156,7 @@ export default function NotlarimPage() {
     setNotes([newNote, ...notes]);
     setNewNoteTitle('');
     setNewNoteContent('');
+    setNewNoteImage(null);
     toast({
       title: 'Not Eklendi!',
       description: 'Yeni notunuz başarıyla eklendi.',
@@ -129,6 +170,27 @@ export default function NotlarimPage() {
         description: 'Notunuz başarıyla silindi.',
         variant: 'destructive',
     })
+  };
+  
+  const handleCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/png');
+        setCapturedImage(dataUrl);
+    }
+  };
+  
+  const handleUseImage = () => {
+    if (capturedImage) {
+        setNewNoteImage(capturedImage);
+        setIsCameraOpen(false);
+        setCapturedImage(null);
+    }
   };
 
   const handleToggleRecording = () => {
@@ -167,7 +229,7 @@ export default function NotlarimPage() {
       recognitionRef.current = null;
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: any) => {
         if (event.error === 'not-allowed') {
             toast({
                 title: 'Mikrofon İzni Gerekli',
@@ -194,7 +256,7 @@ export default function NotlarimPage() {
           interimTranscript += event.results[i][0].transcript;
         }
       }
-      setNewNoteContent(newNoteContent + finalTranscript + interimTranscript);
+      setNewNoteContent(prev => prev + finalTranscript + interimTranscript);
     };
     
     recognition.start();
@@ -215,6 +277,20 @@ export default function NotlarimPage() {
         <Card className="max-w-2xl mx-auto mb-8 shadow-lg">
           <form onSubmit={handleAddNote}>
             <CardContent className="p-4 space-y-3">
+              {newNoteImage && (
+                <div className="relative">
+                    <img src={newNoteImage} alt="Eklenen resim" className="rounded-lg w-full" />
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 rounded-full"
+                        onClick={() => setNewNoteImage(null)}
+                    >
+                        <CloseIcon className="h-4 w-4" />
+                    </Button>
+                </div>
+              )}
               <Input
                 placeholder="Not başlığı (isteğe bağlı)..."
                 className="text-lg font-semibold border-0 focus-visible:ring-0 shadow-none p-2"
@@ -224,32 +300,52 @@ export default function NotlarimPage() {
               <div className="relative">
                 <Textarea
                     placeholder="Bir not alın ya da konuşarak yazdırın..."
-                    className="border-0 focus-visible:ring-0 shadow-none p-2 resize-none pr-12"
+                    className="border-0 focus-visible:ring-0 shadow-none p-2 resize-none pr-24"
                     value={newNoteContent}
                     onChange={(e) => setNewNoteContent(e.target.value)}
                     rows={3}
                 />
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleToggleRecording}
-                                className={cn(
-                                    "absolute right-2 bottom-2 h-8 w-8 rounded-full text-muted-foreground",
-                                    isRecording && "text-red-500 animate-pulse"
-                                )}
-                            >
-                                {isRecording ? <MicOff /> : <Mic />}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                <div className="absolute right-2 bottom-2 flex gap-1">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleToggleRecording}
+                                    className={cn(
+                                        "h-8 w-8 rounded-full text-muted-foreground",
+                                        isRecording && "text-red-500 animate-pulse"
+                                    )}
+                                >
+                                    {isRecording ? <MicOff /> : <Mic />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsCameraOpen(true)}
+                                    className="h-8 w-8 rounded-full text-muted-foreground"
+                                >
+                                    <Camera />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Fotoğraf Ekle</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
               </div>
             </CardContent>
             <CardFooter className="flex justify-end p-2 pr-4">
@@ -277,6 +373,7 @@ export default function NotlarimPage() {
                 key={note.id}
                 className={cn('flex flex-col break-inside-avoid', note.color)}
               >
+                {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover" />}
                 <CardHeader>
                   <CardTitle className="text-lg">{note.title || 'Başlıksız Not'}</CardTitle>
                 </CardHeader>
@@ -320,7 +417,45 @@ export default function NotlarimPage() {
           </div>
         )}
       </main>
+      
+      <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Kameradan Fotoğraf Ekle</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {hasCameraPermission === false && (
+                <Alert variant="destructive">
+                  <AlertTitle>Kamera İzni Gerekli</AlertTitle>
+                  <AlertDescription>
+                    Bu özelliği kullanmak için lütfen kamera erişimine izin verin.
+                  </AlertDescription>
+                </Alert>
+            )}
+            <div className="bg-black rounded-lg overflow-hidden relative">
+              {capturedImage ? (
+                <img src={capturedImage} alt="Yakalanan Görüntü" className="w-full h-auto"/>
+              ) : (
+                 <video ref={videoRef} className="w-full h-auto" autoPlay muted playsInline />
+              )}
+               <canvas ref={canvasRef} className="hidden" />
+            </div>
+          </div>
+          <DialogFooter>
+            {capturedImage ? (
+                <>
+                    <Button variant="outline" onClick={() => setCapturedImage(null)}>Tekrar Çek</Button>
+                    <Button onClick={handleUseImage}>Fotoğrafı Kullan</Button>
+                </>
+            ) : (
+                <Button onClick={handleCapture} disabled={!hasCameraPermission}>
+                    <Camera className="mr-2 h-4 w-4" />
+                    Fotoğraf Çek
+                </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
-
