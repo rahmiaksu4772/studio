@@ -86,11 +86,11 @@ const AppSidebar = React.memo(function AppSidebar() {
                 <SidebarGroup className="mt-4">
                 {menuItems.map((item) => (
                     <SidebarMenuItem key={item.href}>
-                    <Link href={item.href} legacyBehavior passHref>
+                    <Link href={item.href}>
                         <SidebarMenuButton asChild tooltip={item.label} isActive={pathname === item.href}>
-                          <a>
-                            <item.icon /> <span className={cn(state === 'collapsed' && 'hidden')}>{item.label}</span>
-                          </a>
+                            <>
+                                <item.icon /> <span className={cn(state === 'collapsed' && 'hidden')}>{item.label}</span>
+                            </>
                         </SidebarMenuButton>
                     </Link>
                     </SidebarMenuItem>
@@ -101,11 +101,11 @@ const AppSidebar = React.memo(function AppSidebar() {
             <SidebarFooter className="p-2">
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <Link href="/ayarlar" legacyBehavior passHref>
+                    <Link href="/ayarlar">
                         <SidebarMenuButton asChild tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
-                          <a>
+                          <>
                             <Settings /> <span className={cn(state === 'collapsed' && 'hidden')}>Ayarlar</span>
-                          </a>
+                          </>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
