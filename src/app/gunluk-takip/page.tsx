@@ -282,7 +282,7 @@ export default function GunlukTakipPage() {
                     <Table>
                         <TableHeader className="bg-muted/50">
                             <TableRow>
-                                <TableHead className="w-[80px] text-center">No</TableHead>
+                                <TableHead className="w-[60px] text-center">No</TableHead>
                                 <TableHead>Adı Soyadı</TableHead>
                                 <TableHead className="min-w-[320px]">Durum</TableHead>
                                 <TableHead>Açıklama</TableHead>
