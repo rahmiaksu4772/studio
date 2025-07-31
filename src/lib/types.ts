@@ -28,8 +28,9 @@ export type DailyRecord = {
 
 export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string, bgColor?: string }[] = [
     { value: '+', label: 'Artı', icon: CheckCheck, color: 'text-green-600', bgColor: 'bg-green-100/60' },
-    { value: 'P', label: 'Yarım Artı', icon: Check, color: 'text-green-500', bgColor: 'bg-green-100/40' },
+    { value: 'P', label: 'Yarım', icon: Check, color: 'text-green-500', bgColor: 'bg-green-100/40' },
     { value: '-', label: 'Eksi', icon: X, color: 'text-red-600', bgColor: 'bg-red-100/60' },
     { value: 'Y', label: 'Yok', icon: UserX, color: 'text-yellow-600', bgColor: 'bg-yellow-100/60' },
     { value: 'G', label: 'İzinli', icon: FileCheck, color: 'text-blue-600', bgColor: 'bg-blue-100/60' },
 ];
+
