@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { FilePenLine, Plus, Share2, Eye } from 'lucide-react';
+import { FilePenLine, Plus, Share2, Trash2, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { mockExams } from '@/lib/mock-data';
 import type { Exam } from '@/lib/types';
@@ -20,25 +20,26 @@ export default function OnlineSinavlarPage() {
   const [exams, setExams] = React.useState<Exam[]>([]);
   const [shareableLink, setShareableLink] = React.useState<string | null>(null);
 
-   React.useEffect(() => {
+   const loadExams = React.useCallback(() => {
     const allExams: Exam[] = [...mockExams];
-    const localStorageKeys = Object.keys(localStorage);
-    localStorageKeys.forEach(key => {
-      if (key.startsWith('exam_')) {
-        try {
-          const examData = JSON.parse(localStorage.getItem(key)!);
-          allExams.push({
-            id: key,
-            title: examData.title,
-            questions: examData.questions,
-          });
-        } catch (error) {
-            console.error(`Error parsing exam from local storage with key ${key}:`, error);
+    try {
+        const localStorageKeys = Object.keys(localStorage);
+        localStorageKeys.forEach(key => {
+        if (key.startsWith('exam_')) {
+            const examData = JSON.parse(localStorage.getItem(key)!);
+            allExams.push({
+                id: key,
+                title: examData.title,
+                questions: examData.questions,
+            });
         }
-      }
-    });
+        });
+    } catch(e) {
+        console.error("Could not read from local storage", e);
+    }
+    
     // Remove duplicates, giving priority to localStorage
-    const uniqueExams = allExams.reduce((acc, current) => {
+    const uniqueExams = allExams.reverse().reduce((acc, current) => {
         if (!acc.find(item => item.id === current.id)) {
             acc.push(current);
         }
@@ -46,6 +47,10 @@ export default function OnlineSinavlarPage() {
     }, [] as Exam[]);
     setExams(uniqueExams);
   }, []);
+
+   React.useEffect(() => {
+    loadExams();
+  }, [loadExams]);
   
   const handleShare = (examId: string) => {
     const link = `${window.location.origin}/sinav-yap/${examId}`;
@@ -60,6 +65,25 @@ export default function OnlineSinavlarPage() {
             description: "Sınav linki panonuza kopyalandı."
         });
     }
+  }
+  
+  const handleDelete = (examId: string) => {
+      try {
+        localStorage.removeItem(examId);
+        toast({
+            title: "Sınav Silindi",
+            description: "Seçilen sınav başarıyla kaldırıldı.",
+            variant: "destructive"
+        });
+        loadExams(); // Refresh the list
+      } catch (e) {
+        console.error("Could not delete from local storage", e);
+        toast({
+            title: "Hata",
+            description: "Sınav silinirken bir hata oluştu.",
+            variant: "destructive"
+        });
+      }
   }
 
 
@@ -92,12 +116,33 @@ export default function OnlineSinavlarPage() {
                             {exam.questions.some(q => q.imageUrl) ? "Görsel içerir" : "Sadece metin"}
                         </div>
                     </CardContent>
-                    <CardFooter className='flex gap-2'>
-                        <Button variant="outline" className='w-full' onClick={() => router.push(`/sinav-yap/${exam.id}`)}>
-                            <Eye /> Görüntüle
+                    <CardFooter className='grid grid-cols-2 gap-2'>
+                        <Button variant="outline" className='w-full' onClick={() => router.push(`/online-sinav/olustur/${exam.id}`)}>
+                            <Pencil className="h-4 w-4" /> Düzenle
                         </Button>
-                        <Button className='w-full' onClick={() => handleShare(exam.id)}>
-                            <Share2 /> Paylaş
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className='w-full'>
+                                    <Trash2 className="h-4 w-4" /> Sil
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Sınavı silmek istediğinize emin misiniz?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    Bu işlem geri alınamaz. "{exam.title}" adlı sınav kalıcı olarak silinecektir.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>İptal</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(exam.id)} className="bg-destructive hover:bg-destructive/90">
+                                    Sil
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <Button className='w-full col-span-2' onClick={() => handleShare(exam.id)}>
+                            <Share2 className="h-4 w-4" /> Paylaş & Görüntüle
                         </Button>
                     </CardFooter>
                 </Card>
@@ -141,7 +186,11 @@ export default function OnlineSinavlarPage() {
                     />
                 </div>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Kapat</AlertDialogCancel>
+                     <Button variant="outline" asChild>
+                        <a href={shareableLink || ''} target="_blank" rel="noopener noreferrer">
+                            Önizleme
+                        </a>
+                    </Button>
                     <Button onClick={copyLink}>Linki Kopyala</Button>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -149,3 +198,5 @@ export default function OnlineSinavlarPage() {
     </AppLayout>
   );
 }
+
+    

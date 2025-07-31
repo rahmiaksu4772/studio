@@ -24,7 +24,8 @@ import {
     AlertDialogFooter,
     AlertDialogCancel
 } from '@/components/ui/alert-dialog';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+import type { ExamFormValues } from '@/lib/types';
 
 
 const examFormSchema = z.object({
@@ -37,18 +38,47 @@ const examFormSchema = z.object({
   })).min(1, "Sınavda en az bir soru olmalıdır."),
 });
 
-export type ExamFormValues = z.infer<typeof examFormSchema>;
-
 export default function OnlineSinavOlusturPage() {
   const router = useRouter();
+  const params = useParams();
   const { toast } = useToast();
   const fileInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
   const [shareableLink, setShareableLink] = React.useState<string | null>(null);
+  
+  const examId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const isEditing = !!examId;
 
   const examForm = useForm<ExamFormValues>({
     resolver: zodResolver(examFormSchema),
-    defaultValues: { title: 'Yeni Sınav', questions: [] },
+    defaultValues: { title: '', questions: [] },
   });
+  
+  React.useEffect(() => {
+    if (isEditing && examId) {
+        const storedExam = localStorage.getItem(examId);
+        if (storedExam) {
+            try {
+                const examData = JSON.parse(storedExam);
+                examForm.reset(examData);
+            } catch (error) {
+                console.error("Failed to parse exam data", error);
+                toast({
+                    title: "Hata",
+                    description: "Sınav verisi yüklenirken bir hata oluştu.",
+                    variant: "destructive"
+                });
+                router.push('/online-sinav');
+            }
+        } else {
+             toast({
+                title: "Sınav Bulunamadı",
+                description: "Düzenlenecek sınav bulunamadı.",
+                variant: "destructive"
+            });
+            router.push('/online-sinav');
+        }
+    }
+  }, [isEditing, examId, router, toast, examForm]);
 
   const { fields, append, remove, update } = useFieldArray({
     control: examForm.control,
@@ -56,11 +86,19 @@ export default function OnlineSinavOlusturPage() {
   });
   
   const handleSaveExam = (values: ExamFormValues) => {
-      const examId = `exam_${Date.now().toString(36)}`;
+      const idToSave = isEditing ? examId : `exam_${Date.now().toString(36)}`;
       try {
-        localStorage.setItem(examId, JSON.stringify(values));
-        const link = `${window.location.origin}/sinav-yap/${examId}`;
-        setShareableLink(link);
+        localStorage.setItem(idToSave!, JSON.stringify(values));
+        if (isEditing) {
+            toast({
+                title: "Sınav Güncellendi!",
+                description: `"${values.title}" başarıyla güncellendi.`
+            });
+            router.push('/online-sinav');
+        } else {
+            const link = `${window.location.origin}/sinav-yap/${idToSave}`;
+            setShareableLink(link);
+        }
       } catch (error) {
           console.error("Sınav kaydedilirken hata:", error);
           toast({
@@ -94,15 +132,20 @@ export default function OnlineSinavOlusturPage() {
         });
     }
   }
+  
+  const pageTitle = isEditing ? "Sınavı Düzenle" : "Yeni Sınav Oluştur";
+  const saveButtonText = isEditing ? "Değişiklikleri Kaydet" : "Sınavı Kaydet ve Paylaş";
+
 
   return (
     <AppLayout>
       <main className="flex-1 p-4 sm:p-6 space-y-6">
         <div className="flex items-center justify-between">
             <Button variant="outline" onClick={() => router.push('/online-sinav')}>
-                <ArrowLeft />
+                <ArrowLeft className="mr-2 h-4 w-4" />
                 Geri Dön
             </Button>
+            <h1 className="text-xl font-bold tracking-tight">{pageTitle}</h1>
         </div>
         
         <div className="max-w-4xl mx-auto">
@@ -130,7 +173,7 @@ export default function OnlineSinavOlusturPage() {
                              <Card key={field.id} className="p-4 bg-muted/50">
                                 <div className="flex justify-between items-start mb-2">
                                   <Label className="font-semibold">Soru {index + 1}</Label>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
+                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
@@ -219,7 +262,7 @@ export default function OnlineSinavOlusturPage() {
                             </Button>
                              <Button type="submit">
                                 <Save className="mr-2 h-4 w-4" />
-                                Sınavı Kaydet ve Paylaş
+                                {saveButtonText}
                             </Button>
                            </div>
                         </CardContent>
@@ -285,3 +328,4 @@ export default function OnlineSinavOlusturPage() {
   );
 }
 
+    
