@@ -1,6 +1,6 @@
 
 
-import { type LucideIcon, UserCheck, UserX, CheckCheck, Check, X } from "lucide-react";
+import { type LucideIcon, UserCheck, UserX, CheckCheck, Check, X, FileCheck } from "lucide-react";
 
 export type Student = {
   id: string;
@@ -31,5 +31,5 @@ export const statusOptions: { value: AttendanceStatus; label: string, icon?: Luc
     { value: 'P', label: 'Yarım Artı', icon: Check, color: 'text-green-500' },
     { value: '-', label: 'Eksi', icon: X, color: 'text-red-600' },
     { value: 'Y', label: 'Yok', icon: UserX, color: 'text-yellow-600' },
-    { value: 'G', label: 'İzinli', icon: UserCheck, color: 'text-blue-600' },
+    { value: 'G', label: 'İzinli', icon: FileCheck, color: 'text-blue-600' },
 ];
