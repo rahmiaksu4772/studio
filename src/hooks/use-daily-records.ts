@@ -41,10 +41,22 @@ export function useDailyRecords() {
     
     // Function to update records for a specific class on a specific date
     const updateDailyRecords = (classId: string, date: string, newRecordsForDate: DailyRecord[]) => {
-        // Filter out any old records for the given class and date
-        const otherRecords = dailyRecords.filter(r => !(r.classId === classId && r.date === date));
         
-        // Combine old records with the new ones
+        // Create a map of the new records for efficient lookup
+        const newRecordsMap = new Map(newRecordsForDate.map(r => [r.studentId, r]));
+
+        // Filter out the old records for the students that are being updated on the given class and date.
+        // Records for other students on the same day, or other days/classes are kept.
+        const otherRecords = dailyRecords.filter(r => {
+            const isSameDayAndClass = r.classId === classId && r.date === date;
+            if (!isSameDayAndClass) {
+                return true; // Keep record from other days/classes
+            }
+            // If it's the same day and class, only keep it if it's NOT in the new update list.
+            return !newRecordsMap.has(r.studentId);
+        });
+        
+        // Combine the records that were not touched with the new/updated ones.
         const updatedRecords = [...otherRecords, ...newRecordsForDate];
 
         try {
