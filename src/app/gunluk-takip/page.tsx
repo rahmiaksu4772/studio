@@ -286,7 +286,6 @@ export default function GunlukTakipPage() {
                                 <TableHead>Adı Soyadı</TableHead>
                                 <TableHead className="min-w-[300px]">Durum</TableHead>
                                 <TableHead>Açıklama</TableHead>
-                                <TableHead className="w-[100px] text-center">İşlemler</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -324,52 +323,37 @@ export default function GunlukTakipPage() {
                                             </RadioGroup>
                                         </TableCell>
                                         <TableCell>
-                                            <Textarea 
-                                                value={record.description || ''}
-                                                onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                                placeholder='Öğrenci hakkında not...'
-                                                className='min-h-[40px] text-sm'
-                                                rows={1}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button 
-                                                            size='icon'
-                                                            variant='ghost'
-                                                            onClick={() => handleGenerateDescription(student.id)}
-                                                            disabled={isGenerating}
-                                                        >
-                                                            {isGenerating ? (
-                                                                <Loader2 className="h-5 w-5 animate-spin" />
-                                                            ) : (
-                                                                <Sparkles className="h-5 w-5 text-primary" />
-                                                            )}
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>AI ile Doldur</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                         <Button 
-                                                            size='icon'
-                                                            variant='ghost'
-                                                            onClick={() => handleRecordChange(student.id, { status: null, description: '' })}
-                                                        >
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Temizle</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <div className="relative">
+                                                <Textarea 
+                                                    value={record.description || ''}
+                                                    onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
+                                                    placeholder='Öğrenci hakkında not...'
+                                                    className='min-h-[40px] text-sm pr-10'
+                                                    rows={1}
+                                                />
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button 
+                                                                size='icon'
+                                                                variant='ghost'
+                                                                onClick={() => handleGenerateDescription(student.id)}
+                                                                disabled={isGenerating}
+                                                                className='absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8'
+                                                            >
+                                                                {isGenerating ? (
+                                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                                ) : (
+                                                                    <Sparkles className="h-5 w-5 text-primary" />
+                                                                )}
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>AI ile Doldur</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 )
@@ -383,3 +367,7 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
+
+    
+
+    
