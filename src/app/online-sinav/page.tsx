@@ -14,10 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { generateExamAction } from '../actions';
-import type { GenerateExamOutput } from '@/ai/schemas/exam-schemas';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const examGeneratorSchema = z.object({
   topic: z.string().min(3, 'Konu en az 3 karakter olmalıdır.'),
@@ -31,7 +29,7 @@ const examFormSchema = z.object({
     question: z.string().min(5, 'Soru metni zorunludur.'),
     options: z.array(z.string().min(1, 'Seçenek boş olamaz.')).length(4, '4 seçenek olmalıdır.'),
     correctAnswer: z.string({ required_error: 'Doğru cevap seçimi zorunludur.'}),
-  })),
+  })).min(1, "Sınavda en az bir soru olmalıdır."),
 });
 
 type ExamGeneratorValues = z.infer<typeof examGeneratorSchema>;
@@ -70,7 +68,8 @@ export default function OnlineSinavPage() {
           options: [q.options.a, q.options.b, q.options.c, q.options.d],
           correctAnswer: q.correctAnswer,
         }));
-        examForm.reset({ title: `${values.gradeLevel} ${values.topic} Sınavı`, questions: mappedQuestions });
+        examForm.setValue('questions', mappedQuestions);
+        examForm.setValue('title', `${values.gradeLevel} ${values.topic} Sınavı`);
         toast({ title: 'Sınav Oluşturuldu!', description: `${result.exam.questions.length} soru başarıyla oluşturuldu.` });
       }
     } catch (e) {
@@ -97,9 +96,9 @@ export default function OnlineSinavPage() {
       <main className="flex-1 p-4 sm:p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">AI Destekli Online Sınav Oluşturucu</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Online Sınav Oluşturucu</h1>
             <p className="text-muted-foreground">
-              Konu, sınıf seviyesi ve soru sayısı belirterek saniyeler içinde sınavlar oluşturun.
+              AI ile hızlıca sınav oluşturun veya soruları kendiniz ekleyin.
             </p>
           </div>
         </div>
@@ -107,8 +106,8 @@ export default function OnlineSinavPage() {
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           <Card className="lg:col-span-1 sticky top-20">
             <CardHeader>
-              <CardTitle>Sınav Parametreleri</CardTitle>
-              <CardDescription>Yapay zekanın sınavı oluşturması için gerekli bilgileri girin.</CardDescription>
+              <CardTitle>AI Sınav Üretici</CardTitle>
+              <CardDescription>Yapay zeka ile hızlı bir başlangıç yapın.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...generatorForm}>
@@ -185,7 +184,7 @@ export default function OnlineSinavPage() {
                                 </FormItem>
                                 )}
                             />
-                            <CardDescription>Oluşturulan soruları düzenleyebilir veya silebilirsiniz.</CardDescription>
+                            <CardDescription>Oluşturulan soruları düzenleyebilir, silebilir veya yeni sorular ekleyebilirsiniz.</CardDescription>
                         </CardHeader>
                         <CardContent className='space-y-4'>
                            {fields.map((field, index) => (
@@ -220,7 +219,7 @@ export default function OnlineSinavPage() {
                                                     value={radioField.value}
                                                     className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"
                                                 >
-                                                    {examForm.watch(`questions.${index}.options`).map((_option, optionIndex) => (
+                                                    {['A', 'B', 'C', 'D'].map((optionChar, optionIndex) => (
                                                         <FormField
                                                             key={`${field.id}-option-${optionIndex}`}
                                                             control={examForm.control}
@@ -228,10 +227,10 @@ export default function OnlineSinavPage() {
                                                             render={({ field: inputField }) => (
                                                                 <FormItem className="flex items-center space-x-2 p-2 rounded-md bg-background border">
                                                                      <FormControl>
-                                                                        <RadioGroupItem value={String.fromCharCode(65 + optionIndex)} id={`${field.id}-option-${optionIndex}`} />
+                                                                        <RadioGroupItem value={optionChar} id={`${field.id}-option-${optionIndex}`} />
                                                                     </FormControl>
                                                                     <Label htmlFor={`${field.id}-option-${optionIndex}`} className="flex-1">
-                                                                        <Input {...inputField} className="border-0 shadow-none h-auto p-0 focus-visible:ring-0" />
+                                                                        <Input {...inputField} className="border-0 shadow-none h-auto p-0 focus-visible:ring-0" placeholder={`Seçenek ${optionChar}`}/>
                                                                     </Label>
                                                                 </FormItem>
                                                             )}
@@ -258,6 +257,11 @@ export default function OnlineSinavPage() {
                            </div>
                         </CardContent>
                     </Card>
+                    <FormField
+                      control={examForm.control}
+                      name="questions"
+                      render={({ fieldState }) => <FormMessage>{fieldState.error?.message}</FormMessage>}
+                    />
                 </form>
               </Form>
             ) : (
@@ -268,9 +272,12 @@ export default function OnlineSinavPage() {
                         </div>
                         <h2 className="text-xl font-semibold mb-2">Başlamaya Hazır</h2>
                         <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
-                            Sol taraftaki formu doldurarak ilk online sınavınızı oluşturun. 
-                            Yapay zeka sizin için soruları ve cevapları hazırlayacaktır.
+                           Soldaki formu kullanarak AI ile bir sınav oluşturun veya "Soru Ekle" butonuyla kendi sınavınızı hazırlamaya başlayın.
                         </p>
+                        <Button type="button" variant="default" size="lg" onClick={addQuestion}>
+                            <ListPlus className="mr-2 h-4 w-4" />
+                            İlk Soruyu Ekle
+                        </Button>
                     </div>
                 </Card>
             )}
