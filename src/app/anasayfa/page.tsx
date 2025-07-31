@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, GraduationCap, Edit, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { getClasses, getRecordsForReport } from '@/services/firestore';
+import { getClassesAction, getRecordsForReportAction } from '@/app/actions';
 import React from 'react';
 import type { ClassInfo, Student } from '@/lib/types';
 
@@ -23,7 +23,7 @@ export default function AnaSayfaPage() {
         setIsLoading(true);
         try {
             const today = format(new Date(), 'yyyy-MM-dd');
-            const classes = await getClasses();
+            const classes = await getClassesAction();
             
             // This is a simplified student count. For a precise count, 
             // you might need a separate query or aggregate data in Firestore.
@@ -33,7 +33,7 @@ export default function AnaSayfaPage() {
             // For this demo, we'll keep it simple.
             
             // We can get today's records count for ALL classes.
-            const recordsPromises = classes.map(c => getRecordsForReport(c.id, today, today));
+            const recordsPromises = classes.map(c => getRecordsForReportAction(c.id, today, today));
             const recordsPerClass = await Promise.all(recordsPromises);
             const totalTodaysRecords = recordsPerClass.reduce((acc, records) => acc + records.length, 0);
 

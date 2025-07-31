@@ -34,13 +34,14 @@ import { statusOptions } from '@/lib/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { generateDescriptionAction } from '@/app/actions';
+import { generateDescriptionAction, getClassesAction, getStudentsAction, getDailyRecordsAction } from '@/app/actions';
+import { saveDailyRecords } from '@/services/firestore';
 import { cn } from '@/lib/utils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { getClasses, getStudents, getDailyRecords, saveDailyRecords } from '@/services/firestore';
+
 
 type StudentRecordsState = {
   [studentId: string]: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >>;
@@ -60,7 +61,8 @@ export default function GunlukTakipPage() {
   // Fetch classes on mount
   React.useEffect(() => {
     async function fetchClasses() {
-      const fetchedClasses = await getClasses();
+      setIsLoading(true);
+      const fetchedClasses = await getClassesAction();
       setClasses(fetchedClasses);
       if (fetchedClasses.length > 0) {
         setSelectedClass(fetchedClasses[0]);
@@ -80,8 +82,8 @@ export default function GunlukTakipPage() {
       const dateStr = format(recordDate, 'yyyy-MM-dd');
       
       const [fetchedStudents, fetchedRecords] = await Promise.all([
-        getStudents(selectedClass.id),
-        getDailyRecords(selectedClass.id, dateStr)
+        getStudentsAction(selectedClass.id),
+        getDailyRecordsAction(selectedClass.id, dateStr)
       ]);
 
       setStudents(fetchedStudents.sort((a, b) => a.studentNumber - b.studentNumber));

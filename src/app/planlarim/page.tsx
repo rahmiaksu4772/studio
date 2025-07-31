@@ -21,7 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
 import type { Plan } from '@/lib/types';
-import { getPlans, deletePlan } from '@/services/firestore';
+import { deletePlan } from '@/services/firestore';
+import { getPlansAction } from '@/app/actions';
 
 export default function PlanlarimPage() {
   const { toast } = useToast();
@@ -34,7 +35,7 @@ export default function PlanlarimPage() {
     async function fetchPlans() {
         setIsLoading(true);
         try {
-            const fetchedPlans = await getPlans();
+            const fetchedPlans = await getPlansAction();
             setPlans(fetchedPlans);
         } catch (error) {
             console.error("Failed to load plans from Firestore", error);

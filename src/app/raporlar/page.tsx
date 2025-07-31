@@ -48,7 +48,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
-import { getClasses, getStudents, getRecordsForReport } from '@/services/firestore';
+import { getClassesAction, getStudentsAction, getRecordsForReportAction } from '@/app/actions';
+
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
@@ -96,7 +97,7 @@ export default function RaporlarPage() {
   
   React.useEffect(() => {
     async function fetchInitialData() {
-        const fetchedClasses = await getClasses();
+        const fetchedClasses = await getClassesAction();
         setClasses(fetchedClasses);
         if (fetchedClasses.length > 0) {
             setSelectedClassId(fetchedClasses[0].id);
@@ -109,7 +110,7 @@ export default function RaporlarPage() {
   React.useEffect(() => {
     async function fetchStudentsForClass() {
         if (!selectedClassId) return;
-        const fetchedStudents = await getStudents(selectedClassId);
+        const fetchedStudents = await getStudentsAction(selectedClassId);
         setStudents(fetchedStudents.sort((a,b) => a.studentNumber - b.studentNumber));
         setSelectedStudentId(null);
     }
@@ -124,7 +125,7 @@ export default function RaporlarPage() {
         const startDate = format(dateRange.from, 'yyyy-MM-dd');
         const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : startDate;
         
-        const records = await getRecordsForReport(selectedClassId, startDate, endDate);
+        const records = await getRecordsForReportAction(selectedClassId, startDate, endDate);
         setFilteredData(records);
     } catch (error) {
         console.error("Error generating report:", error);

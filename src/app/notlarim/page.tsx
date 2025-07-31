@@ -32,7 +32,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Note } from '@/lib/types';
-import { getNotes, addNote, deleteNote } from '@/services/firestore';
+import { addNote, deleteNote } from '@/services/firestore';
+import { getNotesAction } from '@/app/actions';
 
 
 const noteColors = [
@@ -63,7 +64,7 @@ export default function NotlarimPage() {
     async function fetchNotes() {
         setIsLoading(true);
         try {
-            const fetchedNotes = await getNotes();
+            const fetchedNotes = await getNotesAction();
             setNotes(fetchedNotes);
         } catch (error) {
             console.error("Failed to load notes from Firestore", error);

@@ -24,14 +24,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
-    getClasses, 
-    getStudents, 
     addClass, 
     addStudent, 
     addMultipleStudents, 
     updateStudent,
     deleteStudent 
 } from '@/services/firestore';
+import { getClassesAction, getStudentsAction } from '@/app/actions';
 
 type ClassWithStudents = ClassInfo & {
     students: Student[];
@@ -46,10 +45,10 @@ export default function SiniflarimPage() {
   const fetchAllData = React.useCallback(async () => {
     setIsLoading(true);
     try {
-        const fetchedClasses = await getClasses();
+        const fetchedClasses = await getClassesAction();
         const classesWithStudents = await Promise.all(
             fetchedClasses.map(async (c) => {
-                const students = await getStudents(c.id);
+                const students = await getStudentsAction(c.id);
                 return { ...c, students: students.sort((a,b) => a.studentNumber - b.studentNumber) };
             })
         );
