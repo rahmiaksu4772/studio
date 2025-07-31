@@ -51,3 +51,9 @@ export type Plan = {
     fileType: string;
     fileName: string;
 };
+
+export type Lesson = {
+  time: string;
+  subject: string;
+  class: string;
+}

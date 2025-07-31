@@ -75,12 +75,8 @@ export default function SiniflarimPage() {
     try {
         const newClass = await addClass(className);
         setClasses(prev => [{ ...newClass, students: [] }, ...prev]);
-        toast({
-            title: 'Başarılı!',
-            description: `"${className}" sınıfı eklendi.`,
-        });
     } catch (error) {
-        toast({ title: 'Hata', description: 'Sınıf eklenirken bir hata oluştu.', variant: 'destructive'});
+         toast({ title: 'Hata', description: 'Sınıf eklenirken bir hata oluştu.', variant: 'destructive'});
     }
   };
 

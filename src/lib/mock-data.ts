@@ -1,22 +1,11 @@
-import type { WeeklyScheduleItem } from './types';
+
+import type { WeeklyScheduleItem, Lesson } from './types';
 
 // All data is now fetched from Firestore. Mock data is no longer needed.
 export const classes = [];
 export const students = [];
 export const dailyRecords = [];
 
-
-export type Lesson = {
-  time: string;
-  subject: string;
-  class: string;
-}
-
-export interface WeeklyScheduleItem {
-  day: string;
-  lessons: Lesson[];
-  color: string;
-}
 
 export const weeklySchedule: WeeklyScheduleItem[] = [
   {

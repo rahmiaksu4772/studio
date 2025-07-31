@@ -52,7 +52,7 @@ import { getClasses, getStudents, getRecordsForReport } from '@/services/firesto
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
-    'P': 'Yarım Artı',
+    'P': 'Yarım',
     '-': 'Eksi',
     'Y': 'Yok',
     'G': 'İzinli',

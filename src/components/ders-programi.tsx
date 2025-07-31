@@ -5,12 +5,18 @@ import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpenCheck, Clock, Plus, Save, Trash2 } from 'lucide-react';
 import { weeklySchedule as initialSchedule } from '@/lib/mock-data';
-import type { WeeklyScheduleItem, Lesson } from '@/lib/mock-data';
+import type { Lesson } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
+
+interface WeeklyScheduleItem {
+  day: string;
+  lessons: Lesson[];
+  color: string;
+}
 
 const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
