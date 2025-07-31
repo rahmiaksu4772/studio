@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import {
   ChartContainer,
@@ -83,8 +82,6 @@ export default function RaporlarPage() {
   const [selectedReportType, setSelectedReportType] = React.useState('bireysel');
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
-  const [isReportModalOpen, setIsReportModalOpen] = React.useState(false);
-  const [isGenerating, setIsGenerating] = React.useState(false);
 
   React.useEffect(() => {
     setDateRange({
@@ -98,15 +95,6 @@ export default function RaporlarPage() {
   React.useEffect(() => {
     setSelectedStudentId(null);
   }, [selectedClassId]);
-  
-  const handleShowReport = () => {
-    setIsGenerating(true);
-    // Simulate data fetching/processing
-    setTimeout(() => {
-        setIsReportModalOpen(true);
-        setIsGenerating(false);
-    }, 500);
-  };
 
   const filteredData = React.useMemo(() => {
     if (!dateRange?.from) return [];
@@ -278,15 +266,15 @@ export default function RaporlarPage() {
   };
 
   const renderReportContent = () => {
-    if (!dateRange || isGenerating) {
+    if (!dateRange) {
         return (
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         );
     }
-
-    if (selectedReportType === 'bireysel' && !selectedStudentId) {
+    
+    if (selectedReportType === 'bireysel' && !individualReportData) {
         return <div className="text-center p-8 text-muted-foreground">Raporu görüntülemek için lütfen bir öğrenci seçin.</div>
     }
     
@@ -297,82 +285,100 @@ export default function RaporlarPage() {
     if(selectedReportType === 'bireysel' && individualReportData){
       const { summary, records, chartData } = individualReportData;
       return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
-                {Object.entries(summary).map(([key, value]: [string, any]) => (
-                     <Card key={key} className="p-4">
-                        <div className="flex justify-center items-center mb-2">
-                            {value.icon && <value.icon className={cn("h-6 w-6", statusOptions.find(o => o.value === key)?.color)} />}
-                        </div>
-                        <p className="text-2xl font-bold">{value.count}</p>
-                        <p className="text-sm text-muted-foreground">{value.label}</p>
-                    </Card>
-                ))}
-            </div>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BarChart2 /> İstatistik Grafiği</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                                <YAxis />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <ChartLegend />
-                                {statusOptions.map(opt => (
-                                    <Bar key={opt.value} dataKey={opt.value} fill={chartConfig[opt.value]?.color} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
-                                ))}
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><List /> Günlük Notlar</CardTitle>
-                    <CardDescription>Seçilen tarih aralığındaki gözlemler.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                   <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {records.length > 0 ? records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
-                            <div key={record.id} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
-                                <div className="font-semibold text-center w-24">
-                                    <p>{format(new Date(record.date), 'dd MMMM', { locale: tr })}</p>
-                                    <p className="text-xs text-muted-foreground">{format(new Date(record.date), 'cccc', { locale: tr })}</p>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="font-medium flex items-center gap-2">
-                                       {record.status && statusOptions.find(o=>o.value === record.status)?.icon &&
-                                            React.createElement(statusOptions.find(o=>o.value === record.status)!.icon!, {
-                                                className: cn("h-5 w-5", statusOptions.find(o => o.value === record.status)?.color)
-                                            })
-                                       }
-                                        <span>{statusToTurkish[record.status!] || 'Belirtilmemiş'}</span>
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">{record.description || "Ek bir not girilmemiş."}</p>
-                                </div>
+        <Card>
+            <CardHeader className='flex-row items-center justify-between'>
+                <div>
+                    <CardTitle className='text-xl'>Bireysel Rapor: {students.find(s => s.id === selectedStudentId)?.firstName} {students.find(s => s.id === selectedStudentId)?.lastName}</CardTitle>
+                    <CardDescription>Aşağıda öğrencinin seçilen tarih aralığındaki performansını görebilirsiniz.</CardDescription>
+                </div>
+                 <Button variant="outline" onClick={handleDownloadPdf}>
+                    <Download className="mr-2 h-4 w-4" />
+                    PDF İndir
+                </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                    {Object.entries(summary).map(([key, value]: [string, any]) => (
+                        <Card key={key} className="p-4">
+                            <div className="flex justify-center items-center mb-2">
+                                {value.icon && <value.icon className={cn("h-6 w-6", statusOptions.find(o => o.value === key)?.color)} />}
                             </div>
-                        )) : <p className='text-sm text-muted-foreground'>Bu tarih aralığında not bulunmuyor.</p>}
-                   </div>
-                </CardContent>
-            </Card>
-        </div>
+                            <p className="text-2xl font-bold">{value.count}</p>
+                            <p className="text-sm text-muted-foreground">{value.label}</p>
+                        </Card>
+                    ))}
+                </div>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><BarChart2 /> İstatistik Grafiği</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                    <YAxis />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <ChartLegend />
+                                    {statusOptions.map(opt => (
+                                        <Bar key={opt.value} dataKey={opt.value} fill={chartConfig[opt.value]?.color} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><List /> Günlük Notlar</CardTitle>
+                        <CardDescription>Seçilen tarih aralığındaki gözlemler.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                            {records.length > 0 ? records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
+                                <div key={record.id} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
+                                    <div className="font-semibold text-center w-24">
+                                        <p>{format(new Date(record.date), 'dd MMMM', { locale: tr })}</p>
+                                        <p className="text-xs text-muted-foreground">{format(new Date(record.date), 'cccc', { locale: tr })}</p>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-medium flex items-center gap-2">
+                                        {record.status && statusOptions.find(o=>o.value === record.status)?.icon &&
+                                                React.createElement(statusOptions.find(o=>o.value === record.status)!.icon!, {
+                                                    className: cn("h-5 w-5", statusOptions.find(o => o.value === record.status)?.color)
+                                                })
+                                        }
+                                            <span>{statusToTurkish[record.status!] || 'Belirtilmemiş'}</span>
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">{record.description || "Ek bir not girilmemiş."}</p>
+                                    </div>
+                                </div>
+                            )) : <p className='text-sm text-muted-foreground'>Bu tarih aralığında not bulunmuyor.</p>}
+                    </div>
+                    </CardContent>
+                </Card>
+            </CardContent>
+        </Card>
       )
     }
 
     if(selectedReportType === 'sinif' && classReportData){
         return (
             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Users/> Sınıf Geneli Performans Tablosu</CardTitle>
-                    <CardDescription>
-                        Seçilen tarih aralığında öğrencilerin aldığı işaretler ve toplam puanları.
-                    </CardDescription>
+                <CardHeader className='flex-row items-center justify-between'>
+                    <div>
+                        <CardTitle className="flex items-center gap-2"><Users/> Sınıf Geneli Performans Raporu</CardTitle>
+                        <CardDescription>
+                            Seçilen tarih aralığında öğrencilerin aldığı işaretler ve toplam puanları.
+                        </CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={handleDownloadPdf}>
+                        <Download className="mr-2 h-4 w-4" />
+                        PDF İndir
+                    </Button>
                 </CardHeader>
                 <CardContent>
                      <div className="border rounded-lg overflow-hidden">
@@ -408,18 +414,6 @@ export default function RaporlarPage() {
 
     return null;
   }
-
-  const getReportTitle = () => {
-    if (selectedReportType === 'bireysel' && selectedStudentId) {
-        const student = students.find(s => s.id === selectedStudentId);
-        return `Rapor: ${student?.firstName} ${student?.lastName}`;
-    }
-    if (selectedReportType === 'sinif') {
-        const sClass = classes.find(c => c.id === selectedClassId);
-        return `Rapor: ${sClass?.name} Sınıfı`;
-    }
-    return "Rapor Sonuçları";
-  };
   
   return (
     <AppLayout>
@@ -516,47 +510,13 @@ export default function RaporlarPage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button 
-                onClick={handleShowReport} 
-                disabled={isGenerating || (selectedReportType === 'bireysel' && !selectedStudentId)}
-                className='w-full sm:w-auto'
-            >
-                {isGenerating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <FileSearch className="mr-2 h-4 w-4" />
-                )}
-                Raporu Görüntüle
-            </Button>
-          </CardFooter>
         </Card>
+        
+        <div className="mt-6">
+            {renderReportContent()}
+        </div>
       </main>
-      
-      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>{getReportTitle()}</DialogTitle>
-                <DialogDescription>
-                    Oluşturulan raporu aşağıda inceleyebilir veya PDF olarak indirebilirsiniz.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="flex-grow overflow-y-auto p-1 -m-1 pr-4">
-                {renderReportContent()}
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={handleDownloadPdf}>
-                    <Download className="mr-2 h-4 w-4" />
-                    PDF İndir
-                </Button>
-                <DialogClose asChild>
-                    <Button>Kapat</Button>
-                </DialogClose>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppLayout>
   );
 }
 
-    
