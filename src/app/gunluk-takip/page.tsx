@@ -45,7 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 
 type StudentRecordsState = {
-  [studentId: string]: Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >;
+  [studentId: string]: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >>;
 };
 
 export default function GunlukTakipPage() {
@@ -284,7 +284,7 @@ export default function GunlukTakipPage() {
                             <TableRow>
                                 <TableHead className="w-[80px] text-center">No</TableHead>
                                 <TableHead>Adı Soyadı</TableHead>
-                                <TableHead className="min-w-[300px]">Durum</TableHead>
+                                <TableHead className="min-w-[320px]">Durum</TableHead>
                                 <TableHead>Açıklama</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -301,7 +301,7 @@ export default function GunlukTakipPage() {
                                             <RadioGroup 
                                                 value={record.status || ""} 
                                                 onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                                className="flex flex-wrap items-center gap-2"
+                                                className="flex flex-wrap items-center gap-1"
                                             >
                                                 {statusOptions.map(option => (
                                                     <Label 
