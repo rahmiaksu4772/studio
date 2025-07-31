@@ -8,10 +8,11 @@ import {
   Users,
   List,
   Loader2,
+  FileSearch,
 } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import {
   ChartContainer,
@@ -38,16 +40,13 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import type { Student } from '@/lib/types';
-
-
 import { classes, students, dailyRecords } from '@/lib/mock-data';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 
@@ -84,6 +83,8 @@ export default function RaporlarPage() {
   const [selectedReportType, setSelectedReportType] = React.useState('bireysel');
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+  const [isReportModalOpen, setIsReportModalOpen] = React.useState(false);
+  const [isGenerating, setIsGenerating] = React.useState(false);
 
   React.useEffect(() => {
     setDateRange({
@@ -97,6 +98,15 @@ export default function RaporlarPage() {
   React.useEffect(() => {
     setSelectedStudentId(null);
   }, [selectedClassId]);
+  
+  const handleShowReport = () => {
+    setIsGenerating(true);
+    // Simulate data fetching/processing
+    setTimeout(() => {
+        setIsReportModalOpen(true);
+        setIsGenerating(false);
+    }, 500);
+  };
 
   const filteredData = React.useMemo(() => {
     if (!dateRange?.from) return [];
@@ -267,9 +277,8 @@ export default function RaporlarPage() {
     }
   };
 
-
   const renderReportContent = () => {
-    if (!dateRange) {
+    if (!dateRange || isGenerating) {
         return (
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -397,6 +406,18 @@ export default function RaporlarPage() {
 
     return null;
   }
+
+  const getReportTitle = () => {
+    if (selectedReportType === 'bireysel' && selectedStudentId) {
+        const student = students.find(s => s.id === selectedStudentId);
+        return `Rapor: ${student?.firstName} ${student?.lastName}`;
+    }
+    if (selectedReportType === 'sinif') {
+        const sClass = classes.find(c => c.id === selectedClassId);
+        return `Rapor: ${sClass?.name} Sınıfı`;
+    }
+    return "Rapor Sonuçları";
+  };
   
   return (
     <AppLayout>
@@ -408,15 +429,12 @@ export default function RaporlarPage() {
               Sınıf ve öğrenci performansını analiz edin.
             </p>
           </div>
-          <Button variant="outline" onClick={handleDownloadPdf}>
-            <Download className="mr-2 h-4 w-4" />
-            PDF İndir
-          </Button>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Filtreler</CardTitle>
+            <CardDescription>Rapor oluşturmak için aşağıdaki kriterleri seçin.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -496,12 +514,47 @@ export default function RaporlarPage() {
               </div>
             </div>
           </CardContent>
+          <CardFooter>
+            <Button 
+                onClick={handleShowReport} 
+                disabled={isGenerating || (selectedReportType === 'bireysel' && !selectedStudentId)}
+                className='w-full sm:w-auto'
+            >
+                {isGenerating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <FileSearch className="mr-2 h-4 w-4" />
+                )}
+                Raporu Görüntüle
+            </Button>
+          </CardFooter>
         </Card>
-
-        <div className="min-h-[400px]">
-            {renderReportContent()}
-        </div>
       </main>
+      
+      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>{getReportTitle()}</DialogTitle>
+                <DialogDescription>
+                    Oluşturulan raporu aşağıda inceleyebilir veya PDF olarak indirebilirsiniz.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex-grow overflow-y-auto p-1 -m-1 pr-4">
+                {renderReportContent()}
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={handleDownloadPdf}>
+                    <Download className="mr-2 h-4 w-4" />
+                    PDF İndir
+                </Button>
+                <DialogClose asChild>
+                    <Button>Kapat</Button>
+                </DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
+}
 
+    
