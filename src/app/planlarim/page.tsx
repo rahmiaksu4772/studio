@@ -20,7 +20,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm, type Plan } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 export default function PlanlarimPage() {
   const { toast } = useToast();
@@ -67,7 +66,7 @@ export default function PlanlarimPage() {
     document.body.removeChild(link);
   };
 
-  const dataURIToBlob = (dataURI: string) => {
+  const dataURIToBlob = (dataURI: string): Blob | null => {
     try {
         const splitDataURI = dataURI.split(',');
         const byteString = splitDataURI[0].indexOf('base64') >= 0 ? atob(splitDataURI[1]) : decodeURI(splitDataURI[1]);
