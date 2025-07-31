@@ -230,7 +230,7 @@ export default function NotlarimPage() {
     };
 
     recognition.onerror = (event: any) => {
-        if (event.error === 'not-allowed') {
+        if (event.error === 'not-allowed' || event.error === 'permission-dismissed') {
             toast({
                 title: 'Mikrofon İzni Gerekli',
                 description: 'Sesle not almak için mikrofon izni vermelisiniz.',
@@ -459,3 +459,5 @@ export default function NotlarimPage() {
     </AppLayout>
   );
 }
+
+    
