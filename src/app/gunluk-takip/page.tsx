@@ -304,7 +304,9 @@ export default function GunlukTakipPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {students.map(student => {
+                            {students
+                                .sort((a, b) => a.studentNumber - b.studentNumber)
+                                .map(student => {
                                 const record = studentRecords[student.id] || { status: null, description: '' };
                                 const isGenerating = isPending && generatingFor === student.id;
 

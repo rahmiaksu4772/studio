@@ -168,7 +168,7 @@ export default function RaporlarPage() {
         summary,
         totalScore
       };
-    }).sort((a, b) => b.totalScore - a.totalScore);
+    }).sort((a, b) => a.studentNumber - b.studentNumber);
     
     return { studentSummaries };
   }, [filteredData, selectedReportType, availableStudents]);
@@ -467,7 +467,9 @@ export default function RaporlarPage() {
                     <SelectValue placeholder="Öğrenci seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableStudents.map(s => <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>)}
+                    {availableStudents
+                      .sort((a, b) => a.studentNumber - b.studentNumber)
+                      .map(s => <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
