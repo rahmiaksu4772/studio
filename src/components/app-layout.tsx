@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     Users,
     BarChart,
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
-import { useRouter } from 'next/navigation';
+
 
 const menuItems = [
     { href: '/anasayfa', label: 'Ana Sayfa', icon: Home },
@@ -41,15 +41,15 @@ const menuItems = [
     { href: '/notlarim', label: 'Notlarım', icon: StickyNote },
 ];
 
-function AppSidebar() {
+const handleLogout = (router: ReturnType<typeof useRouter>) => {
+    // TODO: Implement actual logout logic
+    router.push('/login');
+}
+
+const AppSidebar = React.memo(function AppSidebar() {
     const pathname = usePathname();
     const { state } = useSidebar();
     const router = useRouter();
-
-    const handleLogout = () => {
-        // TODO: Implement actual logout logic
-        router.push('/login');
-    }
     
     return (
         <Sidebar>
@@ -86,9 +86,11 @@ function AppSidebar() {
                 <SidebarGroup className="mt-4">
                 {menuItems.map((item) => (
                     <SidebarMenuItem key={item.href}>
-                    <Link href={item.href}>
-                        <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href}>
+                    <Link href={item.href} legacyBehavior passHref>
+                        <SidebarMenuButton asChild tooltip={item.label} isActive={pathname === item.href}>
+                          <a>
                             <item.icon /> <span className={cn(state === 'collapsed' && 'hidden')}>{item.label}</span>
+                          </a>
                         </SidebarMenuButton>
                     </Link>
                     </SidebarMenuItem>
@@ -99,14 +101,16 @@ function AppSidebar() {
             <SidebarFooter className="p-2">
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <Link href="/ayarlar">
-                        <SidebarMenuButton tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
-                        <Settings /> <span className={cn(state === 'collapsed' && 'hidden')}>Ayarlar</span>
+                    <Link href="/ayarlar" legacyBehavior passHref>
+                        <SidebarMenuButton asChild tooltip="Ayarlar" isActive={pathname.startsWith('/ayarlar')}>
+                          <a>
+                            <Settings /> <span className={cn(state === 'collapsed' && 'hidden')}>Ayarlar</span>
+                          </a>
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Çıkış Yap" onClick={handleLogout}>
+                    <SidebarMenuButton tooltip="Çıkış Yap" onClick={() => handleLogout(router)}>
                         <LogOut /> <span className={cn(state === 'collapsed' && 'hidden')}>Çıkış Yap</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -114,7 +118,7 @@ function AppSidebar() {
             </SidebarFooter>
         </Sidebar>
     )
-}
+});
 
 function MobileHeader() {
     return (
