@@ -62,16 +62,17 @@ const chartConfig = {
     label: 'Durumlar',
   },
   ...statusOptions.reduce((acc, option) => {
+    let color = 'hsl(var(--primary))'; // default
+    if (option.value === '+') color = 'hsl(142 71% 45%)';
+    if (option.value === 'P') color = 'hsl(142 60% 65%)';
+    if (option.value === '-') color = 'hsl(0 72% 51%)';
+    if (option.value === 'Y') color = 'hsl(48 96% 53%)';
+    if (option.value === 'G') color = 'hsl(221 83% 53%)';
+
     acc[option.value] = {
       label: option.label,
-      color: option.color?.startsWith('text-') ? `hsl(var(--${option.color.split('-')[1]}-600))` : 'hsl(var(--primary))',
+      color: color,
     };
-    // A bit of a hack to map tailwind colors to HSL vars for the chart
-    if (option.color === 'text-green-600') acc[option.value].color = 'hsl(142 71% 45%)';
-    if (option.color === 'text-green-500') acc[option.value].color = 'hsl(142 60% 65%)';
-    if (option.color === 'text-red-600') acc[option.value].color = 'hsl(0 72% 51%)';
-    if (option.color === 'text-yellow-600') acc[option.value].color = 'hsl(48 96% 53%)';
-    if (option.color === 'text-blue-600') acc[option.value].color = 'hsl(221 83% 53%)';
     return acc;
   }, {} as any)
 } satisfies ChartConfig;
@@ -323,7 +324,7 @@ export default function RaporlarPage() {
                                     <ChartTooltip content={<ChartTooltipContent />} />
                                     <ChartLegend />
                                     {statusOptions.map(opt => (
-                                        <Bar key={opt.value} dataKey={opt.value} fill={chartConfig[opt.value]?.color} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
+                                        <Bar key={opt.value} dataKey={opt.value} fill={`var(--color-${opt.value})`} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
                                     ))}
                                 </BarChart>
                             </ResponsiveContainer>
@@ -519,4 +520,3 @@ export default function RaporlarPage() {
     </AppLayout>
   );
 }
-

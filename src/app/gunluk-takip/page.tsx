@@ -252,24 +252,21 @@ export default function GunlukTakipPage() {
                     </Label>
                     <div className="flex flex-wrap gap-2">
                         {statusOptions.map(option => (
-                           <TooltipProvider key={option.value}>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button 
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleBulkStatusUpdate(option.value)}
-                                            className={cn("h-9 w-auto px-3 gap-2", option.color)}
-                                        >
-                                           {option.icon && <option.icon className="h-4 w-4" />}
-                                           <span className='hidden sm:inline'>{option.label}</span>
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Tüm öğrenciler için "{option.label}" durumunu ata</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                           <Button 
+                                key={option.value}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleBulkStatusUpdate(option.value)}
+                                className={cn(
+                                  "h-9 w-auto px-3 gap-2",
+                                  "hover:bg-opacity-20",
+                                  option.color,
+                                  option.bgColor,
+                                )}
+                            >
+                               {option.icon && <option.icon className="h-4 w-4" />}
+                               <span>{option.label}</span>
+                            </Button>
                         ))}
                     </div>
                 </div>
@@ -287,7 +284,7 @@ export default function GunlukTakipPage() {
                             <TableRow>
                                 <TableHead className="w-[80px] text-center">No</TableHead>
                                 <TableHead>Adı Soyadı</TableHead>
-                                <TableHead className="w-[200px]">Durum</TableHead>
+                                <TableHead className="min-w-[300px]">Durum</TableHead>
                                 <TableHead>Açıklama</TableHead>
                                 <TableHead className="w-[100px] text-center">İşlemler</TableHead>
                             </TableRow>
@@ -305,29 +302,24 @@ export default function GunlukTakipPage() {
                                             <RadioGroup 
                                                 value={record.status || ""} 
                                                 onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                                className="flex flex-wrap items-center gap-1"
+                                                className="flex flex-wrap items-center gap-2"
                                             >
                                                 {statusOptions.map(option => (
-                                                    <TooltipProvider key={`${student.id}-${option.value}`}>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Label 
-                                                                    htmlFor={`${student.id}-${option.value}`}
-                                                                    className={cn(
-                                                                        "flex items-center justify-center h-9 w-9 rounded-md border text-muted-foreground cursor-pointer transition-colors hover:border-primary",
-                                                                        "data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary",
-                                                                        record.status === option.value && "border-primary bg-primary/10 text-primary"
-                                                                    )}
-                                                                >
-                                                                    {option.icon && <option.icon className="h-5 w-5" />}
-                                                                    <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} className='sr-only'/>
-                                                                </Label>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{option.label}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
+                                                    <Label 
+                                                        key={`${student.id}-${option.value}`}
+                                                        htmlFor={`${student.id}-${option.value}`}
+                                                        className={cn(
+                                                          "flex items-center gap-1.5 cursor-pointer rounded-md border p-2 transition-colors",
+                                                          "hover:bg-opacity-20",
+                                                          record.status === option.value
+                                                            ? cn("font-semibold", option.color, option.bgColor, "border-current")
+                                                            : "text-muted-foreground hover:border-primary"
+                                                        )}
+                                                    >
+                                                        {option.icon && <option.icon className="h-4 w-4" />}
+                                                        <span>{option.label}</span>
+                                                        <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} className='sr-only'/>
+                                                    </Label>
                                                 ))}
                                             </RadioGroup>
                                         </TableCell>
