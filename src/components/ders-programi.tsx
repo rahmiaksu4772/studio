@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from './ui/skeleton';
 
 const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
@@ -17,11 +18,10 @@ export default function DersProgrami() {
   const { toast } = useToast();
   const [schedule, setSchedule] = React.useState<WeeklyScheduleItem[]>(initialSchedule);
   const [activeDay, setActiveDay] = React.useState<string>(daysOfWeek[0]);
-  const [isClient, setIsClient] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
-    // This effect runs only on the client, after hydration
-    setIsClient(true);
+    setIsMounted(true);
     const todayIndex = new Date().getDay();
     // Sunday is 0, Monday is 1... Adjust to match our array (Monday is 0)
     const adjustedDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
@@ -60,8 +60,7 @@ export default function DersProgrami() {
   
   const activeDayIndex = schedule.findIndex(d => d.day === activeDay);
 
-  if (!isClient) {
-    // Render a placeholder or null on the server to avoid mismatch
+  if (!isMounted) {
     return (
         <Card className="w-full">
             <CardHeader>
@@ -73,7 +72,7 @@ export default function DersProgrami() {
                 </div>
             </CardHeader>
             <CardContent className="min-h-[400px] flex items-center justify-center">
-                 {/* You can add a skeleton loader here if you prefer */}
+                 <Skeleton className="w-full h-[300px]" />
             </CardContent>
         </Card>
     );
