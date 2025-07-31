@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -19,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -29,7 +31,7 @@ export default function OptikOkumaPage() {
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
   const [imageData, setImageData] = React.useState<string | null>(null);
   const [scanResult, setScanResult] = React.useState<OpticalScanOutput | null>(null);
-  const [answerKey, setAnswerKey] = React.useState<string[]>(Array(10).fill(''));
+  const [answerKey, setAnswerKey] = React.useState<string[]>(Array(20).fill(''));
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleImageChange = (file: File | null) => {
@@ -64,17 +66,19 @@ export default function OptikOkumaPage() {
   
   const handleAnswerKeyChange = (index: number, value: string) => {
     const newKey = [...answerKey];
-    newKey[index] = value.toUpperCase();
+    newKey[index] = value.toUpperCase().trim();
     setAnswerKey(newKey);
   }
   
   const handleSetKeyLength = (length: number) => {
       const newLength = Math.max(1, length);
       setAnswerKey(currentKey => {
-          if (newLength > currentKey.length) {
-              return [...currentKey, ...Array(newLength - currentKey.length).fill('')];
+          const newKey = Array(newLength).fill('');
+          // Preserve existing answers if shrinking
+          for(let i=0; i< Math.min(currentKey.length, newLength); i++) {
+            newKey[i] = currentKey[i];
           }
-          return currentKey.slice(0, newLength);
+          return newKey;
       })
   }
 
@@ -184,19 +188,24 @@ export default function OptikOkumaPage() {
                         <CardDescription>Sınavın doğru cevaplarını ve soru sayısını belirtin.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex items-center gap-4 mb-4">
-                            <label htmlFor="question-count" className="text-sm font-medium">Soru Sayısı:</label>
-                            <Input
-                                id="question-count"
-                                type="number"
-                                value={answerKey.length}
-                                onChange={(e) => handleSetKeyLength(parseInt(e.target.value, 10))}
-                                className="w-24"
-                                min="1"
-                                max="50"
-                            />
+                        <div className="space-y-3 mb-4">
+                            <Label className="text-sm font-medium">Şablon Seç (Soru Sayısı)</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {[20, 30, 50, 90].map(qCount => (
+                                    <Button
+                                        key={qCount}
+                                        variant={answerKey.length === qCount ? "default" : "outline"}
+                                        onClick={() => handleSetKeyLength(qCount)}
+                                        size="sm"
+                                    >
+                                        {qCount} Soru
+                                    </Button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+
+                        <Label>Cevaplar</Label>
+                        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 mt-2">
                             {answerKey.map((key, index) => (
                                 <div key={index} className="flex items-center gap-1">
                                     <span className="text-xs font-semibold w-6 shrink-0">{index + 1}.</span>
@@ -284,3 +293,5 @@ export default function OptikOkumaPage() {
     </AppLayout>
   );
 }
+
+    
