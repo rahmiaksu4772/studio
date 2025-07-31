@@ -99,24 +99,27 @@ export default function NotlarimPage() {
   }, [notes, isLoading, toast]);
   
   React.useEffect(() => {
-    if (isCameraOpen) {
-      const getCameraPermission = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          setHasCameraPermission(true);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-          toast({
-            variant: 'destructive',
-            title: 'Kamera Erişimi Reddedildi',
-            description: 'Lütfen tarayıcı ayarlarınızdan kamera izinlerini etkinleştirin.',
-          });
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
         }
-      };
+      } catch (error: any) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+             toast({
+                variant: 'destructive',
+                title: 'Kamera Erişimi Reddedildi',
+                description: 'Lütfen tarayıcı ayarlarınızdan kamera izinlerini etkinleştirin.',
+            });
+        }
+      }
+    };
+    
+    if (isCameraOpen) {
       getCameraPermission();
     } else {
         // Stop camera stream when modal is closed
@@ -251,7 +254,7 @@ export default function NotlarimPage() {
       let interim_transcript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          final_transcript += event.results[i][0].transcript + ' ';
+          final_transcript += event.results[i][0].transcript + '. ';
         } else {
           interim_transcript += event.results[i][0].transcript;
         }
@@ -459,3 +462,5 @@ export default function NotlarimPage() {
     </AppLayout>
   );
 }
+
+    
