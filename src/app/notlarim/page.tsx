@@ -246,17 +246,17 @@ export default function NotlarimPage() {
       setIsRecording(false);
     };
 
-    let finalTranscript = '';
-    recognition.onresult = (event) => {
-      let interimTranscript = '';
+    let final_transcript = newNoteContent;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim_transcript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
+          final_transcript += event.results[i][0].transcript + ' ';
         } else {
-          interimTranscript += event.results[i][0].transcript;
+          interim_transcript += event.results[i][0].transcript;
         }
       }
-      setNewNoteContent(prev => prev + finalTranscript + interimTranscript);
+      setNewNoteContent(final_transcript + interim_transcript);
     };
     
     recognition.start();
@@ -459,5 +459,3 @@ export default function NotlarimPage() {
     </AppLayout>
   );
 }
-
-    
