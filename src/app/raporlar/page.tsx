@@ -312,7 +312,7 @@ export default function RaporlarPage() {
       const { summary, records, chartData } = individualReportData;
       return (
         <Card>
-            <CardHeader className='flex-row items-center justify-between'>
+            <CardHeader className='flex-col md:flex-row items-start md:items-center justify-between gap-4'>
                 <div>
                     <CardTitle className='text-xl'>Bireysel Rapor: {students.find(s => s.id === selectedStudentId)?.firstName} {students.find(s => s.id === selectedStudentId)?.lastName}</CardTitle>
                     <CardDescription>Aşağıda öğrencinin seçilen tarih aralığındaki performansını görebilirsiniz.</CardDescription>
@@ -394,7 +394,7 @@ export default function RaporlarPage() {
     if(selectedReportType === 'sinif' && classReportData){
         return (
             <Card>
-                <CardHeader className='flex-row items-center justify-between'>
+                <CardHeader className='flex-col md:flex-row items-start md:items-center justify-between gap-4'>
                     <div>
                         <CardTitle className="flex items-center gap-2"><Users/> Sınıf Geneli Performans Raporu</CardTitle>
                         <CardDescription>
@@ -407,8 +407,8 @@ export default function RaporlarPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                     <div className="border rounded-lg overflow-hidden">
-                        <Table>
+                     <div className="border rounded-lg overflow-x-auto">
+                        <Table className="min-w-[800px]">
                             <TableHeader className="bg-muted/50">
                                 <TableRow>
                                     <TableHead className="w-[80px]">No</TableHead>

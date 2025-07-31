@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -11,7 +10,6 @@ import {
     GraduationCap,
     Settings,
     Home,
-    PanelLeft,
     LogOut,
     StickyNote,
 } from 'lucide-react';
@@ -29,7 +27,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { Button } from './ui/button';
 
 
 const menuItems = [

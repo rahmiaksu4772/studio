@@ -208,7 +208,7 @@ export default function GunlukTakipPage() {
             <h1 className="text-2xl font-bold tracking-tight">{selectedClass?.name || "Sınıf Yükleniyor..."} - Günlük Takip</h1>
             <p className="text-muted-foreground">{format(recordDate, 'dd MMMM yyyy, cccc', { locale: tr })}</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
             <Select
               value={selectedClass?.id}
               onValueChange={(classId) => {
@@ -232,7 +232,7 @@ export default function GunlukTakipPage() {
                 <Button
                   variant={"outline"}
                   className={cn(
-                    "w-full md:w-[280px] justify-start text-left font-normal",
+                    "w-full md:w-auto justify-start text-left font-normal",
                     !recordDate && "text-muted-foreground"
                   )}
                 >
@@ -312,13 +312,13 @@ export default function GunlukTakipPage() {
                 <CardTitle>Öğrenci Değerlendirmeleri</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="border rounded-lg overflow-hidden">
-                    <Table>
+                <div className="w-full overflow-x-auto">
+                    <Table className="min-w-[800px]">
                         <TableHeader className="bg-muted/50">
                             <TableRow>
                                 <TableHead className="w-[60px] text-center">No</TableHead>
-                                <TableHead>Adı Soyadı</TableHead>
-                                <TableHead className="min-w-[320px]">Durum</TableHead>
+                                <TableHead className="w-[200px]">Adı Soyadı</TableHead>
+                                <TableHead className="w-[340px]">Durum</TableHead>
                                 <TableHead>Açıklama</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -335,7 +335,7 @@ export default function GunlukTakipPage() {
                                             <RadioGroup 
                                                 value={record.status || ""} 
                                                 onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                                className="flex items-center gap-1"
+                                                className="flex flex-wrap items-center gap-1"
                                             >
                                                 {statusOptions.map(option => (
                                                     <Label 
