@@ -1,5 +1,6 @@
 
-import type { Student, ClassInfo, DailyRecord, WeeklyScheduleItem } from './types';
+
+import type { Student, ClassInfo, DailyRecord, WeeklyScheduleItem, Exam } from './types';
 import { format, subMonths, getDaysInMonth } from 'date-fns';
 
 export const classes: ClassInfo[] = [
@@ -183,4 +184,67 @@ export const weeklySchedule: WeeklyScheduleItem[] = [
     color: 'bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200/80',
     lessons: [],
   },
+];
+
+
+export const mockExams: Exam[] = [
+    {
+        id: 'mock_exam_1',
+        title: '6. Sınıf Matematik - Kesirler Değerlendirme',
+        questions: [
+            {
+                question: 'Aşağıdaki kesirlerden hangisi yarıma eşittir?',
+                options: ['1/3', '2/4', '3/5', '4/7'],
+                correctAnswer: 'B'
+            },
+            {
+                question: 'Bir pastanın 3/8\'ini Ahmet, 2/8\'ini Zeynep yemiştir. Pastanın ne kadarı yenmiştir?',
+                options: ['4/8', '5/8', '6/8', '7/8'],
+                correctAnswer: 'B'
+            },
+            {
+                question: '2/5 kesrinin ondalık gösterimi aşağıdakilerden hangisidir?',
+                options: ['0.2', '0.3', '0.4', '0.5'],
+                correctAnswer: 'C'
+            }
+        ]
+    },
+    {
+        id: 'mock_exam_2',
+        title: '7. Sınıf Türkçe - Cümlenin Öğeleri',
+        questions: [
+            {
+                question: '"Genç şair, duygulu şiirlerini okurken herkesi etkiledi." cümlesinin öznesi aşağıdakilerden hangisidir?',
+                options: ['herkesi', 'Genç şair', 'duygulu şiirlerini', 'etkiledi'],
+                correctAnswer: 'B'
+            },
+            {
+                question: 'Aşağıdaki cümlelerin hangisinde yer tamlayıcısı (dolaylı tümleç) yoktur?',
+                options: [
+                    'Okuldan eve yürüdüm.', 
+                    'Sabahları erken kalkarım.', 
+                    'Kitabı masaya bıraktı.', 
+                    'Bahçede oynuyorlar.'
+                ],
+                correctAnswer: 'B'
+            }
+        ]
+    },
+    {
+        id: 'mock_exam_3',
+        title: '6. Sınıf Fen Bilimleri - Güneş Sistemi',
+        questions: [
+            {
+                question: 'Güneş sistemindeki en büyük gezegen hangisidir?',
+                options: ['Dünya', 'Mars', 'Jüpiter', 'Satürn'],
+                correctAnswer: 'C'
+            },
+            {
+                question: 'Aşağıdaki görselde ok ile gösterilen gezegen hangisidir?',
+                imageUrl: 'https://placehold.co/400x200.png', // Placeholder for a planet image
+                options: ['Venüs', 'Dünya', 'Mars', 'Neptün'],
+                correctAnswer: 'C'
+            }
+        ]
+    }
 ];

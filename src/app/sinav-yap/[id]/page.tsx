@@ -3,7 +3,8 @@
 
 import * as React from 'react';
 import { useParams } from 'next/navigation';
-import { type ExamFormValues } from '@/app/online-sinav/page';
+import { type ExamFormValues, type Exam } from '@/lib/types';
+import { mockExams } from '@/lib/mock-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -17,7 +18,7 @@ type AnswerSheet = {
 export default function SinavYapPage() {
     const params = useParams();
     const examId = params.id as string;
-    const [exam, setExam] = React.useState<ExamFormValues | null>(null);
+    const [exam, setExam] = React.useState<Exam | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const [answers, setAnswers] = React.useState<AnswerSheet>({});
@@ -26,9 +27,21 @@ export default function SinavYapPage() {
     React.useEffect(() => {
         if (examId) {
             try {
-                const examData = localStorage.getItem(examId);
+                let examData: Exam | null = null;
+                // First, check mock data
+                examData = mockExams.find(e => e.id === examId) || null;
+
+                // If not in mock, check local storage
+                if (!examData) {
+                    const storedExam = localStorage.getItem(examId);
+                    if (storedExam) {
+                        const parsedData: ExamFormValues = JSON.parse(storedExam);
+                        examData = { id: examId, ...parsedData };
+                    }
+                }
+
                 if (examData) {
-                    setExam(JSON.parse(examData));
+                    setExam(examData);
                 } else {
                     setError('Bu ID\'ye sahip bir sınav bulunamadı. Linkin doğru olduğundan emin olun.');
                 }
@@ -122,8 +135,8 @@ export default function SinavYapPage() {
                         </CardHeader>
                         <CardContent>
                             {q.imageUrl && (
-                                <div className="mb-4 rounded-lg overflow-hidden border">
-                                    <img src={q.imageUrl} alt={`Soru ${index + 1} için görsel`} className="w-full max-h-[400px] object-contain" />
+                                <div className="mb-4 rounded-lg overflow-hidden border bg-white">
+                                    <img src={q.imageUrl} alt={`Soru ${index + 1} için görsel`} data-ai-hint="exam question" className="w-full max-h-[400px] object-contain" />
                                 </div>
                             )}
                             <RadioGroup 

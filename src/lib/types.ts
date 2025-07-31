@@ -1,4 +1,5 @@
 
+
 import { type LucideIcon, UserCheck, UserX, CheckCheck, Check, X } from "lucide-react";
 
 export type Student = {
@@ -32,3 +33,18 @@ export const statusOptions: { value: AttendanceStatus; label: string, icon?: Luc
     { value: 'Y', label: 'Yok', icon: UserX, color: 'text-yellow-600' },
     { value: 'G', label: 'İzinli', icon: UserCheck, color: 'text-blue-600' },
 ];
+
+export type ExamQuestion = {
+    question: string;
+    imageUrl?: string;
+    options: string[];
+    correctAnswer: string;
+};
+
+export type Exam = {
+    id: string;
+    title: string;
+    questions: ExamQuestion[];
+};
+
+export type ExamFormValues = Omit<Exam, 'id'>;
