@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
+import { useClassesAndStudents } from '@/hooks/use-daily-records';
 
 type ClassWithStudents = ClassInfo & {
     students: Student[];

@@ -9,8 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, GraduationCap, Edit, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import React from 'react';
-import { useDailyRecords } from '@/hooks/use-daily-records';
-import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
+import { useDailyRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
 
 export default function AnaSayfaPage() {
   const { classes, students, isLoading: isClassesLoading } = useClassesAndStudents();

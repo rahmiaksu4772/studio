@@ -39,9 +39,7 @@ import { cn } from '@/lib/utils';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { useDailyRecords } from '@/hooks/use-daily-records';
-import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
+import { useDailyRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
 
 
 type StudentRecordsState = {

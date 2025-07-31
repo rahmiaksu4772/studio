@@ -48,8 +48,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
-import { useClassesAndStudents } from '@/hooks/use-classes-and-students';
-import { useDailyRecords } from '@/hooks/use-daily-records';
+import { useClassesAndStudents, useDailyRecords } from '@/hooks/use-daily-records';
 
 
 const statusToTurkish: Record<string, string> = {
