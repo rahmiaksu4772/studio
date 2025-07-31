@@ -9,6 +9,8 @@ import {
   Sparkles,
   Loader2,
   Book,
+  PlusCircle,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -30,7 +32,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { classes, students as allStudents } from '@/lib/mock-data';
+import { classes, students as allStudents, dailyRecords } from '@/lib/mock-data';
 import type { Student, DailyRecord, AttendanceStatus, ClassInfo } from '@/lib/types';
 import { statusOptions } from '@/lib/types';
 import { format } from 'date-fns';
@@ -50,71 +52,83 @@ export default function GunlukTakipPage() {
   const [generalDescription, setGeneralDescription] = React.useState('');
   const [isPending, startTransition] = useTransition();
   const [generatingFor, setGeneratingFor] = React.useState<string | null>(null);
-  
-  const getInitialRecords = (classId: string, date: Date): Record<string, DailyRecord> => {
-      if (!date) return {};
-    return allStudents
-      .filter(s => s.classId === classId)
-      .reduce((acc, student) => {
-        acc[student.id] = { 
-            id: `record-${student.id}-${date.toISOString()}`,
-            studentId: student.id, 
-            status: null, 
-            description: '', 
-            date: format(date, 'yyyy-MM-dd'), 
-            classId: classId 
-        };
-        return acc;
-      }, {} as Record<string, DailyRecord>);
-  };
+  const [records, setRecords] = React.useState<DailyRecord[]>([]);
 
-  const [records, setRecords] = React.useState<Record<string, DailyRecord>>({});
-  
   React.useEffect(() => {
     setRecordDate(new Date());
   }, []);
   
   React.useEffect(() => {
     if (recordDate) {
-      setRecords(getInitialRecords(selectedClass.id, recordDate));
+      const dateStr = format(recordDate, 'yyyy-MM-dd');
+      const filteredRecords = dailyRecords.filter(r => r.classId === selectedClass.id && r.date === dateStr);
+      setRecords(filteredRecords);
       setGeneralDescription('');
     }
   }, [selectedClass.id, recordDate]);
 
   const students = allStudents.filter((s) => s.classId === selectedClass.id);
 
-  const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id' | 'studentId'>>) => {
-    setRecords((prev) => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], ...newRecord },
-    }));
+  const handleAddRecord = (studentId: string, status: AttendanceStatus, description: string) => {
+    if (!recordDate) return;
+    const newRecord: DailyRecord = {
+      id: `record-${studentId}-${Date.now()}`,
+      studentId,
+      classId: selectedClass.id,
+      date: format(recordDate, 'yyyy-MM-dd'),
+      status,
+      description,
+    };
+    setRecords(prev => [...prev, newRecord]);
+  };
+
+  const handleUpdateRecord = (recordId: string, newRecord: Partial<Omit<DailyRecord, 'id'>>) => {
+    setRecords((prev) => 
+        prev.map(r => r.id === recordId ? {...r, ...newRecord} : r)
+    );
+  }
+
+  const handleDeleteRecord = (recordId: string) => {
+    setRecords(prev => prev.filter(r => r.id !== recordId));
+     toast({
+      title: "Not Silindi",
+      description: "Öğrenci notu başarıyla kaldırıldı.",
+      variant: 'destructive',
+    });
   };
 
   const handleBulkStatusUpdate = (status: AttendanceStatus) => {
-    setRecords(prevRecords => {
-      const newRecords = { ...prevRecords };
-      students.forEach(student => {
-        if(newRecords[student.id]){
-             newRecords[student.id] = {
-                ...newRecords[student.id],
-                status: status,
+    if (!recordDate) return;
+    const newRecordsForStudents = students
+        .map(student => {
+            const newRecord: DailyRecord = {
+                id: `record-${student.id}-${Date.now()}`,
+                studentId: student.id,
+                classId: selectedClass.id,
+                date: format(recordDate, 'yyyy-MM-dd'),
+                status,
+                description: `Toplu olarak "${statusOptions.find(s=>s.value === status)?.label}" eklendi.`,
             };
-        }
-      });
-      return newRecords;
-    });
+            return newRecord;
+        });
+
+    // We can decide to either replace or add. Let's add.
+    setRecords(prev => [...prev, ...newRecordsForStudents]);
+
     toast({
-      title: "Toplu Güncelleme Başarılı",
-      description: `${selectedClass.name} sınıfındaki tüm öğrencilerin durumu "${statusOptions.find(s=>s.value === status)?.label}" olarak ayarlandı.`,
+      title: "Toplu Ekleme Başarılı",
+      description: `${selectedClass.name} sınıfındaki her öğrenci için "${statusOptions.find(s=>s.value === status)?.label}" durumu eklendi.`,
     });
   };
 
   const handleSave = () => {
     if (!recordDate) return;
+    // In a real app, you would save this to a database
+    // Here we just log it and update the mock data for the session
     console.log("Kaydedilen Veriler:", { 
         date: format(recordDate, 'yyyy-MM-dd'), 
         classId: selectedClass.id, 
-        records: Object.values(records).filter(r => r.status || r.description),
+        records: records,
         generalDescription: generalDescription,
      });
     toast({
@@ -123,7 +137,7 @@ export default function GunlukTakipPage() {
     });
   };
 
-  const handleGenerateDescription = async (studentId: string) => {
+  const handleGenerateDescription = async (studentId: string, onDescription: (desc: string) => void) => {
     if(!recordDate) return;
 
     setGeneratingFor(studentId);
@@ -136,10 +150,10 @@ export default function GunlukTakipPage() {
         });
         
         if (result.description) {
-          handleRecordChange(studentId, { description: result.description });
+          onDescription(result.description);
            toast({
             title: "AI Notu Oluşturuldu",
-            description: "Öğrenci için otomatik not başarıyla oluşturuldu.",
+            description: "Otomatik not başarıyla oluşturuldu.",
           });
         } else if (result.error) {
              toast({
@@ -159,8 +173,6 @@ export default function GunlukTakipPage() {
       }
     });
   };
-
-  const currentRecord = (studentId: string) => records[studentId];
   
   if (!recordDate) {
     return (
@@ -272,7 +284,7 @@ export default function GunlukTakipPage() {
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>Tümünü "{option.label}" olarak işaretle</p>
+                                        <p>Tüm öğrenciler için "{option.label}" notu ekle</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
@@ -293,82 +305,23 @@ export default function GunlukTakipPage() {
                             <TableRow>
                                 <TableHead className="w-[80px] text-center">No</TableHead>
                                 <TableHead>Adı Soyadı</TableHead>
-                                <TableHead className="w-[280px]">Durum</TableHead>
-                                <TableHead>Açıklama</TableHead>
+                                <TableHead>Gözlemler</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {students.map(student => {
-                                const record = currentRecord(student.id);
-                                if (!record) return null;
+                                const studentRecords = records.filter(r => r.studentId === student.id);
                                 return (
-                                    <TableRow key={student.id}>
-                                        <TableCell className="font-medium text-center">{student.studentNumber}</TableCell>
-                                        <TableCell className='font-semibold'>{student.firstName} {student.lastName}</TableCell>
-                                        <TableCell>
-                                            <RadioGroup 
-                                                value={record.status || ""} 
-                                                onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                                className="flex items-center gap-1"
-                                            >
-                                                {statusOptions.map(option => (
-                                                    <TooltipProvider key={`${record.id}-${option.value}`}>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Label 
-                                                                    htmlFor={`${record.id}-${option.value}`}
-                                                                    className={cn(
-                                                                        "flex items-center justify-center h-9 w-9 rounded-md border text-muted-foreground cursor-pointer transition-colors hover:border-primary",
-                                                                        "data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary",
-                                                                        record.status === option.value && "border-primary bg-primary/10 text-primary"
-                                                                    )}
-                                                                >
-                                                                    {option.icon && <option.icon className="h-5 w-5" />}
-                                                                    <RadioGroupItem value={option.value} id={`${record.id}-${option.value}`} className='sr-only'/>
-                                                                </Label>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{option.label}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                ))}
-                                            </RadioGroup>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Textarea 
-                                                    value={record.description || ''}
-                                                    onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                                    placeholder='Öğrenci hakkında not...'
-                                                    className='min-h-[40px] text-sm flex-1'
-                                                    rows={1}
-                                                />
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button 
-                                                                size='icon'
-                                                                variant='ghost'
-                                                                className='h-9 w-9'
-                                                                onClick={() => handleGenerateDescription(student.id)}
-                                                                disabled={isPending && generatingFor === student.id}
-                                                            >
-                                                                {isPending && generatingFor === student.id ? (
-                                                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                                                ) : (
-                                                                    <Sparkles className="h-5 w-5 text-primary" />
-                                                                )}
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>AI ile Not Oluştur</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
+                                    <StudentRow 
+                                        key={student.id} 
+                                        student={student}
+                                        records={studentRecords}
+                                        onUpdateRecord={handleUpdateRecord}
+                                        onDeleteRecord={handleDeleteRecord}
+                                        onAddRecord={handleAddRecord}
+                                        onGenerateDescription={handleGenerateDescription}
+                                        isPending={isPending && generatingFor === student.id}
+                                    />
                                 )
                             })}
                         </TableBody>
@@ -381,4 +334,172 @@ export default function GunlukTakipPage() {
   );
 }
 
-    
+// Sub-component for each student row to manage its own state for adding new notes
+function StudentRow({ student, records, onUpdateRecord, onDeleteRecord, onAddRecord, onGenerateDescription, isPending }: {
+    student: Student,
+    records: DailyRecord[],
+    onUpdateRecord: (recordId: string, newRecord: Partial<DailyRecord>) => void,
+    onDeleteRecord: (recordId: string) => void,
+    onAddRecord: (studentId: string, status: AttendanceStatus, description: string) => void,
+    onGenerateDescription: (studentId: string, onDescription: (desc: string) => void) => void,
+    isPending: boolean,
+}) {
+    const [newStatus, setNewStatus] = React.useState<AttendanceStatus>('+');
+    const [newDescription, setNewDescription] = React.useState('');
+
+    const handleAdd = () => {
+        if (!newStatus) return;
+        onAddRecord(student.id, newStatus, newDescription);
+        // Reset form
+        setNewStatus('+');
+        setNewDescription('');
+    }
+
+    return (
+         <TableRow key={student.id}>
+            <TableCell className="font-medium text-center align-top pt-6">{student.studentNumber}</TableCell>
+            <TableCell className='font-semibold align-top pt-6'>{student.firstName} {student.lastName}</TableCell>
+            <TableCell>
+                <div className='flex flex-col gap-3'>
+                    {records.map(record => (
+                        <div key={record.id} className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
+                            <RadioGroup 
+                                value={record.status || ""} 
+                                onValueChange={(status) => onUpdateRecord(record.id, { status: status as AttendanceStatus })}
+                                className="flex items-center gap-1"
+                            >
+                                {statusOptions.map(option => (
+                                    <TooltipProvider key={`${record.id}-${option.value}`}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Label 
+                                                    htmlFor={`${record.id}-${option.value}`}
+                                                    className={cn(
+                                                        "flex items-center justify-center h-9 w-9 rounded-md border text-muted-foreground cursor-pointer transition-colors hover:border-primary",
+                                                        "data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary",
+                                                        record.status === option.value && "border-primary bg-primary/10 text-primary"
+                                                    )}
+                                                >
+                                                    {option.icon && <option.icon className="h-5 w-5" />}
+                                                    <RadioGroupItem value={option.value} id={`${record.id}-${option.value}`} className='sr-only'/>
+                                                </Label>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{option.label}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                ))}
+                            </RadioGroup>
+                            <Textarea 
+                                value={record.description || ''}
+                                onChange={(e) => onUpdateRecord(record.id, { description: e.target.value })}
+                                placeholder='Öğrenci hakkında not...'
+                                className='min-h-[40px] text-sm flex-1'
+                                rows={1}
+                            />
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                         <Button 
+                                            size='icon'
+                                            variant='ghost'
+                                            className='h-9 w-9 flex-shrink-0'
+                                            onClick={() => onDeleteRecord(record.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Notu Sil</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    ))}
+
+                    {/* Form for adding a new record */}
+                    <div className="flex items-start gap-2 p-2 rounded-md border border-dashed">
+                       <RadioGroup 
+                            value={newStatus} 
+                            onValueChange={(status) => setNewStatus(status as AttendanceStatus)}
+                            className="flex items-center gap-1"
+                        >
+                            {statusOptions.map(option => (
+                                <TooltipProvider key={`new-${student.id}-${option.value}`}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Label 
+                                                htmlFor={`new-${student.id}-${option.value}`}
+                                                className={cn(
+                                                    "flex items-center justify-center h-9 w-9 rounded-md border text-muted-foreground cursor-pointer transition-colors hover:border-primary",
+                                                     "data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary",
+                                                    newStatus === option.value && "border-primary bg-primary/10 text-primary"
+                                                )}
+                                            >
+                                                {option.icon && <option.icon className="h-5 w-5" />}
+                                                <RadioGroupItem value={option.value} id={`new-${student.id}-${option.value}`} className='sr-only'/>
+                                            </Label>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{option.label}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            ))}
+                        </RadioGroup>
+                        <Textarea 
+                            value={newDescription}
+                            onChange={(e) => setNewDescription(e.target.value)}
+                            placeholder='Yeni not ekle...'
+                            className='min-h-[40px] text-sm flex-1'
+                            rows={1}
+                        />
+                         <div className='flex flex-col gap-1'>
+                             <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            size='icon'
+                                            variant='ghost'
+                                            className='h-9 w-9'
+                                            onClick={() => onGenerateDescription(student.id, setNewDescription)}
+                                            disabled={isPending}
+                                        >
+                                            {isPending ? (
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                            ) : (
+                                                <Sparkles className="h-5 w-5 text-primary" />
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>AI ile Doldur</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            size='icon'
+                                            variant='ghost'
+                                            className='h-9 w-9'
+                                            onClick={handleAdd}
+                                            disabled={isPending}
+                                        >
+                                            <PlusCircle className="h-5 w-5 text-green-600" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Not Ekle</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
+                </div>
+            </TableCell>
+        </TableRow>
+    )
+}
