@@ -328,7 +328,7 @@ export default function GunlukTakipPage() {
                                                     value={record.description || ''}
                                                     onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
                                                     placeholder='Öğrenci hakkında not...'
-                                                    className='min-h-[40px] text-sm pr-10'
+                                                    className='min-h-[40px] text-sm pr-9'
                                                     rows={1}
                                                 />
                                                 <TooltipProvider>
@@ -339,12 +339,12 @@ export default function GunlukTakipPage() {
                                                                 variant='ghost'
                                                                 onClick={() => handleGenerateDescription(student.id)}
                                                                 disabled={isGenerating}
-                                                                className='absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8'
+                                                                className='absolute top-1/2 right-0.5 -translate-y-1/2 h-7 w-7'
                                                             >
                                                                 {isGenerating ? (
-                                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
                                                                 ) : (
-                                                                    <Sparkles className="h-5 w-5 text-primary" />
+                                                                    <Sparkles className="h-4 w-4 text-primary" />
                                                                 )}
                                                             </Button>
                                                         </TooltipTrigger>
@@ -367,5 +367,7 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
+
+    
 
     
