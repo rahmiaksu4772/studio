@@ -301,7 +301,7 @@ export default function GunlukTakipPage() {
                                             <RadioGroup 
                                                 value={record.status || ""} 
                                                 onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                                className="flex flex-wrap items-center gap-1"
+                                                className="flex items-center gap-1"
                                             >
                                                 {statusOptions.map(option => (
                                                     <Label 
