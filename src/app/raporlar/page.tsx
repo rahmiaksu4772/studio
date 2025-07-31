@@ -50,6 +50,7 @@ import type { Student } from '@/lib/types';
 
 import { classes, students, dailyRecords } from '@/lib/mock-data';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
+import { liberationSansNormal } from '@/lib/fonts';
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
@@ -175,13 +176,18 @@ export default function RaporlarPage() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
-    doc.setFont('Verdana', 'normal');
+    
+    // Add the custom font that supports Turkish characters
+    doc.addFileToVFS('LiberationSans-Regular.ttf', liberationSansNormal);
+    doc.addFont('LiberationSans-Regular.ttf', 'LiberationSans', 'normal');
+    doc.setFont('LiberationSans');
+
 
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
     const pageHeader = (data: any) => {
-        doc.setFont('Verdana', 'bold');
+        doc.setFont('LiberationSans', 'normal');
         doc.setFontSize(16);
         doc.setTextColor(40);
         if (selectedReportType === 'sinif' && classReportData) {
@@ -194,7 +200,7 @@ export default function RaporlarPage() {
 
     const pageFooter = (data: any) => {
         const pageCount = doc.getNumberOfPages();
-        doc.setFont('Verdana', 'normal');
+        doc.setFont('LiberationSans', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(150);
         const text = `Sayfa ${data.pageNumber} / ${pageCount}`;
@@ -219,8 +225,8 @@ export default function RaporlarPage() {
             body: tableData,
             startY: 30,
             theme: 'grid',
-            headStyles: { font: 'Verdana', fontStyle: 'bold', fillColor: [33, 150, 243], textColor: 255 },
-            styles: { font: 'Verdana', fontStyle: 'normal' },
+            headStyles: { font: 'LiberationSans', fontStyle: 'normal', fillColor: [33, 150, 243], textColor: 255 },
+            styles: { font: 'LiberationSans', fontStyle: 'normal' },
             alternateRowStyles: { fillColor: [240, 244, 255] },
             didDrawPage: (data: any) => {
                 pageHeader(data);
@@ -231,7 +237,7 @@ export default function RaporlarPage() {
         doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     } else if (selectedReportType === 'bireysel' && individualReportData) {
         const selectedStudent = students.find(s => s.id === selectedStudentId);
-        doc.setFont('Verdana', 'normal');
+        doc.setFont('LiberationSans', 'normal');
         
         doc.setFontSize(11);
         doc.setTextColor(100);
@@ -244,9 +250,9 @@ export default function RaporlarPage() {
         
         doc.setFontSize(12);
         doc.setTextColor(40);
-        doc.setFont('Verdana', 'bold');
+        doc.setFont('LiberationSans', 'normal');
         doc.text('Genel Durum Özeti', 14, 50);
-        doc.setFont('Verdana', 'normal');
+        doc.setFont('LiberationSans', 'normal');
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
 
@@ -260,8 +266,8 @@ export default function RaporlarPage() {
                     r.description || '-'
                 ]),
                 theme: 'striped',
-                headStyles: { font: 'Verdana', fontStyle: 'bold', fillColor: [33, 150, 243], textColor: 255 },
-                styles: { font: 'Verdana', fontStyle: 'normal' },
+                headStyles: { font: 'LiberationSans', fontStyle: 'normal', fillColor: [33, 150, 243], textColor: 255 },
+                styles: { font: 'LiberationSans', fontStyle: 'normal' },
                 didDrawPage: (data: any) => {
                     pageHeader(data);
                     pageFooter(data);
@@ -512,21 +518,3 @@ export default function RaporlarPage() {
       </main>
     </AppLayout>
   );
-
-    
-
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
