@@ -128,6 +128,10 @@ export default function GunlukTakipPage() {
       title: "Kayıt Başarılı",
       description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar başarıyla kaydedildi.`,
     });
+
+    // Reset the form for new entries
+    setStudentRecords({});
+    setGeneralDescription('');
   };
 
   const handleGenerateDescription = async (studentId: string) => {
