@@ -29,8 +29,37 @@ export default function PlanlarimPage() {
   const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    setIsLoading(false);
-  }, []);
+    try {
+      const savedPlans = localStorage.getItem('my-plans');
+      if (savedPlans) {
+        setPlans(JSON.parse(savedPlans));
+      }
+    } catch (error) {
+      console.error("Failed to load plans from localStorage", error);
+      toast({
+          title: "Planlar Yüklenemedi",
+          description: "Planlarınız yüklenirken bir sorun oluştu.",
+          variant: "destructive"
+      })
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    try {
+        if(!isLoading) {
+            localStorage.setItem('my-plans', JSON.stringify(plans));
+        }
+    } catch (error) {
+        console.error("Failed to save plans to localStorage", error);
+        toast({
+            title: "Planlar Kaydedilemedi",
+            description: "Planlarınız kaydedilirken bir sorun oluştu.",
+            variant: "destructive"
+        })
+    }
+  }, [plans, isLoading, toast]);
 
   const handleAddPlan = (newPlan: Plan) => {
     setPlans(prevPlans => [newPlan, ...prevPlans]);
