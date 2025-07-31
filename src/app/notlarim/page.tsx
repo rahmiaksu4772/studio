@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2 } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,6 +28,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Note = {
   id: string;
@@ -51,6 +52,9 @@ export default function NotlarimPage() {
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
   const [newNoteContent, setNewNoteContent] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isRecording, setIsRecording] = React.useState(false);
+  
+  const recognitionRef = React.useRef<any>(null);
 
   React.useEffect(() => {
     try {
@@ -95,6 +99,11 @@ export default function NotlarimPage() {
       });
       return;
     }
+    
+    if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        setIsRecording(false);
+    }
 
     const newNote: Note = {
       id: `note-${Date.now()}`,
@@ -122,6 +131,75 @@ export default function NotlarimPage() {
     })
   };
 
+  const handleToggleRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        title: 'Desteklenmiyor',
+        description: 'Tarayıcınız sesle yazmayı desteklemiyor.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'tr-TR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      toast({ title: 'Kayıt başladı...', description: 'Konuşmaya başlayabilirsiniz.' });
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      if(recognitionRef.current) {
+        toast({ title: 'Kayıt durduruldu.' });
+      }
+      recognitionRef.current = null;
+    };
+
+    recognition.onerror = (event) => {
+        if (event.error === 'not-allowed') {
+            toast({
+                title: 'Mikrofon İzni Gerekli',
+                description: 'Sesle not almak için mikrofon izni vermelisiniz.',
+                variant: 'destructive',
+            });
+        } else {
+             toast({
+                title: 'Bir hata oluştu',
+                description: `Ses tanıma hatası: ${event.error}`,
+                variant: 'destructive',
+            });
+        }
+      setIsRecording(false);
+    };
+
+    let finalTranscript = '';
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      setNewNoteContent(newNoteContent + finalTranscript + interimTranscript);
+    };
+    
+    recognition.start();
+  };
+
   return (
     <AppLayout>
       <main className="flex-1 p-4 sm:p-6">
@@ -143,13 +221,36 @@ export default function NotlarimPage() {
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
               />
-              <Textarea
-                placeholder="Bir not alın..."
-                className="border-0 focus-visible:ring-0 shadow-none p-2 resize-none"
-                value={newNoteContent}
-                onChange={(e) => setNewNoteContent(e.target.value)}
-                rows={3}
-              />
+              <div className="relative">
+                <Textarea
+                    placeholder="Bir not alın ya da konuşarak yazdırın..."
+                    className="border-0 focus-visible:ring-0 shadow-none p-2 resize-none pr-12"
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    rows={3}
+                />
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleToggleRecording}
+                                className={cn(
+                                    "absolute right-2 bottom-2 h-8 w-8 rounded-full text-muted-foreground",
+                                    isRecording && "text-red-500 animate-pulse"
+                                )}
+                            >
+                                {isRecording ? <MicOff /> : <Mic />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardContent>
             <CardFooter className="flex justify-end p-2 pr-4">
               <Button type="submit">
@@ -222,3 +323,4 @@ export default function NotlarimPage() {
     </AppLayout>
   );
 }
+
