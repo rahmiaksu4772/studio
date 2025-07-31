@@ -2,6 +2,9 @@
 
 import { descriptionAutoFill } from '@/ai/flows/description-auto-fill';
 import type { DescriptionAutoFillInput } from '@/ai/flows/description-auto-fill';
+import { opticalScan } from '@/ai/flows/optical-scan-flow';
+import type { OpticalScanInput } from '@/ai/flows/optical-scan-flow';
+
 
 export async function generateDescriptionAction(input: DescriptionAutoFillInput) {
   try {
@@ -18,3 +21,13 @@ export async function generateDescriptionAction(input: DescriptionAutoFillInput)
     return { error: 'AI ile açıklama üretilirken bir hata oluştu.' };
   }
 }
+
+export async function opticalScanAction(input: OpticalScanInput) {
+    try {
+      const result = await opticalScan(input);
+      return result;
+    } catch (error) {
+      console.error('AI optical scan failed:', error);
+      return { error: 'Yapay zeka ile optik form okunurken bir hata oluştu.' };
+    }
+  }

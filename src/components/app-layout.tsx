@@ -14,6 +14,7 @@ import {
     PanelLeft,
     LogOut,
     StickyNote,
+    ScanLine,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -39,6 +40,7 @@ const menuItems = [
     { href: '/raporlar', label: 'Raporlar', icon: BarChart },
     { href: '/planlarim', label: 'Planlarım', icon: Calendar },
     { href: '/notlarim', label: 'Notlarım', icon: StickyNote },
+    { href: '/optik-okuma', label: 'Optik Okuma', icon: ScanLine },
 ];
 
 function AppSidebar() {
