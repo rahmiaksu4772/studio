@@ -1,0 +1,224 @@
+
+'use client';
+
+import * as React from 'react';
+import AppLayout from '@/components/app-layout';
+import { Plus, Trash2, StickyNote, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from '@/components/ui/alert-dialog';
+
+type Note = {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  color: string;
+};
+
+const noteColors = [
+  'bg-yellow-100 border-yellow-200 dark:bg-yellow-900/40 dark:border-yellow-800/60',
+  'bg-blue-100 border-blue-200 dark:bg-blue-900/40 dark:border-blue-800/60',
+  'bg-green-100 border-green-200 dark:bg-green-900/40 dark:border-green-800/60',
+  'bg-pink-100 border-pink-200 dark:bg-pink-900/40 dark:border-pink-800/60',
+  'bg-purple-100 border-purple-200 dark:bg-purple-900/40 dark:border-purple-800/60',
+];
+
+export default function NotlarimPage() {
+  const { toast } = useToast();
+  const [notes, setNotes] = React.useState<Note[]>([]);
+  const [newNoteTitle, setNewNoteTitle] = React.useState('');
+  const [newNoteContent, setNewNoteContent] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    try {
+      const savedNotes = localStorage.getItem('my-notes');
+      if (savedNotes) {
+        setNotes(JSON.parse(savedNotes));
+      }
+    } catch (error) {
+      console.error("Failed to load notes from localStorage", error);
+      toast({
+          title: "Notlar Yüklenemedi",
+          description: "Notlarınız yüklenirken bir sorun oluştu.",
+          variant: "destructive"
+      })
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    try {
+        if(!isLoading) {
+            localStorage.setItem('my-notes', JSON.stringify(notes));
+        }
+    } catch (error) {
+        console.error("Failed to save notes to localStorage", error);
+        toast({
+            title: "Notlar Kaydedilemedi",
+            description: "Notlarınız kaydedilirken bir sorun oluştu.",
+            variant: "destructive"
+        })
+    }
+  }, [notes, isLoading, toast]);
+
+  const handleAddNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newNoteContent.trim() === '') {
+      toast({
+        title: 'Boş Not',
+        description: 'Lütfen not içeriğini girin.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const newNote: Note = {
+      id: `note-${Date.now()}`,
+      title: newNoteTitle,
+      content: newNoteContent,
+      date: new Date().toLocaleDateString('tr-TR'),
+      color: noteColors[Math.floor(Math.random() * noteColors.length)],
+    };
+
+    setNotes([newNote, ...notes]);
+    setNewNoteTitle('');
+    setNewNoteContent('');
+    toast({
+      title: 'Not Eklendi!',
+      description: 'Yeni notunuz başarıyla eklendi.',
+    });
+  };
+
+  const handleDeleteNote = (id: string) => {
+    setNotes(notes.filter((note) => note.id !== id));
+    toast({
+        title: 'Not Silindi',
+        description: 'Notunuz başarıyla silindi.',
+        variant: 'destructive',
+    })
+  };
+
+  return (
+    <AppLayout>
+      <main className="flex-1 p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Notlarım</h1>
+            <p className="text-muted-foreground">
+              Google Keep benzeri kişisel not alma alanınız.
+            </p>
+          </div>
+        </div>
+
+        <Card className="max-w-2xl mx-auto mb-8 shadow-lg">
+          <form onSubmit={handleAddNote}>
+            <CardContent className="p-4 space-y-3">
+              <Input
+                placeholder="Not başlığı (isteğe bağlı)..."
+                className="text-lg font-semibold border-0 focus-visible:ring-0 shadow-none p-2"
+                value={newNoteTitle}
+                onChange={(e) => setNewNoteTitle(e.target.value)}
+              />
+              <Textarea
+                placeholder="Bir not alın..."
+                className="border-0 focus-visible:ring-0 shadow-none p-2 resize-none"
+                value={newNoteContent}
+                onChange={(e) => setNewNoteContent(e.target.value)}
+                rows={3}
+              />
+            </CardContent>
+            <CardFooter className="flex justify-end p-2 pr-4">
+              <Button type="submit">
+                <Plus className="mr-2 h-4 w-4" />
+                Not Ekle
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        {isLoading ? (
+            <div className="flex items-center justify-center min-h-[40vh]">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        ) : notes.length > 0 ? (
+          <div
+            className="grid gap-4"
+            style={{
+              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+            }}
+          >
+            {notes.map((note) => (
+              <Card
+                key={note.id}
+                className={cn('flex flex-col break-inside-avoid', note.color)}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg">{note.title || 'Başlıksız Not'}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow whitespace-pre-wrap text-sm">
+                  {note.content}
+                </CardContent>
+                <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">
+                  <span>{note.date}</span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Notu silmek istediğinize emin misiniz?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Bu işlem geri alınamaz. Not kalıcı olarak silinecektir.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteNote(note.id)} className="bg-destructive hover:bg-destructive/90">
+                          Sil
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center p-12 border-2 border-dashed rounded-lg">
+            <StickyNote className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-medium">Henüz notunuz yok</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Yukarıdaki alandan ilk notunuzu ekleyerek başlayın.
+            </p>
+          </div>
+        )}
+      </main>
+    </AppLayout>
+  );
+}

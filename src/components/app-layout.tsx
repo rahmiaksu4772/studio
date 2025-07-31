@@ -13,6 +13,7 @@ import {
     Home,
     PanelLeft,
     LogOut,
+    StickyNote,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -37,6 +38,7 @@ const menuItems = [
     { href: '/siniflarim', label: 'Sınıflarım', icon: GraduationCap },
     { href: '/raporlar', label: 'Raporlar', icon: BarChart },
     { href: '/planlarim', label: 'Planlarım', icon: Calendar },
+    { href: '/notlarim', label: 'Notlarım', icon: StickyNote },
 ];
 
 function AppSidebar() {
