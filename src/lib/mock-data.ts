@@ -1,7 +1,6 @@
 
 
 import type { Student, ClassInfo, DailyRecord, WeeklyScheduleItem } from './types';
-import { format, subMonths, getDaysInMonth } from 'date-fns';
 
 export const classes: ClassInfo[] = [
   { id: 'c1', name: '6/A' },
@@ -26,84 +25,10 @@ export const students: Student[] = [
   { id: 's12', studentNumber: 204, firstName: 'Merve', lastName: 'Aydın', classId: 'c2' },
 ];
 
-function getDaysArrayForLastMonth() {
-    const today = new Date();
-    const lastMonth = subMonths(today, 1);
-    const year = lastMonth.getFullYear();
-    const month = lastMonth.getMonth();
-    const daysInMonth = getDaysInMonth(lastMonth);
-    const days = [];
-    for (let i = 1; i <= daysInMonth; i++) {
-        days.push(new Date(year, month, i));
-    }
-    return days;
-}
+// Initial daily records are now an empty array.
+// Data will be populated and managed via localStorage in the useDailyRecords hook.
+export const dailyRecords: DailyRecord[] = [];
 
-const lastMonthDays = getDaysArrayForLastMonth();
-
-const allRecords: DailyRecord[] = [];
-const statuses: (DailyRecord['status'])[] = ['+', '+', '+', 'P', '-', 'Y', 'G', '+', '+'];
-const descriptions = [
-    'Derse harika katılım gösterdi.',
-    'Ödevini zamanında ve eksiksiz teslim etti.',
-    'Konuyla ilgili yaratıcı sorular sordu.',
-    'Arkadaşına yardım etti.',
-    'Biraz yorgun görünüyordu.',
-    'Dersi dikkatle dinledi ancak katılımı azdı.',
-    'Ödevini unutmuş.',
-    'Derste malzemeleri eksikti.',
-    'Doktor randevusu vardı.',
-    'Ailevi nedenlerle izinliydi.',
-    'Okul gezisindeydi.',
-];
-
-students.forEach(student => {
-    lastMonthDays.forEach(day => {
-        // Skip weekends
-        if (day.getDay() === 0 || day.getDay() === 6) {
-            return;
-        }
-
-        // Add some random chance of no record for a day
-        if (Math.random() > 0.95) {
-            return;
-        }
-        
-        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-        const randomDescription = Math.random() > 0.6 ? descriptions[Math.floor(Math.random() * descriptions.length)] : '';
-        
-        allRecords.push({
-            id: `record-${student.id}-${day.getTime()}`,
-            studentId: student.id,
-            classId: student.classId,
-            date: format(day, 'yyyy-MM-dd'),
-            status: randomStatus,
-            description: randomDescription,
-        });
-    });
-});
-
-// Generate some data for today
-const today = new Date();
-if (today.getDay() !== 0 && today.getDay() !== 6) {
-    students.forEach(student => {
-        if (Math.random() > 0.3) { // 70% chance to have a record for today
-             const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-             const randomDescription = Math.random() > 0.5 ? descriptions[Math.floor(Math.random() * descriptions.length)] : '';
-             allRecords.push({
-                id: `record-${student.id}-${today.getTime()}`,
-                studentId: student.id,
-                classId: student.classId,
-                date: format(today, 'yyyy-MM-dd'),
-                status: randomStatus,
-                description: randomDescription,
-            });
-        }
-    });
-}
-
-
-export const dailyRecords: DailyRecord[] = allRecords;
 
 export type Lesson = {
   time: string;
@@ -185,3 +110,5 @@ export const weeklySchedule: WeeklyScheduleItem[] = [
     lessons: [],
   },
 ];
+
+    

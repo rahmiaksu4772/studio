@@ -8,8 +8,7 @@ import {
   Calendar as CalendarIcon,
   Sparkles,
   Loader2,
-  Book,
-  Trash2
+  Book
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -31,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { classes, students as allStudents, dailyRecords as initialDailyRecords } from '@/lib/mock-data';
+import { classes, students as allStudents } from '@/lib/mock-data';
 import type { Student, DailyRecord, AttendanceStatus, ClassInfo } from '@/lib/types';
 import { statusOptions } from '@/lib/types';
 import { format } from 'date-fns';
@@ -43,6 +42,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/comp
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { useDailyRecords } from '@/hooks/use-daily-records';
 
 type StudentRecordsState = {
   [studentId: string]: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >>;
@@ -50,6 +50,7 @@ type StudentRecordsState = {
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
+  const { dailyRecords, updateDailyRecords } = useDailyRecords();
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo>(classes[0]);
   const [recordDate, setRecordDate] = React.useState<Date | null>(null);
   const [generalDescription, setGeneralDescription] = React.useState('');
@@ -64,7 +65,7 @@ export default function GunlukTakipPage() {
   React.useEffect(() => {
     if (recordDate) {
       const dateStr = format(recordDate, 'yyyy-MM-dd');
-      const filteredRecords = initialDailyRecords.filter(r => r.classId === selectedClass.id && r.date === dateStr);
+      const filteredRecords = dailyRecords.filter(r => r.classId === selectedClass.id && r.date === dateStr);
       
       const recordsByStudent = filteredRecords.reduce((acc, record) => {
         acc[record.studentId] = { status: record.status, description: record.description };
@@ -72,9 +73,12 @@ export default function GunlukTakipPage() {
       }, {} as StudentRecordsState);
 
       setStudentRecords(recordsByStudent);
-      setGeneralDescription('');
+      
+      // Note: General description is not stored per class/date yet.
+      // We can add this logic if needed. For now, it resets.
+      setGeneralDescription(''); 
     }
-  }, [selectedClass.id, recordDate]);
+  }, [selectedClass.id, recordDate, dailyRecords]);
 
   const students = allStudents.filter((s) => s.classId === selectedClass.id);
   
@@ -105,17 +109,24 @@ export default function GunlukTakipPage() {
 
   const handleSave = () => {
     if (!recordDate) return;
-    // In a real app, you would save this to a database
-    // Here we just log it and update the mock data for the session
-    console.log("Kaydedilen Veriler:", { 
-        date: format(recordDate, 'yyyy-MM-dd'), 
-        classId: selectedClass.id, 
-        records: studentRecords,
-        generalDescription: generalDescription,
-     });
+
+    const dateStr = format(recordDate, 'yyyy-MM-dd');
+    const recordsToUpdate: DailyRecord[] = Object.entries(studentRecords)
+        .filter(([_, record]) => record.status || record.description) // Only save if there's data
+        .map(([studentId, record]) => ({
+            id: `record-${studentId}-${dateStr}`,
+            studentId,
+            classId: selectedClass.id,
+            date: dateStr,
+            status: record.status || null,
+            description: record.description || '',
+        }));
+
+    updateDailyRecords(selectedClass.id, dateStr, recordsToUpdate);
+
     toast({
       title: "Kayıt Başarılı",
-      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar, notlar ve genel açıklama kaydedildi. (Konsolu kontrol edin)`,
+      description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar başarıyla kaydedildi.`,
     });
   };
 
@@ -367,3 +378,5 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
+
+    

@@ -46,8 +46,9 @@ import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { classes, students, dailyRecords } from '@/lib/mock-data';
+import { classes, students } from '@/lib/mock-data';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
+import { useDailyRecords } from '@/hooks/use-daily-records';
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
@@ -79,6 +80,7 @@ const chartConfig = {
 
 
 export default function RaporlarPage() {
+  const { dailyRecords } = useDailyRecords();
   const [selectedClassId, setSelectedClassId] = React.useState<string>(classes[0].id);
   const [selectedReportType, setSelectedReportType] = React.useState('bireysel');
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
@@ -113,7 +115,7 @@ export default function RaporlarPage() {
       
       return isClassMatch && isDateMatch && isStudentMatch;
     });
-  }, [selectedClassId, selectedStudentId, selectedReportType, dateRange]);
+  }, [selectedClassId, selectedStudentId, selectedReportType, dateRange, dailyRecords]);
 
 
   const individualReportData = React.useMemo(() => {
@@ -520,3 +522,5 @@ export default function RaporlarPage() {
     </AppLayout>
   );
 }
+
+    
