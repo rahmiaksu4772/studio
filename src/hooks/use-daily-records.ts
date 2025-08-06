@@ -66,20 +66,18 @@ export function useDailyRecords() {
           const newRecordsMap = new Map(newRecords.map(r => [r.studentId, r]));
           const otherRecords = prevRecords.filter(r => r.classId !== classId || r.date !== date);
           const existingRecordsForDate = prevRecords.filter(r => r.classId === classId && r.date === date);
-          const updatedStudentIds = new Set(newRecords.map(r => r.studentId));
-
+          
           const updatedOrKeptRecords = existingRecordsForDate.map(existingRecord => {
               if (newRecordsMap.has(existingRecord.studentId)) {
                   const newRecord = newRecordsMap.get(existingRecord.studentId)!;
-                  return { ...existingRecord, ...newRecord };
+                  newRecordsMap.delete(existingRecord.studentId); // Remove from map so we only have brand-new records left
+                  return { ...existingRecord, status: newRecord.status, description: newRecord.description };
               }
               return existingRecord;
           });
-
-          const brandNewRecords = newRecords
-              .filter(nr => !existingRecordsForDate.some(er => er.studentId === nr.studentId))
-              .map(nr => ({ ...nr, id: `${nr.studentId}-${nr.date}` }));
           
+          const brandNewRecords = Array.from(newRecordsMap.values()).map(nr => ({ ...nr, id: `${nr.studentId}-${nr.date}` } as DailyRecord));
+
           const finalRecordsForDate = [...updatedOrKeptRecords, ...brandNewRecords];
 
           const allRecords = [...otherRecords, ...finalRecordsForDate];

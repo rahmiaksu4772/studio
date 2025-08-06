@@ -12,7 +12,7 @@ import React from 'react';
 import { useDailyRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
 
 export default function AnaSayfaPage() {
-  const { classes, students, isLoading: isClassesLoading } = useClassesAndStudents();
+  const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
   const { records, isLoading: isRecordsLoading } = useDailyRecords();
   
   const [totalClasses, setTotalClasses] = React.useState(0);

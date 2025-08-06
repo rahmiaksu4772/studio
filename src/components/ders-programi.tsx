@@ -121,7 +121,7 @@ export default function DersProgrami() {
         
         <div className="rounded-lg border p-4 min-h-[300px] bg-muted/30">
             {activeDayIndex !== -1 && schedule[activeDayIndex].lessons.map((lesson, lessonIndex) => (
-                 <div key={lessonIndex} 
+                 <div key={`${activeDayIndex}-${lessonIndex}`} 
                     className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center p-2 rounded-lg transition-all hover:bg-background/80"
                 >
                     <div className="flex items-center gap-2 font-semibold text-primary col-span-1 md:col-span-2">
