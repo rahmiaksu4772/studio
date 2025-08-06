@@ -16,7 +16,7 @@ import {
     StickyNote,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -79,7 +79,7 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                     </Link>
                      <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary text-left"
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary text-left"
                         >
                         <LogOut className="h-5 w-5" />
                         Çıkış Yap
@@ -94,7 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [open, setOpen] = React.useState(false);
 
-    if (pathname === '/login' || pathname === '/kayit') {
+    if (pathname === '/login' || pathname === '/kayit' || pathname === '/') {
         return <>{children}</>;
     }
 
@@ -117,6 +117,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="flex flex-col p-0 w-full max-w-[280px]">
+                            <SheetHeader className='sr-only'>
+                                <SheetTitle>Ana Menü</SheetTitle>
+                                <SheetDescription>
+                                    Uygulama içinde gezinmek için bu menüyü kullanın.
+                                </SheetDescription>
+                            </SheetHeader>
                              <NavContent onLinkClick={() => setOpen(false)} />
                         </SheetContent>
                     </Sheet>
