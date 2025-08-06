@@ -1,11 +1,8 @@
 
 import type {Metadata} from 'next';
-import {Inter} from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
-
-const inter = Inter({subsets: ['latin']});
 
 export const metadata: Metadata = {
   title: 'SınıfPlanım | Öğretmenin Dijital Asistanı',
@@ -19,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
+      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         {children}
         <Toaster />
       </body>

@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 const menuItems = [
     { href: '/anasayfa', label: 'Ana Sayfa', icon: Home },
@@ -28,80 +29,83 @@ const menuItems = [
     { href: '/notlarim', label: 'Notlarım', icon: StickyNote },
 ];
 
-const handleLogout = (router: ReturnType<typeof useRouter>) => {
-    // TODO: Implement actual logout logic
-    router.push('/login');
-}
-
-const NavContent = React.memo(function NavContent() {
+const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     const pathname = usePathname();
     const router = useRouter();
 
+    const handleLogout = () => {
+        onLinkClick?.();
+        router.push('/login');
+    };
+
     return (
-        <div className="flex h-full max-h-screen flex-col gap-2">
-            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                <Link href="/anasayfa" className="flex items-center gap-2 font-semibold">
-                    <GraduationCap className="h-6 w-6" />
-                    <span className="">SınıfPlanım</span>
+        <div className="flex h-full max-h-screen flex-col">
+            <div className="flex h-[60px] items-center border-b px-6">
+                <Link href="/anasayfa" className="flex items-center gap-2 font-semibold text-lg" onClick={onLinkClick}>
+                    <GraduationCap className="h-6 w-6 text-primary" />
+                    <span>SınıfPlanım</span>
                 </Link>
             </div>
-            <div className="flex-1">
-                <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+            <div className="flex-1 overflow-y-auto">
+                <nav className="grid items-start px-4 py-4 text-sm font-medium">
                     {menuItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
-                                pathname === item.href ? 'bg-muted text-primary' : ''
-                            }`}
+                            onClick={onLinkClick}
+                            className={cn(
+                                'flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary',
+                                pathname === item.href ? 'bg-primary/10 text-primary' : ''
+                            )}
                         >
-                            <item.icon className="h-4 w-4" />
+                            <item.icon className="h-5 w-5" />
                             {item.label}
                         </Link>
                     ))}
                 </nav>
             </div>
             <div className="mt-auto p-4">
-                 <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+                 <nav className="grid items-start px-4 text-sm font-medium">
                     <Link
                         href="/ayarlar"
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
-                            pathname.startsWith('/ayarlar') ? 'bg-muted text-primary' : ''
-                        }`}
+                        onClick={onLinkClick}
+                        className={cn(
+                            'flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary',
+                            pathname.startsWith('/ayarlar') ? 'bg-primary/10 text-primary' : ''
+                        )}
                         >
-                        <Settings className="h-4 w-4" />
+                        <Settings className="h-5 w-5" />
                         Ayarlar
                     </Link>
                      <button
-                        onClick={() => handleLogout(router)}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary text-left"
                         >
-                        <LogOut className="h-4 w-4" />
+                        <LogOut className="h-5 w-5" />
                         Çıkış Yap
                     </button>
                  </nav>
             </div>
         </div>
-    )
-});
-
+    );
+};
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const [open, setOpen] = React.useState(false);
 
-    // Don't render layout for login/register pages
     if (pathname === '/login' || pathname === '/kayit') {
         return <>{children}</>;
     }
 
     return (
-        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-            <div className="hidden border-r bg-muted/40 md:block">
+        <div className="grid min-h-screen w-full md:grid-cols-[280px_1fr]">
+            <div className="hidden border-r bg-card md:block">
                 <NavContent />
             </div>
             <div className="flex flex-col">
-                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-                    <Sheet>
+                <header className="flex h-[60px] items-center gap-4 border-b bg-card px-6">
+                    <Sheet open={open} onOpenChange={setOpen}>
                         <SheetTrigger asChild>
                             <Button
                                 variant="outline"
@@ -109,23 +113,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 className="shrink-0 md:hidden"
                             >
                                 <Menu className="h-5 w-5" />
-                                <span className="sr-only">Toggle navigation menu</span>
+                                <span className="sr-only">Menüyü aç/kapat</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col p-0">
-                            <NavContent />
+                        <SheetContent side="left" className="flex flex-col p-0 w-full max-w-[280px]">
+                             <NavContent onLinkClick={() => setOpen(false)} />
                         </SheetContent>
                     </Sheet>
-                    <div className="w-full flex-1">
-                        <div className="relative">
-                            <Avatar className="float-right">
-                                <AvatarImage src="https://placehold.co/40x40.png" alt="Ayşe Öğretmen" data-ai-hint="teacher portrait" />
-                                <AvatarFallback>AÖ</AvatarFallback>
-                            </Avatar>
-                        </div>
-                    </div>
+                    <div className="w-full flex-1" />
+                    <Avatar>
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="Ayşe Öğretmen" data-ai-hint="teacher portrait" />
+                        <AvatarFallback>AÖ</AvatarFallback>
+                    </Avatar>
                 </header>
-                {children}
+                <div className="flex-1 overflow-auto bg-background">
+                    {children}
+                </div>
             </div>
         </div>
     );
