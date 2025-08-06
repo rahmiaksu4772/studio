@@ -201,7 +201,7 @@ export default function RaporlarPage() {
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
     const pageHeader = (data: any) => {
-        doc.setFontSize(16);
+        doc.setFontSize(18);
         doc.setTextColor(40);
         if (selectedReportType === 'sinif' && classReportData) {
             doc.text(`Sınıf Raporu: ${selectedClass?.name}`, data.settings.margin.left, 22);
@@ -238,7 +238,7 @@ export default function RaporlarPage() {
             startY: 30,
             theme: 'grid',
             headStyles: { fillColor: [33, 150, 243], textColor: 255 },
-            styles: { fontStyle: 'bold' },
+            styles: { font: 'liberationsans' },
             alternateRowStyles: { fillColor: [240, 244, 255] },
             didDrawPage: (data: any) => {
                 pageHeader(data);
@@ -276,6 +276,7 @@ export default function RaporlarPage() {
                 ]),
                 theme: 'striped',
                 headStyles: { fillColor: [33, 150, 243], textColor: 255 },
+                styles: { font: 'liberationsans' },
                 didDrawPage: (data: any) => {
                     pageHeader(data);
                     pageFooter(data);
@@ -294,27 +295,27 @@ export default function RaporlarPage() {
   const renderReportContent = () => {
     if (isLoading) {
         return (
-          <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center justify-center p-20">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         );
     }
     
     if (filteredData.length === 0) {
-        return <div className="text-center p-8 text-muted-foreground">Rapor oluşturmak için yukarıdaki filtreleri kullanın ve "Raporu Oluştur" düğmesine tıklayın.</div>
+        return <div className="text-center py-10 text-muted-foreground">Rapor oluşturmak için yukarıdaki filtreleri kullanın ve "Raporu Oluştur" düğmesine tıklayın.</div>
     }
 
     if (selectedReportType === 'bireysel' && !individualReportData) {
-        return <div className="text-center p-8 text-muted-foreground">Raporu görüntülemek için lütfen bir öğrenci seçin.</div>
+        return <div className="text-center py-10 text-muted-foreground">Raporu görüntülemek için lütfen bir öğrenci seçin.</div>
     }
     
     if(selectedReportType === 'bireysel' && individualReportData){
       const { summary, records, chartData } = individualReportData;
       return (
         <Card>
-            <CardHeader className='flex-col md:flex-row items-start md:items-center justify-between gap-4'>
+            <CardHeader className='flex-row items-center justify-between'>
                 <div>
-                    <CardTitle className='text-xl'>Bireysel Rapor: {students.find(s => s.id === selectedStudentId)?.firstName} {students.find(s => s.id === selectedStudentId)?.lastName}</CardTitle>
+                    <CardTitle>Bireysel Rapor: {students.find(s => s.id === selectedStudentId)?.firstName} {students.find(s => s.id === selectedStudentId)?.lastName}</CardTitle>
                     <CardDescription>Aşağıda öğrencinin seçilen tarih aralığındaki performansını görebilirsiniz.</CardDescription>
                 </div>
                  <Button variant="outline" onClick={handleDownloadPdf}>
@@ -337,7 +338,7 @@ export default function RaporlarPage() {
                 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><BarChart2 /> İstatistik Grafiği</CardTitle>
+                        <CardTitle>İstatistik Grafiği</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
@@ -359,18 +360,18 @@ export default function RaporlarPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><List /> Günlük Notlar</CardTitle>
+                        <CardTitle>Günlük Notlar</CardTitle>
                         <CardDescription>Seçilen tarih aralığındaki gözlemler.</CardDescription>
                     </CardHeader>
                     <CardContent>
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                             {records.length > 0 ? records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
-                                <div key={record.id} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
-                                    <div className="font-semibold text-center w-24">
+                                <div key={record.id} className="flex items-start gap-4">
+                                    <div className="font-semibold text-center w-20">
                                         <p>{format(new Date(record.date), 'dd MMMM', { locale: tr })}</p>
                                         <p className="text-xs text-muted-foreground">{format(new Date(record.date), 'cccc', { locale: tr })}</p>
                                     </div>
-                                    <div className="flex-1">
+                                    <div className="border-l pl-4 flex-1">
                                         <p className="font-medium flex items-center gap-2">
                                         {record.status && statusOptions.find(o=>o.value === record.status)?.icon &&
                                                 React.createElement(statusOptions.find(o=>o.value === record.status)!.icon!, {
@@ -382,7 +383,7 @@ export default function RaporlarPage() {
                                         <p className="text-sm text-muted-foreground">{record.description || "Ek bir not girilmemiş."}</p>
                                     </div>
                                 </div>
-                            )) : <p className='text-sm text-muted-foreground'>Bu tarih aralığında not bulunmuyor.</p>}
+                            )) : <p>Bu tarih aralığında not bulunmuyor.</p>}
                     </div>
                     </CardContent>
                 </Card>
@@ -394,9 +395,9 @@ export default function RaporlarPage() {
     if(selectedReportType === 'sinif' && classReportData){
         return (
             <Card>
-                <CardHeader className='flex-col md:flex-row items-start md:items-center justify-between gap-4'>
+                <CardHeader className='flex-row items-center justify-between'>
                     <div>
-                        <CardTitle className="flex items-center gap-2"><Users/> Sınıf Geneli Performans Raporu</CardTitle>
+                        <CardTitle>Sınıf Geneli Performans Raporu</CardTitle>
                         <CardDescription>
                             Seçilen tarih aralığında öğrencilerin aldığı işaretler ve toplam puanları.
                         </CardDescription>
@@ -407,32 +408,30 @@ export default function RaporlarPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                     <div className="border rounded-lg overflow-x-auto">
-                        <Table className="min-w-[800px]">
-                            <TableHeader className="bg-muted/50">
-                                <TableRow>
-                                    <TableHead className="w-[80px]">No</TableHead>
-                                    <TableHead>Adı Soyadı</TableHead>
-                                    {statusOptions.map(opt => (
-                                        <TableHead key={opt.value} className="text-center">{opt.label}</TableHead>
-                                    ))}
-                                    <TableHead className="text-right font-bold">Toplam Puan</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {classReportData.studentSummaries.map(student => (
-                                    <TableRow key={student.id}>
-                                        <TableCell className="font-medium">{student.studentNumber}</TableCell>
-                                        <TableCell className="font-semibold">{student.firstName} {student.lastName}</TableCell>
-                                        {statusOptions.map(opt => (
-                                            <TableCell key={opt.value} className="text-center">{student.summary[opt.value]}</TableCell>
-                                        ))}
-                                        <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
-                                    </TableRow>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[80px]">No</TableHead>
+                                <TableHead>Adı Soyadı</TableHead>
+                                {statusOptions.map(opt => (
+                                    <TableHead key={opt.value} className="text-center">{opt.label}</TableHead>
                                 ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                <TableHead className="text-right">Toplam Puan</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {classReportData.studentSummaries.map(student => (
+                                <TableRow key={student.id}>
+                                    <TableCell className="font-medium">{student.studentNumber}</TableCell>
+                                    <TableCell>{student.firstName} {student.lastName}</TableCell>
+                                    {statusOptions.map(opt => (
+                                        <TableCell key={opt.value} className="text-center">{student.summary[opt.value]}</TableCell>
+                                    ))}
+                                    <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
         )
@@ -443,25 +442,20 @@ export default function RaporlarPage() {
   
   return (
     <AppLayout>
-      <main className="flex-1 p-4 sm:p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold">Raporlar</h1>
-            <p className="text-muted-foreground">
-              Sınıf ve öğrenci performansını analiz edin.
-            </p>
-          </div>
+      <main className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Raporlar</h2>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Filtreler</CardTitle>
+            <CardTitle>Rapor Oluştur</CardTitle>
             <CardDescription>Rapor oluşturmak için aşağıdaki kriterleri seçin.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div className="space-y-2">
-                <Label htmlFor="class-select">Sınıf Seçimi</Label>
+              <div className="space-y-1">
+                <Label htmlFor="class-select">Sınıf</Label>
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
                   <SelectTrigger id="class-select">
                     <SelectValue placeholder="Sınıf seçin" />
@@ -471,7 +465,7 @@ export default function RaporlarPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="report-type">Rapor Türü</Label>
                 <Select value={selectedReportType} onValueChange={(value) => {
                     setSelectedReportType(value);
@@ -486,7 +480,7 @@ export default function RaporlarPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2" style={{ display: selectedReportType === 'bireysel' ? 'block' : 'none' }}>
+              <div className="space-y-1" style={{ display: selectedReportType === 'bireysel' ? 'block' : 'none' }}>
                 <Label htmlFor="student-select">Öğrenci</Label>
                 <Select value={selectedStudentId || ''} onValueChange={setSelectedStudentId} disabled={students.length === 0}>
                   <SelectTrigger id="student-select">
@@ -497,7 +491,7 @@ export default function RaporlarPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label>Tarih Aralığı</Label>
                 <Popover>
                     <PopoverTrigger asChild>

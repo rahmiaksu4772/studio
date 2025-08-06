@@ -15,7 +15,6 @@ import { Skeleton } from './ui/skeleton';
 interface WeeklyScheduleItem {
   day: string;
   lessons: Lesson[];
-  color: string;
 }
 
 const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -44,7 +43,6 @@ export default function DersProgrami() {
   };
   
   const addLesson = (dayIndex: number) => {
-    if (dayIndex === -1) return;
     const newSchedule = [...schedule];
     newSchedule[dayIndex].lessons.push({ time: '00:00 - 00:00', subject: 'Yeni Ders', class: 'Sınıf' });
     setSchedule(newSchedule);
@@ -70,14 +68,12 @@ export default function DersProgrami() {
     return (
         <Card className="w-full">
             <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <CardTitle className="flex items-center gap-2">
-                        <BookOpenCheck className="h-5 w-5" />
-                        Haftalık Ders Programı
-                    </CardTitle>
-                </div>
+                <CardTitle className="flex items-center gap-2">
+                    <BookOpenCheck className="h-5 w-5" />
+                    Haftalık Ders Programı
+                </CardTitle>
             </CardHeader>
-            <CardContent className="min-h-[400px] flex items-center justify-center">
+            <CardContent>
                  <Skeleton className="w-full h-[300px]" />
             </CardContent>
         </Card>
@@ -87,7 +83,7 @@ export default function DersProgrami() {
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
             <BookOpenCheck className="h-5 w-5" />
             Haftalık Ders Programı
@@ -99,18 +95,17 @@ export default function DersProgrami() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 overflow-x-auto pb-2">
-          <div className="flex w-full space-x-1 sm:space-x-2">
+        <div className="mb-4">
+          <div className="flex space-x-2 border-b">
             {schedule.map(day => (
               <button
                 key={day.day}
                 onClick={() => setActiveDay(day.day)}
                 className={cn(
-                  'px-3 py-2 rounded-md text-sm font-semibold transition-colors whitespace-nowrap flex-1 sm:flex-auto',
-                   day.color,
+                  'px-4 py-2 text-sm font-medium',
                   activeDay === day.day
-                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                    : 'text-foreground/80'
+                    ? 'border-b-2 border-primary text-primary'
+                    : 'text-muted-foreground'
                 )}
               >
                 {day.day}
@@ -119,44 +114,34 @@ export default function DersProgrami() {
           </div>
         </div>
         
-        <div className="rounded-lg border p-4 min-h-[300px] bg-muted/30">
+        <div className="space-y-4">
             {activeDayIndex !== -1 && schedule[activeDayIndex].lessons.map((lesson, lessonIndex) => (
-                 <div key={`${activeDayIndex}-${lessonIndex}`} 
-                    className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center p-2 rounded-lg transition-all hover:bg-background/80"
-                >
-                    <div className="flex items-center gap-2 font-semibold text-primary col-span-1 md:col-span-2">
-                        <Clock className="h-5 w-5 flex-shrink-0" />
-                        <Input
+                 <div key={`${activeDayIndex}-${lessonIndex}`} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted">
+                     <div className="flex items-center gap-2 font-semibold text-primary">
+                         <Clock className="h-5 w-5" />
+                         <Input
                             value={lesson.time}
                             onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'time', e.target.value)}
-                            className="bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-primary h-9"
+                            className="bg-transparent border-0 focus-visible:ring-1"
                         />
-                    </div>
-                    <div className="col-span-1 md:col-span-3">
+                     </div>
+                     <div className="flex-grow">
                          <Input
                             value={lesson.subject}
                             onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'subject', e.target.value)}
-                            className="font-bold text-md bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-primary h-9"
+                            className="font-bold text-lg bg-transparent border-0 focus-visible:ring-1"
                         />
-                        <Input
+                         <Input
                             value={lesson.class}
                             onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'class', e.target.value)}
-                            className="text-sm text-muted-foreground bg-transparent border-0 focus-visible:ring-1 focus-visible:ring-primary h-8 -mt-1"
+                            className="text-sm text-muted-foreground bg-transparent border-0 focus-visible:ring-1"
                         />
-                    </div>
-                    <div className="flex items-center justify-end">
-                       <Button variant="ghost" size="icon" onClick={() => deleteLesson(activeDayIndex, lessonIndex)}>
-                           <Trash2 className="h-4 w-4 text-destructive" />
-                       </Button>
-                    </div>
+                     </div>
+                     <Button variant="ghost" size="icon" onClick={() => deleteLesson(activeDayIndex, lessonIndex)}>
+                         <Trash2 className="h-4 w-4 text-destructive" />
+                     </Button>
                  </div>
             ))}
-            {activeDayIndex !== -1 && schedule[activeDayIndex].lessons.length === 0 && (
-                <div className="text-center p-8 text-muted-foreground h-full flex flex-col items-center justify-center">
-                    <p className='font-semibold'>Bugün ders programı boş.</p>
-                    <p className='text-sm'>Yeni bir ders ekleyerek başlayabilirsiniz.</p>
-                </div>
-            )}
              <Button variant="outline" className="w-full mt-4" onClick={() => addLesson(activeDayIndex)}>
                 <Plus className="mr-2 h-4 w-4"/>
                 Yeni Ders Ekle

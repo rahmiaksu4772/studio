@@ -89,10 +89,10 @@ export default function PlanlarimPage() {
   };
   
   const getFileIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return <FileText className="h-12 w-12 text-destructive" />;
-    if (fileType.includes('word')) return <WordIcon className="h-12 w-12 text-blue-600" />;
-    if (fileType.includes('sheet') || fileType.includes('excel')) return <ExcelIcon className="h-12 w-12 text-green-600" />;
-    return <FileText className="h-12 w-12 text-muted-foreground" />;
+    if (fileType.includes('pdf')) return <FileText className="h-10 w-10 text-red-500" />;
+    if (fileType.includes('word')) return <WordIcon className="h-10 w-10 text-blue-500" />;
+    if (fileType.includes('sheet') || fileType.includes('excel')) return <ExcelIcon className="h-10 w-10 text-green-500" />;
+    return <FileText className="h-10 w-10 text-gray-500" />;
   };
 
   const downloadFile = (dataUrl: string, fileName: string) => {
@@ -151,8 +151,8 @@ export default function PlanlarimPage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <main className="flex-1 p-4 sm:p-6 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <main className="flex-1 p-8 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </main>
       </AppLayout>
     );
@@ -160,48 +160,54 @@ export default function PlanlarimPage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 p-4 sm:p-6 relative">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Planlarım</h1>
-            <p className="text-muted-foreground">
-              Yıllık ve haftalık ders planlarınızı buradan yönetin.
-            </p>
-          </div>
+      <main className="flex-1 space-y-4 p-8 pt-6 relative">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Planlarım</h2>
           <UploadPlanForm onAddPlan={handleAddPlan} />
         </div>
 
         {plans.length === 0 ? (
-          <Card className="flex-1 flex items-center justify-center min-h-[60vh] border-dashed">
-            <div className="text-center p-6">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <FileText className="h-8 w-8 text-muted-foreground" />
+          <div className="flex-1 flex items-center justify-center rounded-lg border-2 border-dashed min-h-[60vh]">
+            <div className="text-center">
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Henüz plan oluşturulmadı</h3>
+              <p className="mt-1 text-sm text-gray-500">Yeni bir ders planı yükleyerek başlayın.</p>
+              <div className="mt-6">
+                <UploadPlanForm onAddPlan={handleAddPlan} isFirstPlan={true} />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Henüz Plan Oluşturulmadı</h2>
-              <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
-                Yeni bir ders planı yükleyerek başlayın. Yüklediğiniz PDF, Word ve Excel planları burada görüntülenecektir.
-              </p>
-              <UploadPlanForm onAddPlan={handleAddPlan} isFirstPlan={true} />
             </div>
-          </Card>
+          </div>
         ) : (
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {plans.map((plan) => (
               <Card key={plan.id} className="flex flex-col">
-                <CardHeader>
-                  <div className='flex items-start justify-between gap-4'>
-                    <div className="flex-shrink-0">
-                      {getFileIcon(plan.fileType)}
-                    </div>
-                    <div className='flex-grow'>
-                        <CardTitle className="text-base font-bold leading-tight mb-1">{plan.title}</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="text-lg">{plan.title}</CardTitle>
                         <Badge variant={plan.type === 'annual' ? 'default' : 'secondary'}>
                             {plan.type === 'annual' ? 'Yıllık Plan' : 'Haftalık Plan'}
                         </Badge>
                     </div>
+                    {getFileIcon(plan.fileType)}
+                </CardHeader>
+                <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground">
+                        Yüklenme Tarihi: {plan.uploadDate}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Dosya Türü: {plan.fileType.split('/')[1] || plan.fileType}
+                    </p>
+                </CardContent>
+                <CardFooter className="flex gap-2">
+                    <Button variant="outline" className="w-full" onClick={() => viewFile(plan)}>
+                        <FileText className="mr-2 h-4 w-4" /> Görüntüle
+                    </Button>
+                    <Button className="w-full" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
+                        <Download className="mr-2 h-4 w-4" /> İndir
+                    </Button>
                      <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8">
+                        <Button variant="destructive" size="icon">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
@@ -220,20 +226,6 @@ export default function PlanlarimPage() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                    <p className="text-xs text-muted-foreground">
-                        Yüklenme T.: {plan.uploadDate} | Tür: {plan.fileType.split('/')[1] || plan.fileType}
-                    </p>
-                </CardContent>
-                <CardFooter className="flex gap-2">
-                    <Button variant="outline" className="w-full" onClick={() => viewFile(plan)}>
-                        <FileText className="mr-2 h-4 w-4" /> Görüntüle
-                    </Button>
-                    <Button className="w-full" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
-                        <Download className="mr-2 h-4 w-4" /> İndir
-                    </Button>
                 </CardFooter>
               </Card>
             ))}
@@ -241,25 +233,19 @@ export default function PlanlarimPage() {
         )}
 
         {viewingPlan && pdfUrl && (
-          <div className="fixed inset-0 z-50 bg-black/80 flex flex-col p-4 animate-in fade-in-0">
-            <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                <h2 className="text-lg font-semibold text-white">{viewingPlan.title}</h2>
-                <Button variant="destructive" size="icon" onClick={closeViewer}>
-                    <CloseIcon className="h-6 w-6" />
-                    <span className="sr-only">Kapat</span>
-                </Button>
-            </div>
-            <div className="flex-1 w-full h-full bg-gray-800 rounded-lg overflow-hidden">
-                <object data={pdfUrl} type="application/pdf" width="100%" height="100%">
-                    <div className="flex flex-col items-center justify-center h-full text-white p-4">
-                        <p className='text-center'>PDF görüntüleyici yüklenemedi. Tarayıcınız bu dosyayı desteklemiyor olabilir veya dosya bozuk olabilir.</p>
-                        <Button asChild variant="secondary" className='mt-4'>
-                          <a href={pdfUrl} download={viewingPlan.fileName}>
-                            <Download className="mr-2 h-4 w-4"/> Dosyayı İndir
-                          </a>
-                        </Button>
-                    </div>
-                </object>
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-2xl w-full h-full max-w-4xl flex flex-col">
+                <div className="flex justify-between items-center p-4 border-b">
+                    <h2 className="text-lg font-semibold">{viewingPlan.title}</h2>
+                    <Button variant="ghost" size="icon" onClick={closeViewer}>
+                        <CloseIcon className="h-6 w-6" />
+                    </Button>
+                </div>
+                <div className="flex-1 w-full h-full">
+                    <object data={pdfUrl} type="application/pdf" width="100%" height="100%">
+                        <p>PDF görüntüleyici yüklenemedi. Tarayıcınız desteklemiyor olabilir.</p>
+                    </object>
+                </div>
             </div>
           </div>
         )}

@@ -126,8 +126,8 @@ export default function SiniflarimPage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <main className="flex-1 p-4 sm:p-6 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <main className="flex-1 p-8 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </main>
       </AppLayout>
     );
@@ -135,22 +135,19 @@ export default function SiniflarimPage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Sınıflarım</h1>
-            <p className="text-muted-foreground">Sınıflarınızı ve öğrencilerinizi buradan yönetin.</p>
-          </div>
+      <main className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Sınıflarım</h2>
           <AddClassForm onAddClass={handleAddClass} existingClasses={classes} />
         </div>
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sortedClasses.map((c) => (
             <Card key={c.id}>
-              <CardHeader className="bg-muted/50">
+              <CardHeader>
                 <div className="flex items-start justify-between">
-                  <div className='flex-grow'>
-                    <div className='flex items-center gap-2'>
-                        <CardTitle className="text-xl">{c.name}</CardTitle>
+                  <div>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                        {c.name}
                         <Button variant="ghost" size="icon" className='h-7 w-7' onClick={() => setEditingClass(c)}>
                             <Pencil className="h-4 w-4" />
                         </Button>
@@ -175,10 +172,10 @@ export default function SiniflarimPage() {
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-                    </div>
+                    </CardTitle>
                     <CardDescription>Sınıf Seviyesi: {c.name.split('/')[0]}</CardDescription>
                   </div>
-                  <div className="flex items-center gap-2 text-right text-primary font-bold flex-shrink-0">
+                  <div className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
                     <span>{c.students.length} Öğrenci</span>
                   </div>
@@ -194,10 +191,10 @@ export default function SiniflarimPage() {
                 </div>
 
                 {c.students.length > 0 ? (
-                  <div className="border rounded-lg max-h-96 overflow-y-auto">
-                    <ul className="divide-y">
+                  <div className="border rounded-md max-h-80 overflow-y-auto">
+                    <ul className="divide-y divide-border">
                       {c.students.map(student => (
-                          <li key={student.id} className="flex items-center justify-between p-3 hover:bg-muted/50">
+                          <li key={student.id} className="flex items-center justify-between p-3">
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-bold text-primary w-8 text-center">{student.studentNumber}</span>
                               <span className="font-medium">{student.firstName} {student.lastName}</span>
@@ -233,10 +230,8 @@ export default function SiniflarimPage() {
                     </ul>
                   </div>
                 ) : (
-                  <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
-                    <Users className="mx-auto h-10 w-10 mb-2" />
-                    <h3 className="font-semibold">Öğrenci Bulunmuyor</h3>
-                    <p className="text-sm">Bu sınıfa henüz öğrenci eklenmemiş.</p>
+                  <div className="text-center p-6 text-muted-foreground border-2 border-dashed rounded-md">
+                    <p>Bu sınıfa henüz öğrenci eklenmemiş.</p>
                     <div className="mt-4 flex items-center justify-center gap-2">
                         <AddStudentForm classId={c.id} onAddStudent={handleAddStudent} isFirstStudent={true} existingStudents={[]} />
                         <ImportStudentsDialog classId={c.id} onImport={handleBulkAddStudents} isFirstImport={true} existingStudents={[]} />

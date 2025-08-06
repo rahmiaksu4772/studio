@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Plan } from '@/lib/types';
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = [
     'application/pdf', 
     'application/msword', 
@@ -39,7 +39,7 @@ const formSchema = z.object({
   file: z
     .custom<FileList>()
     .refine((files) => files?.length > 0, 'Lütfen bir dosya seçin.')
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Maksimum dosya boyutu 25MB'dir.`)
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Maksimum dosya boyutu 5MB'dir.`)
     .refine(
       (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
       'Sadece .pdf, .doc, .docx, .xls, .xlsx formatları desteklenmektedir.'
@@ -108,8 +108,8 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
   };
 
   const triggerButton = isFirstPlan ? (
-    <Button size="lg">
-      <Plus className="mr-2 h-5 w-5" />
+    <Button>
+      <Plus className="mr-2 h-4 w-4" />
       İlk Planını Yükle
     </Button>
   ) : (
@@ -129,15 +129,15 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
       setOpen(isOpen);
     }}>
       <DialogTrigger asChild>{triggerButton}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Yeni Ders Planı Yükle</DialogTitle>
           <DialogDescription>
-            Planınız için bir başlık girin, türünü seçin ve PDF, Word veya Excel dosyasını yükleyin.
+            Planınız için bir başlık girin, türünü seçin ve dosyasını yükleyin.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
@@ -161,7 +161,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex gap-4"
+                      className="flex space-x-4"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
@@ -191,12 +191,9 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                       <div>
                         <label 
                           htmlFor="file-upload" 
-                          className={cn(
-                              "flex w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                              "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                          )}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                         >
-                          <Folder className="mr-2 h-4 w-4 text-yellow-500" />
+                          <Folder className="mr-2 h-4 w-4" />
                           <span>{selectedFile?.[0]?.name ?? 'Dosya Seç'}</span>
                         </label>
                         <Input

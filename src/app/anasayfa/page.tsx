@@ -39,17 +39,12 @@ export default function AnaSayfaPage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 space-y-6 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Hoş Geldiniz, Ayşe Öğretmen!</h1>
-            <p className="text-muted-foreground">
-              İşte bugünün özeti ve hızlı işlemler.
-            </p>
-          </div>
+      <main className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Hoş Geldiniz, Ayşe Öğretmen!</h2>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Toplam Sınıf</CardTitle>
@@ -80,18 +75,18 @@ export default function AnaSayfaPage() {
                     <p className="text-xs text-muted-foreground">Bugün girilen değerlendirme</p>
                 </CardContent>
             </Card>
-             <Card className='bg-primary/10 border-primary/20'>
+             <Card>
                 <CardHeader className="pb-2">
-                    <CardTitle className="text-md font-semibold text-primary">Hızlı İşlemler</CardTitle>
+                    <CardTitle>Hızlı İşlemler</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2">
                    <Link href="/gunluk-takip">
-                     <Button variant="outline" className="w-full justify-between hover:bg-primary/10">
+                     <Button variant="outline" className="w-full justify-between">
                         Bugünkü Takibi Yap <ArrowRight className="h-4 w-4" />
                      </Button>
                    </Link>
                    <Link href="/raporlar">
-                     <Button variant="outline" className="w-full justify-between hover:bg-primary/10">
+                     <Button variant="outline" className="w-full justify-between">
                         Raporları Görüntüle <ArrowRight className="h-4 w-4" />
                      </Button>
                    </Link>
@@ -99,7 +94,7 @@ export default function AnaSayfaPage() {
             </Card>
         </div>
         
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-4">
             <DersProgrami />
         </div>
       </main>

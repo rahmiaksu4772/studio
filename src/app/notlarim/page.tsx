@@ -35,11 +35,11 @@ import type { Note } from '@/lib/types';
 import { format } from 'date-fns';
 
 const noteColors = [
-  'bg-yellow-100 border-yellow-200 dark:bg-yellow-900/40 dark:border-yellow-800/60',
-  'bg-blue-100 border-blue-200 dark:bg-blue-900/40 dark:border-blue-800/60',
-  'bg-green-100 border-green-200 dark:bg-green-900/40 dark:border-green-800/60',
-  'bg-pink-100 border-pink-200 dark:bg-pink-900/40 dark:border-pink-800/60',
-  'bg-purple-100 border-purple-200 dark:bg-purple-900/40 dark:border-purple-800/60',
+  'bg-yellow-50 border-yellow-200',
+  'bg-blue-50 border-blue-200',
+  'bg-green-50 border-green-200',
+  'bg-pink-50 border-pink-200',
+  'bg-purple-50 border-purple-200',
 ];
 
 const NOTES_STORAGE_KEY = 'personal-notes';
@@ -100,16 +100,9 @@ export default function NotlarimPage() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-             toast({
-                variant: 'destructive',
-                title: 'Kamera Erişimi Reddedildi',
-                description: 'Lütfen tarayıcı ayarlarınızdan kamera izinlerini etkinleştirin.',
-            });
-        }
       }
     };
     
@@ -122,7 +115,7 @@ export default function NotlarimPage() {
             videoRef.current.srcObject = null;
         }
     }
-  }, [isCameraOpen, toast]);
+  }, [isCameraOpen]);
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,7 +219,7 @@ export default function NotlarimPage() {
     };
 
     recognition.onerror = (event: any) => {
-        if (event.error === 'not-allowed' || event.error === 'permission-dismissed') {
+        if (event.error === 'not-allowed') {
             toast({
                 title: 'Mikrofon İzni Gerekli',
                 description: 'Sesle not almak için mikrofon izni vermelisiniz.',
@@ -260,27 +253,22 @@ export default function NotlarimPage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Notlarım</h1>
-            <p className="text-muted-foreground">
-              Kişisel not alma alanınız. Verileriniz tarayıcınızda saklanır.
-            </p>
-          </div>
+      <main className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Notlarım</h2>
         </div>
 
-        <Card className="max-w-2xl mx-auto mb-8 shadow-lg">
+        <Card className="max-w-xl mx-auto">
           <form onSubmit={handleAddNote}>
-            <CardContent className="p-4 space-y-3">
+            <CardContent className="p-4 space-y-2">
               {newNoteImage && (
                 <div className="relative">
-                    <img src={newNoteImage} alt="Eklenen resim" className="rounded-lg w-full" />
+                    <img src={newNoteImage} alt="Eklenen resim" className="rounded-md w-full" />
                     <Button
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="absolute top-2 right-2 h-7 w-7 rounded-full"
+                        className="absolute top-2 right-2 h-6 w-6"
                         onClick={() => setNewNoteImage(null)}
                     >
                         <CloseIcon className="h-4 w-4" />
@@ -289,19 +277,19 @@ export default function NotlarimPage() {
               )}
               <Input
                 placeholder="Not başlığı (isteğe bağlı)..."
-                className="text-lg font-semibold border-0 focus-visible:ring-0 shadow-none p-2"
+                className="text-lg font-semibold border-0 focus-visible:ring-0 shadow-none px-2"
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
               />
               <div className="relative">
                 <Textarea
                     placeholder="Bir not alın ya da konuşarak yazdırın..."
-                    className="border-0 focus-visible:ring-0 shadow-none p-2 resize-none pr-24"
+                    className="border-0 focus-visible:ring-0 shadow-none p-2 pr-20"
                     value={newNoteContent}
                     onChange={(e) => setNewNoteContent(e.target.value)}
                     rows={3}
                 />
-                <div className="absolute right-2 bottom-2 flex gap-1">
+                <div className="absolute right-2 top-2 flex flex-col gap-2">
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -310,10 +298,7 @@ export default function NotlarimPage() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleToggleRecording}
-                                    className={cn(
-                                        "h-8 w-8 rounded-full text-muted-foreground",
-                                        isRecording && "text-red-500 animate-pulse"
-                                    )}
+                                    className={cn(isRecording && "text-red-500 animate-pulse")}
                                 >
                                     {isRecording ? <MicOff /> : <Mic />}
                                 </Button>
@@ -331,7 +316,6 @@ export default function NotlarimPage() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => setIsCameraOpen(true)}
-                                    className="h-8 w-8 rounded-full text-muted-foreground"
                                 >
                                     <Camera />
                                 </Button>
@@ -344,7 +328,7 @@ export default function NotlarimPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end p-2 pr-4">
+            <CardFooter className="flex justify-end p-4">
               <Button type="submit">
                 <Plus className="mr-2 h-4 w-4" />
                 Not Ekle
@@ -354,12 +338,12 @@ export default function NotlarimPage() {
         </Card>
 
         {isLoading ? (
-            <div className="flex items-center justify-center min-h-[40vh]">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex items-center justify-center p-20">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         ) : notes.length > 0 ? (
           <div
-            className="grid gap-4"
+            className="grid gap-4 mt-8"
             style={{
               gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
             }}
@@ -367,20 +351,20 @@ export default function NotlarimPage() {
             {notes.map((note) => (
               <Card
                 key={note.id}
-                className={cn('flex flex-col break-inside-avoid', note.color)}
+                className={cn('flex flex-col break-inside-avoid border', note.color)}
               >
                 {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover" />}
                 <CardHeader>
-                  <CardTitle className="text-lg">{note.title || 'Başlıksız Not'}</CardTitle>
+                  <CardTitle>{note.title || 'Başlıksız Not'}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-grow whitespace-pre-wrap text-sm">
+                <CardContent className="flex-grow whitespace-pre-wrap">
                   {note.content}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">
                   <span>{note.date}</span>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10">
+                        <Button variant="ghost" size="icon">
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </AlertDialogTrigger>
@@ -404,7 +388,7 @@ export default function NotlarimPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center p-12 border-2 border-dashed rounded-lg">
+          <div className="text-center p-12 border-2 border-dashed rounded-lg mt-8">
             <StickyNote className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-medium">Henüz notunuz yok</h3>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -415,7 +399,7 @@ export default function NotlarimPage() {
       </main>
       
       <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Kameradan Fotoğraf Ekle</DialogTitle>
             <DialogDescription>
@@ -431,9 +415,9 @@ export default function NotlarimPage() {
                   </AlertDescription>
                 </Alert>
             )}
-            <div className="bg-black rounded-lg overflow-hidden relative">
+            <div className="bg-black rounded-md overflow-hidden">
               {capturedImage ? (
-                <img src={capturedImage} alt="Yakalanan Görüntü" className="w-full h-auto"/>
+                <img src={capturedImage} alt="Yakalanan Görüntü"/>
               ) : (
                  <video ref={videoRef} className="w-full h-auto" autoPlay muted playsInline />
               )}
@@ -447,10 +431,7 @@ export default function NotlarimPage() {
                     <Button onClick={handleUseImage}>Fotoğrafı Kullan</Button>
                 </>
             ) : (
-                <Button onClick={handleCapture} disabled={!hasCameraPermission}>
-                    <Camera className="mr-2 h-4 w-4" />
-                    Fotoğraf Çek
-                </Button>
+                <Button onClick={handleCapture} disabled={!hasCameraPermission}>Fotoğraf Çek</Button>
             )}
           </DialogFooter>
         </DialogContent>

@@ -80,14 +80,9 @@ export default function AyarlarPage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Ayarlar</h1>
-            <p className="text-muted-foreground">
-              Profil bilgilerinizi, görünüm ve bildirim tercihlerinizi yönetin.
-            </p>
-          </div>
+      <main className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight">Ayarlar</h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -99,7 +94,7 @@ export default function AyarlarPage() {
                     </CardHeader>
                     <CardContent className='text-center flex flex-col items-center gap-4'>
                         <div className="relative group">
-                             <Avatar className="h-24 w-24 border-2 border-primary/10">
+                             <Avatar className="h-24 w-24">
                                 <AvatarImage src={profile.avatarUrl} alt={profile.fullName} data-ai-hint="teacher portrait" />
                                 <AvatarFallback>{profile.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                             </Avatar>
@@ -126,17 +121,11 @@ export default function AyarlarPage() {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Lock className="h-5 w-5" />
-                            Güvenlik
-                        </CardTitle>
+                        <CardTitle>Güvenlik</CardTitle>
                         <CardDescription>Şifre ve güvenlik ayarları.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <button onClick={() => setIsChangePasswordOpen(true)} className='w-full text-left p-4 rounded-lg border hover:bg-muted/50 transition-colors'>
-                            <p className='font-medium'>Şifre Değiştir</p>
-                            <p className='text-xs text-muted-foreground'>Son değişiklik: 30 gün önce</p>
-                        </button>
+                        <Button variant='outline' className='w-full' onClick={() => setIsChangePasswordOpen(true)}>Şifre Değiştir</Button>
                     </CardContent>
                 </Card>
             </div>
@@ -147,63 +136,45 @@ export default function AyarlarPage() {
                   <CardDescription>Kişisel bilgileriniz ve iletişim detaylarınız.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                      <User className="h-6 w-6 text-primary" />
-                      <div>
-                        <p className="text-muted-foreground">Ad Soyad</p>
-                        <p className="font-semibold">{profile.fullName}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                      <Mail className="h-6 w-6 text-primary" />
-                      <div>
-                        <p className="text-muted-foreground">E-posta</p>
-                        <p className="font-semibold">{profile.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                      <Book className="h-6 w-6 text-primary" />
-                      <div>
-                        <p className="text-muted-foreground">Branş</p>
-                        <p className="font-semibold">{profile.branch}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                      <MapPin className="h-6 w-6 text-primary" />
-                      <div>
-                        <p className="text-muted-foreground">Görev Yeri</p>
-                        <p className="font-semibold">{profile.workplace}</p>
-                      </div>
-                    </div>
-                  </div>
+                  <ul className="space-y-4 text-sm">
+                    <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4"/> Ad Soyad</span>
+                      <span className="font-medium">{profile.fullName}</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-muted-foreground"><Mail className="h-4 w-4"/> E-posta</span>
+                      <span className="font-medium">{profile.email}</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-muted-foreground"><Book className="h-4 w-4"/> Branş</span>
+                      <span className="font-medium">{profile.branch}</span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4"/> Görev Yeri</span>
+                      <span className="font-medium">{profile.workplace}</span>
+                    </li>
+                  </ul>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Palette className="h-5 w-5" />
-                    Görünüm
-                  </CardTitle>
+                  <CardTitle>Görünüm</CardTitle>
                   <CardDescription>Uygulamanın arayüzünü kişiselleştirin.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm font-medium mb-4">Tema Seçimi</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div
                       onClick={() => setActiveTheme('light')}
                       className={cn(
-                        'p-4 rounded-lg border-2 cursor-pointer transition-all',
+                        'p-4 rounded-lg border-2 cursor-pointer',
                         activeTheme === 'light'
-                          ? 'border-primary ring-2 ring-primary/50 bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                          ? 'border-primary'
+                          : 'border-border'
                       )}
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <User className="h-6 w-6" />
-                        <h3 className="font-semibold text-lg">Açık Tema</h3>
-                      </div>
+                      <h3 className="font-semibold">Açık Tema</h3>
                       <p className="text-xs text-muted-foreground">
                         Gündüz kullanımı için aydınlık ve ferah arayüz.
                       </p>
@@ -211,16 +182,13 @@ export default function AyarlarPage() {
                     <div
                       onClick={() => setActiveTheme('dark')}
                       className={cn(
-                        'p-4 rounded-lg border-2 cursor-pointer transition-colors',
+                        'p-4 rounded-lg border-2 cursor-pointer',
                         activeTheme === 'dark'
-                          ? 'border-primary ring-2 ring-primary/50 bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                          ? 'border-primary'
+                          : 'border-border'
                       )}
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <User className="h-6 w-6" />
-                        <h3 className="font-semibold text-lg">Koyu Tema</h3>
-                      </div>
+                      <h3 className="font-semibold">Koyu Tema</h3>
                       <p className="text-xs text-muted-foreground">
                         Göz yormayan, gece kullanımı için ideal arayüz.
                       </p>
@@ -231,25 +199,16 @@ export default function AyarlarPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    Bildirimler
-                  </CardTitle>
+                  <CardTitle>Bildirimler</CardTitle>
                   <CardDescription>Hangi durumlarda bildirim almak istediğinizi seçin.</CardDescription>
                 </CardHeader>
                 <CardContent className='space-y-4'>
-                    <div className='flex items-center justify-between p-4 rounded-lg border'>
-                        <div>
-                            <Label htmlFor='notification-1' className='font-medium'>E-posta Bildirimleri</Label>
-                            <p className='text-xs text-muted-foreground'>Haftalık özet raporları ve önemli duyurular.</p>
-                        </div>
+                    <div className='flex items-center justify-between'>
+                        <Label htmlFor='notification-1'>E-posta Bildirimleri</Label>
                         <Switch id='notification-1' defaultChecked/>
                     </div>
-                     <div className='flex items-center justify-between p-4 rounded-lg border'>
-                        <div>
-                            <Label htmlFor='notification-2' className='font-medium'>Anlık Bildirimler</Label>
-                            <p className='text-xs text-muted-foreground'>Uygulama içi önemli olaylar için anlık uyarılar.</p>
-                        </div>
+                     <div className='flex items-center justify-between'>
+                        <Label htmlFor='notification-2'>Anlık Bildirimler</Label>
                         <Switch id='notification-2' />
                     </div>
                 </CardContent>
