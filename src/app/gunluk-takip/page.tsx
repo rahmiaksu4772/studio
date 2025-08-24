@@ -9,7 +9,8 @@ import {
   Save,
   MessageSquarePlus,
   ArrowLeft,
-  Users
+  Users,
+  AlertTriangle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
@@ -40,6 +41,17 @@ import {
     DialogFooter,
     DialogClose,
   } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 type StudentRecordsState = {
   [studentId: string]: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >>;
@@ -99,10 +111,27 @@ export default function GunlukTakipPage() {
             [studentId]: {
                 ...prev[studentId],
                 // If the same status is clicked again, unselect it. Otherwise, set the new status.
-                status: currentStatus === status ? null : status
+                status: currentStatus === status ? undefined : status
             }
         };
     });
+  };
+
+  const handleSetAllStatus = (status: AttendanceStatus) => {
+    setStudentRecords(prev => {
+        const newRecords = { ...prev };
+        students.forEach(student => {
+            newRecords[student.id] = {
+                ...newRecords[student.id],
+                status: status
+            };
+        });
+        return newRecords;
+    });
+    toast({
+        title: "Tüm Sınıf İşaretlendi",
+        description: `Tüm öğrenciler "${statusOptions.find(o => o.value === status)?.label}" olarak işaretlendi. Değişiklikleri kaydetmeyi unutmayın.`
+    })
   };
 
   const openNoteEditor = (student: Student) => {
@@ -136,7 +165,7 @@ export default function GunlukTakipPage() {
             studentId,
             classId: selectedClass.id,
             date: dateStr,
-            status: record.status || null,
+            status: record.status || undefined,
             description: record.description || '',
         }));
 
@@ -240,10 +269,41 @@ export default function GunlukTakipPage() {
                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 text-sm font-medium text-muted-foreground border-b">
                        <div>No</div>
                        <div>Adı Soyadı</div>
-                       <div className='text-center'>Durum</div>
+                       <div className='text-center flex items-center justify-end gap-1'>
+                            <span className='text-xs mr-2 hidden sm:inline'>Tümüne:</span>
+                            {statusOptions.map(option => (
+                               <AlertDialog key={`set-all-${option.value}`}>
+                                <AlertDialogTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size='icon'
+                                        className={cn('rounded-full w-8 h-8 transition-all hover:bg-muted')}
+                                        style={{'--bg-color': option.bgColor, '--text-color': option.color} as React.CSSProperties}
+                                    >
+                                        {option.icon && <option.icon className="h-5 w-5" style={{ color: option.color }} />}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle className='flex items-center gap-2'>
+                                            <AlertTriangle className='text-yellow-500'/>
+                                            Tüm Sınıfı İşaretle
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Bu işlem tüm öğrencilerin durumunu <strong>"{option.label}"</strong> olarak ayarlayacaktır. Emin misiniz?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleSetAllStatus(option.value)}>Evet, Uygula</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            ))}
+                       </div>
                     </div>
                     {students.map(student => {
-                        const record = studentRecords[student.id] || { status: null, description: '' };
+                        const record = studentRecords[student.id] || { status: undefined, description: '' };
                         return (
                             <div key={student.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-3 border-b last:border-none hover:bg-muted/50 rounded-md">
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
@@ -257,7 +317,7 @@ export default function GunlukTakipPage() {
                                             className={cn(
                                                 'rounded-full w-9 h-9 md:w-10 md:h-10 transition-all',
                                                 record.status === option.value && `bg-[var(--bg-color)] text-[var(--text-color)] hover:bg-[var(--bg-color)]/90 border-2 border-primary/50`,
-                                                record.status !== option.value && record.status !== null && 'opacity-50'
+                                                record.status !== option.value && record.status !== undefined && 'opacity-50'
                                             )}
                                             style={{
                                                 '--bg-color': option.bgColor,

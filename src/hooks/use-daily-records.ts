@@ -65,12 +65,14 @@ export function useDailyRecords() {
       setRecords(prevRecords => {
           const newRecordsMap = new Map(newRecords.map(r => [r.studentId, r]));
           const otherRecords = prevRecords.filter(r => r.classId !== classId || r.date !== date);
-          const existingRecordsForDate = prevRecords.filter(r => r.classId === classId && r.date === date);
+          
+          const studentsInClass = new Set(newRecords.map(r => r.studentId));
+          const existingRecordsForDate = prevRecords.filter(r => r.classId === classId && r.date === date && studentsInClass.has(r.studentId));
           
           const updatedOrKeptRecords = existingRecordsForDate.map(existingRecord => {
               if (newRecordsMap.has(existingRecord.studentId)) {
                   const newRecord = newRecordsMap.get(existingRecord.studentId)!;
-                  newRecordsMap.delete(existingRecord.studentId); // Remove from map so we only have brand-new records left
+                  newRecordsMap.delete(existingRecord.studentId);
                   return { ...existingRecord, status: newRecord.status, description: newRecord.description };
               }
               return existingRecord;
@@ -78,7 +80,7 @@ export function useDailyRecords() {
           
           const brandNewRecords = Array.from(newRecordsMap.values()).map(nr => ({ ...nr, id: `${nr.studentId}-${nr.date}` } as DailyRecord));
 
-          const finalRecordsForDate = [...updatedOrKeptRecords, ...brandNewRecords];
+          const finalRecordsForDate = [...updatedOrKeptRecords, ...brandNewRecords].filter(r => r.status || r.description);
 
           const allRecords = [...otherRecords, ...finalRecordsForDate];
           updateLocalStorage(allRecords);

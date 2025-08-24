@@ -1,5 +1,5 @@
 
-import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, MessageSquarePlus, FileCheck } from "lucide-react";
+import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, FileCheck } from "lucide-react";
 
 export type Student = {
   id: string;
@@ -21,7 +21,7 @@ export type DailyRecord = {
   studentId: string;
   classId: string;
   date: string; // YYYY-MM-DD
-  status: AttendanceStatus | null;
+  status?: AttendanceStatus;
   description?: string;
 };
 
