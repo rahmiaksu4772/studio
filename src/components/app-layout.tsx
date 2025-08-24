@@ -31,12 +31,6 @@ const menuItems = [
 
 const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     const pathname = usePathname();
-    const router = useRouter();
-
-    const handleLogout = () => {
-        onLinkClick?.();
-        router.push('/login');
-    };
 
     return (
         <div className="flex h-full max-h-screen flex-col">
@@ -77,13 +71,6 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                         <Settings className="h-5 w-5" />
                         Ayarlar
                     </Link>
-                     <button
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary text-left"
-                        >
-                        <LogOut className="h-5 w-5" />
-                        Çıkış Yap
-                    </button>
                  </nav>
             </div>
         </div>
