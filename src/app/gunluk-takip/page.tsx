@@ -10,8 +10,9 @@ import {
   Users,
   AlertTriangle,
   FilePenLine,
-  Trash2,
-  CheckCircle,
+  Save,
+  XCircle,
+  Undo2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
@@ -60,12 +61,9 @@ export default function GunlukTakipPage() {
   const { toast } = useToast();
   const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
   const { 
-      records, 
-      addEvent, 
-      addBulkEvents,
-      removeEvent, 
+      records: allRecords, 
       isLoading: isRecordsLoading, 
-      getRecordsForDate 
+      bulkUpdateRecords
     } = useDailyRecords();
   
   const [students, setStudents] = React.useState<Student[]>([]);
@@ -78,8 +76,19 @@ export default function GunlukTakipPage() {
   const [isBulkNoteOpen, setIsBulkNoteOpen] = React.useState(false);
   const [bulkNoteContent, setBulkNoteContent] = React.useState('');
 
+  const [dailyRecords, setDailyRecords] = React.useState<DailyRecord[]>([]);
+  const [isDirty, setIsDirty] = React.useState(false);
+
   const dateStr = recordDate ? format(recordDate, 'yyyy-MM-dd') : '';
-  const dailyRecords = selectedClass ? getRecordsForDate(selectedClass.id, dateStr) : [];
+
+  React.useEffect(() => {
+    if (selectedClass && dateStr) {
+      const recordsForDay = allRecords.filter(r => r.classId === selectedClass.id && r.date === dateStr);
+      setDailyRecords(recordsForDay);
+      setIsDirty(false); // Reset dirty state when date or class changes
+    }
+  }, [allRecords, selectedClass, dateStr]);
+
   
   const recordsByStudentId = React.useMemo(() => {
     return dailyRecords.reduce((acc, record) => {
@@ -105,107 +114,146 @@ export default function GunlukTakipPage() {
     setStudents(sortedStudents);
 
   }, [selectedClass, classes]);
+  
+  const updateLocalRecord = (studentId: string, updateFn: (record: DailyRecord) => DailyRecord) => {
+      setDailyRecords(prev => {
+          const recordIndex = prev.findIndex(r => r.studentId === studentId);
+          const newRecords = [...prev];
 
+          if (recordIndex > -1) {
+              newRecords[recordIndex] = updateFn(newRecords[recordIndex]);
+          } else {
+              if(!selectedClass || !dateStr) return prev;
+              const newRecord: DailyRecord = {
+                  id: `${selectedClass.id}-${dateStr}-${studentId}`,
+                  classId: selectedClass.id,
+                  studentId,
+                  date: dateStr,
+                  events: []
+              };
+              newRecords.push(updateFn(newRecord));
+          }
+          setIsDirty(true);
+          return newRecords;
+      });
+  };
 
   const handleStatusClick = (studentId: string, status: AttendanceStatus) => {
-    if (!selectedClass || !dateStr) return;
-    addEvent(selectedClass.id, studentId, dateStr, { type: 'status', value: status });
-    toast({
-        title: "Durum Eklendi",
-        description: `Öğrenci için "${statusOptions.find(o => o.value === status)?.label}" durumu kaydedildi.`,
-        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-    });
+    const newEvent: RecordEvent = { id: new Date().toISOString(), type: 'status', value: status };
+    updateLocalRecord(studentId, record => ({
+        ...record,
+        events: [...record.events, newEvent]
+    }));
   };
 
   const handleSetAllStatus = (status: AttendanceStatus) => {
     if (!selectedClass || !dateStr) return;
-
-    const studentIds = students.map(s => s.id);
-    addBulkEvents(selectedClass.id, studentIds, dateStr, { type: 'status', value: status });
     
-    toast({
-        title: "Tüm Sınıfa Durum Atandı",
-        description: `Tüm öğrenciler "${statusOptions.find(o => o.value === status)?.label}" olarak işaretlendi.`
-    })
+    setDailyRecords(prev => {
+        const studentIds = students.map(s => s.id);
+        const recordsMap = new Map(prev.map(r => [r.studentId, r]));
+
+        studentIds.forEach(studentId => {
+            const newEvent: RecordEvent = { id: new Date().toISOString() + studentId, type: 'status', value: status };
+            const existingRecord = recordsMap.get(studentId);
+            if (existingRecord) {
+                recordsMap.set(studentId, { ...existingRecord, events: [...existingRecord.events, newEvent] });
+            } else {
+                 recordsMap.set(studentId, {
+                    id: `${selectedClass.id}-${dateStr}-${studentId}`,
+                    classId: selectedClass.id,
+                    studentId,
+                    date: dateStr,
+                    events: [newEvent]
+                });
+            }
+        });
+
+        return Array.from(recordsMap.values());
+    });
+
+    setIsDirty(true);
   };
   
   const handleRemoveEvent = (studentId: string, eventId: string) => {
-    if (!selectedClass || !dateStr) return;
-    removeEvent(selectedClass.id, studentId, dateStr, eventId);
-     toast({
-        title: "Değerlendirme Silindi",
-        description: "Seçilen değerlendirme kayıtlardan kaldırıldı.",
-        variant: "destructive"
-    });
+    updateLocalRecord(studentId, record => ({
+        ...record,
+        events: record.events.filter(e => e.id !== eventId)
+    }));
   }
 
   const openNoteEditor = (student: Student) => {
     setEditingNoteFor(student);
     const existingNote = recordsByStudentId[student.id]?.events.find(e => e.type === 'note');
-    setCurrentNote(existingNote ? existingNote.value : '');
+    setCurrentNote(existingNote ? String(existingNote.value) : '');
   }
 
   const handleSaveNote = () => {
     if (!editingNoteFor || !selectedClass || !dateStr) return;
     
-    // As a business rule, we'll allow only one note per day to avoid clutter.
-    // So we remove the previous note event if it exists.
-    const existingRecord = recordsByStudentId[editingNoteFor.id];
-    const existingNoteEvent = existingRecord?.events.find(e => e.type === 'note');
-    if (existingNoteEvent) {
-        removeEvent(selectedClass.id, editingNoteFor.id, dateStr, existingNoteEvent.id);
-    }
-    
-    // Add the new note if it's not empty
-    if (currentNote.trim()) {
-        addEvent(selectedClass.id, editingNoteFor.id, dateStr, { type: 'note', value: currentNote });
-        toast({
-            title: "Not Kaydedildi",
-            description: `${editingNoteFor.firstName} için not kaydedildi.`
-        });
-    } else if (existingNoteEvent) {
-        // If the new note is empty, but an old one existed, it means the user deleted the text.
-        toast({
-            title: "Not Kaldırıldı",
-            description: `${editingNoteFor.firstName} için not kaldırıldı.`
-        });
-    }
+    updateLocalRecord(editingNoteFor.id, record => {
+        // Remove existing note to enforce one note per day rule
+        const otherEvents = record.events.filter(e => e.type !== 'note');
+        if (currentNote.trim()) {
+            return { ...record, events: [...otherEvents, { id: new Date().toISOString(), type: 'note', value: currentNote }] };
+        }
+        return { ...record, events: otherEvents }; // Return with note removed if new note is empty
+    });
 
     setEditingNoteFor(null);
     setCurrentNote('');
   }
 
   const handleSetAllDescriptions = () => {
-    if (!selectedClass || !dateStr || bulkNoteContent.trim() === '') {
-        toast({
-            title: "Açıklama Boş",
-            description: "Lütfen tüm sınıfa uygulamak için bir açıklama girin.",
-            variant: "destructive",
+    if (!selectedClass || !dateStr || bulkNoteContent.trim() === '') return;
+
+    setDailyRecords(prev => {
+        const studentIds = students.map(s => s.id);
+        const recordsMap = new Map(prev.map(r => [r.studentId, r]));
+
+        studentIds.forEach(studentId => {
+            const newEvent: RecordEvent = { id: new Date().toISOString() + studentId, type: 'note', value: bulkNoteContent };
+            const existingRecord = recordsMap.get(studentId);
+            const otherEvents = existingRecord ? existingRecord.events.filter(e => e.type !== 'note') : [];
+            
+            const updatedRecord: DailyRecord = {
+                id: existingRecord?.id || `${selectedClass.id}-${dateStr}-${studentId}`,
+                classId: selectedClass.id,
+                date: dateStr,
+                studentId,
+                events: [...otherEvents, newEvent]
+            };
+            recordsMap.set(studentId, updatedRecord);
         });
-        return;
-    }
-    
-    const studentIds = students.map(s => s.id);
-    
-    // As a business rule, we will overwrite existing notes when setting a bulk note.
-    // First, remove all existing notes for the day.
-     studentIds.forEach(studentId => {
-        const existingRecord = recordsByStudentId[studentId];
-        const existingNoteEvent = existingRecord?.events.find(e => e.type === 'note');
-        if (existingNoteEvent) {
-            removeEvent(selectedClass.id, studentId, dateStr, existingNoteEvent.id);
-        }
-     });
-
-    // Then, add the new bulk note for everyone.
-    addBulkEvents(selectedClass.id, studentIds, dateStr, { type: 'note', value: bulkNoteContent });
-
-    toast({
-        title: "Toplu Açıklama Eklendi",
-        description: `Tüm öğrencilere aynı açıklama eklendi.`
+        return Array.from(recordsMap.values());
     });
+    
+    setIsDirty(true);
     setIsBulkNoteOpen(false);
     setBulkNoteContent('');
+  };
+
+  const handleSaveChanges = () => {
+    if (!selectedClass || !dateStr) return;
+    bulkUpdateRecords(selectedClass.id, dateStr, dailyRecords);
+    setIsDirty(false);
+    toast({
+      title: 'Değişiklikler Kaydedildi',
+      description: 'Günlük değerlendirme çizelgesi başarıyla güncellendi.',
+    });
+  };
+
+  const handleCancelChanges = () => {
+    // Re-fetch original data from allRecords
+    if (selectedClass && dateStr) {
+      const recordsForDay = allRecords.filter(r => r.classId === selectedClass.id && r.date === dateStr);
+      setDailyRecords(recordsForDay);
+    }
+    setIsDirty(false);
+    toast({
+        title: 'Değişiklikler İptal Edildi',
+        variant: 'destructive',
+    });
   };
 
   const isLoading = isClassesLoading || isRecordsLoading;
@@ -224,9 +272,11 @@ export default function GunlukTakipPage() {
     <AppLayout>
       <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className='flex items-center gap-2 text-xl md:text-2xl font-bold tracking-tight text-gray-700'>
-                <Users className="h-7 w-7 text-primary" />
-                {selectedClass?.name || "Sınıf Yükleniyor..."} - Artı/Eksi Çizelgesi
+            <div className='flex flex-col'>
+                <h2 className='text-2xl font-bold tracking-tight'>Günlük Değerlendirme Çizelgesi</h2>
+                <p className='text-muted-foreground'>
+                   {selectedClass?.name} sınıfı için değerlendirmeleri girin.
+                </p>
             </div>
 
             <div className="flex w-full md:w-auto items-center justify-between md:justify-start space-x-2">
@@ -256,7 +306,6 @@ export default function GunlukTakipPage() {
                       className={cn(
                         "w-auto justify-start text-left font-normal"
                       )}
-                      size="sm"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {recordDate ? format(recordDate, 'dd MMM yyyy', { locale: tr}) : <span>Tarih</span>}
@@ -275,6 +324,21 @@ export default function GunlukTakipPage() {
           </div>
         </div>
 
+        {isDirty && (
+            <Card className='p-4 bg-primary/10 border-primary/20'>
+                <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-2 text-primary font-semibold'>
+                        <AlertTriangle className='h-5 w-5'/>
+                        Kaydedilmemiş değişiklikleriniz var.
+                    </div>
+                    <div className='flex items-center gap-2'>
+                        <Button variant='ghost' onClick={handleCancelChanges}><Undo2 className='h-4 w-4 mr-2'/>İptal</Button>
+                        <Button onClick={handleSaveChanges}><Save className='h-4 w-4 mr-2'/> Değişiklikleri Kaydet</Button>
+                    </div>
+                </div>
+            </Card>
+        )}
+
         <Card>
             <CardContent className="p-2 md:p-4">
                 <div className="space-y-1">
@@ -290,7 +354,6 @@ export default function GunlukTakipPage() {
                                         variant="outline"
                                         size='icon'
                                         className={cn('rounded-full w-8 h-8 transition-all hover:bg-muted')}
-                                        style={{'--bg-color': option.bgColor, '--text-color': option.color} as React.CSSProperties}
                                     >
                                         {option.icon && <option.icon className="h-5 w-5" style={{ color: option.color }} />}
                                     </Button>
@@ -325,11 +388,46 @@ export default function GunlukTakipPage() {
                     {students.map(student => {
                         const record = recordsByStudentId[student.id];
                         const noteEvent = record?.events.find(e => e.type === 'note');
+                        const statusEvents = record?.events.filter(e => e.type === 'status') || [];
 
                         return (
                             <div key={student.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-3 border-b last:border-none hover:bg-muted/50 rounded-md">
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
-                                <div className='font-semibold'>{student.firstName} {student.lastName}</div>
+                                <div>
+                                    <p className='font-semibold'>{student.firstName} {student.lastName}</p>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        {statusEvents.map((event) => {
+                                            const option = statusOptions.find(o => o.value === event.value);
+                                            return(
+                                            <TooltipProvider key={event.id} delayDuration={100}>
+                                                <Tooltip>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <TooltipTrigger asChild>
+                                                                <button className={cn("flex items-center justify-center h-6 w-6 rounded-full cursor-pointer", option?.bgColor)}>
+                                                                    {option?.icon && <option.icon className="h-4 w-4" style={{ color: option.color }} />}
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Değerlendirmeyi Sil</AlertDialogTitle>
+                                                                <AlertDialogDescription>Bu değerlendirmeyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleRemoveEvent(student.id, event.id)}>Evet, Sil</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                    <TooltipContent>
+                                                        <p>Silmek için tıkla: {option?.label}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )})}
+                                    </div>
+                                </div>
                                 <div className="flex items-center justify-end gap-1 md:gap-2">
                                      <div className="flex items-center border-l-2 pl-1.5 gap-1">
                                      {statusOptions.map(option => (
@@ -342,7 +440,7 @@ export default function GunlukTakipPage() {
                                                 '--bg-color': option.bgColor,
                                                 '--text-color': option.color,
                                             } as React.CSSProperties}
-                                            onClick={() => handleStatusClick(student.id, option.value)}
+                                            onClick={() => handleStatusClick(student.id, option.value as AttendanceStatus)}
                                          >
                                             {option.icon && <option.icon className="h-5 w-5" />}
                                          </Button>
@@ -412,7 +510,5 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
-
-    
 
     

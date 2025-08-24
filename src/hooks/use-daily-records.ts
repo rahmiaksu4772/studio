@@ -101,95 +101,20 @@ export function useDailyRecords() {
   const getRecordsForDate = React.useCallback((classId: string, date: string): DailyRecord[] => {
     return records.filter(record => record.classId === classId && record.date === date);
   }, [records]);
-  
-  const addEvent = React.useCallback((classId: string, studentId: string, date: string, event: { type: RecordEventType, value: RecordEventValue }) => {
-    setRecords(prevRecords => {
-        const recordId = `${classId}-${date}-${studentId}`;
-        const newEvent: RecordEvent = {
-            id: new Date().toISOString(),
-            ...event
-        };
-        
-        const existingRecordIndex = prevRecords.findIndex(r => r.id === recordId);
-        
-        let newRecords = [...prevRecords];
 
-        if (existingRecordIndex > -1) {
-            newRecords[existingRecordIndex] = {
-                ...newRecords[existingRecordIndex],
-                events: [...newRecords[existingRecordIndex].events, newEvent]
-            };
-        } else {
-            newRecords.push({
-                id: recordId,
-                classId,
-                studentId,
-                date,
-                events: [newEvent]
-            });
-        }
-        
-        updateLocalStorage(newRecords);
-        return newRecords;
-    });
-  }, []);
-
-  const addBulkEvents = React.useCallback((classId: string, studentIds: string[], date: string, event: { type: RecordEventType, value: RecordEventValue }) => {
+  const bulkUpdateRecords = (classId: string, date: string, updatedDayRecords: DailyRecord[]) => {
     setRecords(prevRecords => {
-      let newRecords = [...prevRecords];
+      // Filter out all records for the specific class and date from the old state
+      const otherRecords = prevRecords.filter(r => !(r.classId === classId && r.date === date));
       
-      studentIds.forEach(studentId => {
-        const recordId = `${classId}-${date}-${studentId}`;
-        const newEvent: RecordEvent = {
-            id: new Date().toISOString() + `-${studentId}`, // Ensure unique ID in bulk add
-            ...event
-        };
-        
-        const existingRecordIndex = newRecords.findIndex(r => r.id === recordId);
-
-        if (existingRecordIndex > -1) {
-            newRecords[existingRecordIndex] = {
-                ...newRecords[existingRecordIndex],
-                events: [...newRecords[existingRecordIndex].events, newEvent]
-            };
-        } else {
-            newRecords.push({
-                id: recordId,
-                classId,
-                studentId,
-                date,
-                events: [newEvent]
-            });
-        }
-      });
-        
+      // Add the new/updated records for that day
+      // We also filter out records with no events, as they are effectively empty
+      const newRecords = [...otherRecords, ...updatedDayRecords.filter(r => r.events.length > 0)];
+      
       updateLocalStorage(newRecords);
       return newRecords;
     });
-  }, []);
-
-  const removeEvent = React.useCallback((classId: string, studentId: string, date: string, eventId: string) => {
-    setRecords(prevRecords => {
-      const recordId = `${classId}-${date}-${studentId}`;
-      const existingRecordIndex = prevRecords.findIndex(r => r.id === recordId);
-
-      if (existingRecordIndex === -1) return prevRecords;
-
-      let newRecords = [...prevRecords];
-      const updatedEvents = newRecords[existingRecordIndex].events.filter(e => e.id !== eventId);
-      
-      newRecords[existingRecordIndex] = {
-        ...newRecords[existingRecordIndex],
-        events: updatedEvents
-      };
-
-      // If no events are left, we can either keep the record with empty events or remove it.
-      // Let's keep it for simplicity, as it doesn't harm.
-
-      updateLocalStorage(newRecords);
-      return newRecords;
-    });
-  }, []);
+  };
 
   const deleteRecordsForClass = (classId: string) => {
     setRecords(prevRecords => {
@@ -207,7 +132,7 @@ export function useDailyRecords() {
     });
   }
 
-  return { records, isLoading, getRecordsForDate, addEvent, addBulkEvents, removeEvent, deleteRecordsForClass, deleteRecordsForStudent };
+  return { records, isLoading, getRecordsForDate, bulkUpdateRecords, deleteRecordsForClass, deleteRecordsForStudent };
 }
 
 
