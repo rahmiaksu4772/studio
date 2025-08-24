@@ -10,7 +10,8 @@ import {
   MessageSquarePlus,
   ArrowLeft,
   Users,
-  AlertTriangle
+  AlertTriangle,
+  FilePenLine,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
@@ -70,6 +71,9 @@ export default function GunlukTakipPage() {
 
   const [editingNoteFor, setEditingNoteFor] = React.useState<Student | null>(null);
   const [currentNote, setCurrentNote] = React.useState('');
+  
+  const [isBulkNoteOpen, setIsBulkNoteOpen] = React.useState(false);
+  const [bulkNoteContent, setBulkNoteContent] = React.useState('');
 
   // Set initial class
   React.useEffect(() => {
@@ -155,6 +159,33 @@ export default function GunlukTakipPage() {
         description: `${editingNoteFor.firstName} için not taslak olarak kaydedildi. Ana kaydetme butonuna basmayı unutmayın.`
     })
   }
+
+  const handleSetAllDescriptions = () => {
+    if (bulkNoteContent.trim() === '') {
+        toast({
+            title: "Açıklama Boş",
+            description: "Lütfen tüm sınıfa uygulamak için bir açıklama girin.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setStudentRecords(prev => {
+        const newRecords = { ...prev };
+        students.forEach(student => {
+            newRecords[student.id] = {
+                ...newRecords[student.id],
+                description: bulkNoteContent
+            };
+        });
+        return newRecords;
+    });
+    toast({
+        title: "Toplu Açıklama Eklendi",
+        description: `Tüm öğrencilere aynı açıklama eklendi. Değişiklikleri kaydetmeyi unutmayın.`
+    });
+    setIsBulkNoteOpen(false);
+    setBulkNoteContent('');
+  };
 
   const handleSaveAll = async () => {
     if (!recordDate || !selectedClass) return;
@@ -300,6 +331,14 @@ export default function GunlukTakipPage() {
                                 </AlertDialogContent>
                             </AlertDialog>
                             ))}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="rounded-full w-8 h-8"
+                                onClick={() => setIsBulkNoteOpen(true)}
+                            >
+                                <FilePenLine className="h-5 w-5 text-muted-foreground" />
+                            </Button>
                        </div>
                     </div>
                     {students.map(student => {
@@ -328,7 +367,7 @@ export default function GunlukTakipPage() {
                                             {option.icon && <option.icon className="h-5 w-5" />}
                                          </Button>
                                      ))}
-                                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground h-9 w-9 md:h-10 md:w-10 relative" onClick={() => openNoteEditor(student)}>
+                                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground h-9 w-9 md:h-10 md:h-10 relative" onClick={() => openNoteEditor(student)}>
                                         <MessageSquarePlus className="h-5 w-5"/>
                                         {record.description && <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />}
                                     </Button>
@@ -364,6 +403,33 @@ export default function GunlukTakipPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={isBulkNoteOpen} onOpenChange={setIsBulkNoteOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Tüm Sınıfa Açıklama Ekle</DialogTitle>
+                <DialogDescription>
+                    Aşağıya yazdığınız açıklama, seçili sınıftaki tüm öğrencilere uygulanacaktır. Bu işlem mevcut açıklamaların üzerine yazacaktır.
+                </DialogDescription>
+            </DialogHeader>
+            <Textarea 
+                value={bulkNoteContent}
+                onChange={(e) => setBulkNoteContent(e.target.value)}
+                placeholder='Tüm sınıf için ortak bir açıklama yazın...'
+                rows={5}
+                className='my-4'
+            />
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="ghost">İptal</Button>
+                </DialogClose>
+                <Button onClick={handleSetAllDescriptions}>Tümüne Uygula</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </AppLayout>
   );
 }
+
+    
