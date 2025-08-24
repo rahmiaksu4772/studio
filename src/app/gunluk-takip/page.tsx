@@ -53,7 +53,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 export default function GunlukTakipPage() {
@@ -457,5 +457,7 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
+
+    
 
     
