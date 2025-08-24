@@ -324,7 +324,6 @@ export default function GunlukTakipPage() {
                     </div>
                     {students.map(student => {
                         const record = recordsByStudentId[student.id];
-                        const statusEvents = record?.events.filter(e => e.type === 'status') || [];
                         const noteEvent = record?.events.find(e => e.type === 'note');
 
                         return (
@@ -332,51 +331,7 @@ export default function GunlukTakipPage() {
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
                                 <div className='font-semibold'>{student.firstName} {student.lastName}</div>
                                 <div className="flex items-center justify-end gap-1 md:gap-2">
-                                     <div className="flex items-center gap-1.5 min-h-[40px] pr-2">
-                                        {statusEvents.map((event) => {
-                                            const option = statusOptions.find(o => o.value === event.value);
-                                            if (!option) return null;
-                                            return (
-                                                <AlertDialog key={event.id}>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <AlertDialogTrigger asChild>
-                                                                    <Button
-                                                                        variant={'outline'}
-                                                                        size='icon'
-                                                                        className={cn('rounded-full w-9 h-9 md:w-10 md:h-10 transition-all border-2')}
-                                                                        style={{
-                                                                            borderColor: option.color,
-                                                                            color: option.color,
-                                                                        } as React.CSSProperties}
-                                                                    >
-                                                                        {option.icon && <option.icon className="h-5 w-5" />}
-                                                                    </Button>
-                                                                </AlertDialogTrigger>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>Silmek için tıkla: {option.label}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>Değerlendirmeyi Sil</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                Bu değerlendirmeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>İptal</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleRemoveEvent(student.id, event.id)}>Sil</AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className="flex items-center border-l-2 pl-1.5 gap-1">
+                                     <div className="flex items-center border-l-2 pl-1.5 gap-1">
                                      {statusOptions.map(option => (
                                          <Button
                                             key={option.value}
