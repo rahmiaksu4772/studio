@@ -19,6 +19,18 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 const menuItems = [
     { href: '/anasayfa', label: 'Ana Sayfa', icon: Home },
@@ -31,6 +43,18 @@ const menuItems = [
 
 const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     const pathname = usePathname();
+    const router = useRouter();
+    const { toast } = useToast();
+
+    const handleLogout = () => {
+        if (onLinkClick) onLinkClick();
+        // Perform logout actions here (e.g., clear session)
+        toast({
+            title: 'Çıkış Yapıldı',
+            description: 'Güvenli bir şekilde çıkış yaptınız.',
+        });
+        router.push('/login');
+    }
 
     return (
         <div className="flex h-full max-h-screen flex-col">
@@ -49,7 +73,7 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                             onClick={onLinkClick}
                             className={cn(
                                 'flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary',
-                                pathname === item.href ? 'bg-primary/10 text-primary' : ''
+                                pathname.startsWith(item.href) ? 'bg-primary/10 text-primary' : ''
                             )}
                         >
                             <item.icon className="h-5 w-5" />
@@ -58,8 +82,8 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                     ))}
                 </nav>
             </div>
-            <div className="mt-auto p-4">
-                 <nav className="grid items-start px-4 text-sm font-medium">
+            <div className="mt-auto p-4 border-t">
+                 <nav className="grid items-start gap-2 px-4 text-sm font-medium">
                     <Link
                         href="/ayarlar"
                         onClick={onLinkClick}
@@ -71,6 +95,28 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                         <Settings className="h-5 w-5" />
                         Ayarlar
                     </Link>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start gap-3 px-3 py-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                                <LogOut className="h-5 w-5" />
+                                Çıkış Yap
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Çıkış Yapmak Üzeresiniz</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Oturumu sonlandırmak istediğinizden emin misiniz? Kaydedilmemiş değişiklikleriniz kaybolabilir.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
+                                Çıkış Yap
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                  </nav>
             </div>
         </div>
@@ -114,10 +160,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </SheetContent>
                     </Sheet>
                     <div className="w-full flex-1" />
-                    <Avatar>
-                        <AvatarImage src="https://placehold.co/40x40.png" alt="Ayşe Öğretmen" data-ai-hint="teacher portrait" />
-                        <AvatarFallback>AÖ</AvatarFallback>
-                    </Avatar>
+                    <Link href="/ayarlar">
+                        <Avatar>
+                            <AvatarImage src="https://placehold.co/40x40.png" alt="Ayşe Öğretmen" data-ai-hint="teacher portrait" />
+                            <AvatarFallback>AÖ</AvatarFallback>
+                        </Avatar>
+                    </Link>
                 </header>
                 <div className="flex-1 overflow-auto bg-background">
                     {children}

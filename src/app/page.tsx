@@ -9,7 +9,8 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/anasayfa');
+    // Redirect to the login page instead of the main content
+    router.replace('/login');
   }, [router]);
 
   return (
