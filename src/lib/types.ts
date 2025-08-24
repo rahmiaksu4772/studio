@@ -1,5 +1,5 @@
 
-import { type LucideIcon, UserCheck, UserX, CheckCheck, Check, X, FileCheck } from "lucide-react";
+import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, MessageSquarePlus, FileCheck } from "lucide-react";
 
 export type Student = {
   id: string;
@@ -26,11 +26,11 @@ export type DailyRecord = {
 };
 
 export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string, bgColor?: string }[] = [
-    { value: '+', label: 'Artı', icon: CheckCheck, color: 'text-green-600' },
-    { value: 'P', label: 'Yarım', icon: Check, color: 'text-green-500' },
-    { value: '-', label: 'Eksi', icon: X, color: 'text-red-600' },
-    { value: 'Y', label: 'Yok', icon: UserX, color: 'text-yellow-600' },
-    { value: 'G', label: 'İzinli', icon: FileCheck, color: 'text-blue-600' },
+    { value: '+', label: 'Artı', icon: PlusCircle, color: 'hsl(142.1, 70.6%, 45.1%)', bgColor: 'hsl(142.1, 76.2%, 95.1%)' },
+    { value: 'P', label: 'Yarım', icon: CircleSlash, color: 'hsl(47.9, 95.8%, 53.1%)', bgColor: 'hsl(47.9, 95.8%, 95.1%)' },
+    { value: '-', label: 'Eksi', icon: MinusCircle, color: 'hsl(0, 84.2%, 60.2%)', bgColor: 'hsl(0, 84.2%, 95.1%)' },
+    { value: 'Y', label: 'Yok', icon: UserX, color: 'hsl(222.2, 47.4%, 11.2%)', bgColor: 'hsl(222.2, 47.4%, 95.1%)' },
+    { value: 'G', label: 'İzinli', icon: FileCheck, color: 'hsl(221, 83%, 53%)', bgColor: 'hsl(221, 83%, 95.1%)' },
 ];
 
 export type Note = {

@@ -5,19 +5,13 @@ import * as React from 'react';
 import {
   FileText,
   Calendar as CalendarIcon,
-  Sparkles,
   Loader2,
-  Book
+  Save,
+  MessageSquarePlus,
+  ArrowLeft,
+  Users
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,21 +21,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import type { Student, DailyRecord, AttendanceStatus, ClassInfo } from '@/lib/types';
 import { statusOptions } from '@/lib/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { generateDescriptionAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useDailyRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
-
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogClose,
+  } from '@/components/ui/dialog';
 
 type StudentRecordsState = {
   [studentId: string]: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >>;
@@ -55,10 +53,12 @@ export default function GunlukTakipPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo | null>(null);
   const [recordDate, setRecordDate] = React.useState<Date | null>(new Date());
-  const [generalDescription, setGeneralDescription] = React.useState('');
-  const [generatingFor, setGeneratingFor] = React.useState<string | null>(null);
   const [studentRecords, setStudentRecords] = React.useState<StudentRecordsState>({});
-  
+  const [initialRecordsState, setInitialRecordsState] = React.useState<StudentRecordsState>({});
+
+  const [editingNoteFor, setEditingNoteFor] = React.useState<Student | null>(null);
+  const [currentNote, setCurrentNote] = React.useState('');
+
   // Set initial class
   React.useEffect(() => {
     if (classes.length > 0 && !selectedClass) {
@@ -83,40 +83,55 @@ export default function GunlukTakipPage() {
     }, {} as StudentRecordsState);
       
     setStudentRecords(recordsByStudent);
+    setInitialRecordsState(JSON.parse(JSON.stringify(recordsByStudent))); // Deep copy for comparison
   }, [selectedClass, recordDate, classes, getRecordsForDate]);
 
+  const hasChanges = React.useMemo(() => {
+    return JSON.stringify(studentRecords) !== JSON.stringify(initialRecordsState);
+  }, [studentRecords, initialRecordsState]);
+
   
-  const handleRecordChange = (studentId: string, newRecord: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date'>>) => {
+  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
+    setStudentRecords(prev => {
+        const currentStatus = prev[studentId]?.status;
+        return {
+            ...prev,
+            [studentId]: {
+                ...prev[studentId],
+                // If the same status is clicked again, unselect it. Otherwise, set the new status.
+                status: currentStatus === status ? null : status
+            }
+        };
+    });
+  };
+
+  const openNoteEditor = (student: Student) => {
+    setEditingNoteFor(student);
+    setCurrentNote(studentRecords[student.id]?.description || '');
+  }
+
+  const handleSaveNote = () => {
+    if (!editingNoteFor) return;
     setStudentRecords(prev => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        ...newRecord
-      }
+        ...prev,
+        [editingNoteFor.id]: {
+            ...prev[editingNoteFor.id],
+            description: currentNote
+        }
     }));
-  };
+    setEditingNoteFor(null);
+    setCurrentNote('');
+    toast({
+        title: "Not Kaydedildi",
+        description: `${editingNoteFor.firstName} için not taslak olarak kaydedildi. Ana kaydetme butonuna basmayı unutmayın.`
+    })
+  }
 
-  const handleBulkStatusUpdate = (status: AttendanceStatus) => {
-    const newRecords: StudentRecordsState = {};
-    students.forEach(student => {
-      newRecords[student.id] = {
-        ...studentRecords[student.id],
-        status,
-      };
-    });
-    setStudentRecords(newRecords);
-     toast({
-      title: "Toplu Güncelleme Uygulandı",
-      description: `${selectedClass?.name} sınıfındaki tüm öğrenciler için "${statusOptions.find(s=>s.value === status)?.label}" durumu ayarlandı. Değişiklikleri kaydetmeyi unutmayın.`,
-    });
-  };
-
-  const handleSave = async () => {
+  const handleSaveAll = async () => {
     if (!recordDate || !selectedClass) return;
 
     const dateStr = format(recordDate, 'yyyy-MM-dd');
     const recordsToUpdate: Omit<DailyRecord, 'id'>[] = Object.entries(studentRecords)
-        .filter(([_, record]) => record.status || record.description)
         .map(([studentId, record]) => ({
             studentId,
             classId: selectedClass.id,
@@ -125,24 +140,13 @@ export default function GunlukTakipPage() {
             description: record.description || '',
         }));
 
-    if (recordsToUpdate.length === 0) {
-        toast({
-            title: "Kaydedilecek Değişiklik Yok",
-            description: "Lütfen en az bir öğrenci için veri girin.",
-            variant: "destructive"
-        });
-        return;
-    }
-
     try {
         updateDailyRecords(selectedClass.id, dateStr, recordsToUpdate);
+        setInitialRecordsState(JSON.parse(JSON.stringify(studentRecords))); // Update initial state
         toast({
           title: "Kayıt Başarılı",
           description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar başarıyla kaydedildi.`,
         });
-        // Reset form for new entry
-        setStudentRecords({});
-        setGeneralDescription('');
     } catch (error) {
         console.error("Error saving records:", error);
         toast({
@@ -152,48 +156,13 @@ export default function GunlukTakipPage() {
         });
     }
   };
-
-  const handleGenerateDescription = async (studentId: string) => {
-    if(!recordDate || !selectedClass) return;
-
-    setGeneratingFor(studentId);
-    try {
-      const result = await generateDescriptionAction({
-        studentId: studentId,
-        classId: selectedClass.id,
-        recordDate: format(recordDate, 'yyyy-MM-dd'),
-      });
-      
-      if (result.description) {
-        handleRecordChange(studentId, { description: result.description });
-         toast({
-          title: "AI Notu Oluşturuldu",
-          description: "Otomatik not başarıyla oluşturuldu.",
-        });
-      } else if (result.error) {
-           toast({
-              title: "Hata",
-              description: result.error,
-              variant: "destructive",
-          });
-      }
-    } catch (error) {
-      toast({
-          title: "Hata",
-          description: "AI notu oluşturulurken bir hata oluştu.",
-          variant: "destructive",
-      });
-    } finally {
-      setGeneratingFor(null);
-    }
-  };
   
   const isLoading = isClassesLoading || isRecordsLoading;
 
   if (isLoading) {
     return (
       <AppLayout>
-        <main className="flex-1 p-8 flex items-center justify-center">
+        <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
         </main>
       </AppLayout>
@@ -202,173 +171,139 @@ export default function GunlukTakipPage() {
 
   return (
     <AppLayout>
-      <main className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">{selectedClass?.name || "Sınıf Yükleniyor..."} - Günlük Takip</h2>
-            <div className="flex items-center space-x-2">
-            <Select
-              value={selectedClass?.id}
-              onValueChange={(classId) => {
-                const newClass = classes.find(c => c.id === classId);
-                if (newClass) setSelectedClass(newClass);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sınıf Seç" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[280px] justify-start text-left font-normal",
-                    !recordDate && "text-muted-foreground"
-                  )}
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className='flex items-center gap-2 text-xl md:text-2xl font-bold tracking-tight text-gray-700'>
+                <Users className="h-7 w-7 text-primary" />
+                {selectedClass?.name || "Sınıf Yükleniyor..."} - Artı/Eksi Çizelgesi
+            </div>
+
+            <div className="flex w-full md:w-auto items-center justify-between md:justify-start space-x-2">
+                <Select
+                  value={selectedClass?.id}
+                  onValueChange={(classId) => {
+                    const newClass = classes.find(c => c.id === classId);
+                    if (newClass) setSelectedClass(newClass);
+                  }}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {recordDate ? format(recordDate, 'dd MMMM yyyy - EEEE', { locale: tr}) : <span>Tarih Seç</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={recordDate || undefined}
-                  onSelect={(date) => setRecordDate(date || null)}
-                  initialFocus
-                  locale={tr}
-                />
-              </PopoverContent>
-            </Popover>
+                  <SelectTrigger className="w-[120px] md:w-[180px]">
+                    <SelectValue placeholder="Sınıf Seç" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-auto justify-start text-left font-normal"
+                      )}
+                      size="sm"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {recordDate ? format(recordDate, 'dd MMM yyyy', { locale: tr}) : <span>Tarih</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={recordDate || undefined}
+                      onSelect={(date) => setRecordDate(date || null)}
+                      initialFocus
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
           </div>
         </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Genel Değerlendirme</CardTitle>
-                <CardDescription>
-                    Dersin veya günün geneli hakkında notlarınızı ve toplu işlemleri buradan yapabilirsiniz.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className='space-y-4'>
-                 <div className="grid grid-cols-2 gap-4 items-end">
-                    <div className='space-y-1'>
-                        <Label htmlFor="general-description">Genel Açıklama</Label>
-                        <Textarea 
-                            id="general-description"
-                            placeholder='Örn: Bugün matematik dersinde kesirler konusunu işledik. Sınıfın genel katılımı iyiydi.'
-                            value={generalDescription}
-                            onChange={(e) => setGeneralDescription(e.target.value)}
-                        />
-                    </div>
-                    <Button onClick={handleSave} className="h-10">
-                        <FileText className="mr-2 h-4 w-4" />
-                        Tüm Değişiklikleri Kaydet
-                    </Button>
-                </div>
-                 <div className="space-y-2">
-                    <Label>Tüm Sınıfa Uygula</Label>
-                    <div className="flex flex-wrap gap-2">
-                        {statusOptions.map(option => (
-                           <Button 
-                                key={option.value}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleBulkStatusUpdate(option.value)}
-                            >
-                               {option.icon && <option.icon className="mr-2 h-4 w-4" />}
-                               <span>{option.label}</span>
-                            </Button>
-                        ))}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+        <div className='flex justify-end'>
+             <Button onClick={handleSaveAll} disabled={!hasChanges}>
+                <Save className="mr-2 h-4 w-4" />
+                Değişiklikleri Kaydet
+                {hasChanges && <span className="relative flex h-3 w-3 ml-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>}
+            </Button>
+        </div>
         
         <Card>
-            <CardHeader>
-                <CardTitle>Öğrenci Değerlendirmeleri</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[100px]">Okul No</TableHead>
-                            <TableHead>Adı Soyadı</TableHead>
-                            <TableHead className="w-[300px]">Durum</TableHead>
-                            <TableHead>Açıklama</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {students.map(student => {
-                            const record = studentRecords[student.id] || { status: null, description: '' };
-                            const isGenerating = generatingFor === student.id;
-
-                            return (
-                                <TableRow key={student.id}>
-                                    <TableCell className="font-medium">{student.studentNumber}</TableCell>
-                                    <TableCell>{student.firstName} {student.lastName}</TableCell>
-                                    <TableCell>
-                                        <RadioGroup 
-                                            value={record.status || ""} 
-                                            onValueChange={(status) => handleRecordChange(student.id, { status: status as AttendanceStatus })}
-                                            className="flex space-x-2"
-                                        >
-                                            {statusOptions.map(option => (
-                                                <div key={`${student.id}-${option.value}`} className="flex items-center space-x-1">
-                                                    <RadioGroupItem value={option.value} id={`${student.id}-${option.value}`} />
-                                                    <Label htmlFor={`${student.id}-${option.value}`}>{option.label}</Label>
-                                                </div>
-                                            ))}
-                                        </RadioGroup>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="relative">
-                                            <Textarea 
-                                                value={record.description || ''}
-                                                onChange={(e) => handleRecordChange(student.id, { description: e.target.value })}
-                                                placeholder='Öğrenci hakkında not...'
-                                                className='min-h-[40px] pr-10'
-                                            />
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Button 
-                                                            size='icon'
-                                                            variant='ghost'
-                                                            onClick={() => handleGenerateDescription(student.id)}
-                                                            disabled={isGenerating}
-                                                            className='absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8'
-                                                        >
-                                                            {isGenerating ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                <Sparkles className="h-4 w-4 text-primary" />
-                                                            )}
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>AI ile Doldur</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
+            <CardContent className="p-2 md:p-4">
+                <div className="space-y-1">
+                    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 text-sm font-medium text-muted-foreground border-b">
+                       <div>No</div>
+                       <div>Adı Soyadı</div>
+                       <div className='text-center'>Durum</div>
+                    </div>
+                    {students.map(student => {
+                        const record = studentRecords[student.id] || { status: null, description: '' };
+                        return (
+                            <div key={student.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-3 border-b last:border-none hover:bg-muted/50 rounded-md">
+                                <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
+                                <div className='font-semibold'>{student.firstName} {student.lastName}</div>
+                                <div className="flex items-center justify-end gap-1 md:gap-2">
+                                     {statusOptions.map(option => (
+                                         <Button
+                                            key={option.value}
+                                            variant={record.status === option.value ? 'default' : 'outline'}
+                                            size='icon'
+                                            className={cn(
+                                                'rounded-full w-9 h-9 md:w-10 md:h-10 transition-all',
+                                                record.status === option.value && `bg-[var(--bg-color)] text-[var(--text-color)] hover:bg-[var(--bg-color)]/90 border-2 border-primary/50`,
+                                                record.status !== option.value && record.status !== null && 'opacity-50'
+                                            )}
+                                            style={{
+                                                '--bg-color': option.bgColor,
+                                                '--text-color': option.color,
+                                            } as React.CSSProperties}
+                                            onClick={() => handleStatusChange(student.id, option.value)}
+                                         >
+                                            {option.icon && <option.icon className="h-5 w-5" />}
+                                         </Button>
+                                     ))}
+                                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground h-9 w-9 md:h-10 md:w-10 relative" onClick={() => openNoteEditor(student)}>
+                                        <MessageSquarePlus className="h-5 w-5"/>
+                                        {record.description && <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />}
+                                    </Button>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
             </CardContent>
         </Card>
       </main>
+
+      <Dialog open={!!editingNoteFor} onOpenChange={(isOpen) => !isOpen && setEditingNoteFor(null)}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Öğrenci Notu: {editingNoteFor?.firstName} {editingNoteFor?.lastName}</DialogTitle>
+                <DialogDescription>
+                    Bu öğrenci için {recordDate ? format(recordDate, 'dd MMMM yyyy', {locale: tr}) : ''} tarihine özel bir not ekleyin.
+                </DialogDescription>
+            </DialogHeader>
+            <Textarea 
+                value={currentNote}
+                onChange={(e) => setCurrentNote(e.target.value)}
+                placeholder='Öğrenci hakkında gözlemlerinizi yazın...'
+                rows={5}
+                className='my-4'
+            />
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="ghost">İptal</Button>
+                </DialogClose>
+                <Button onClick={handleSaveNote}>Notu Kaydet</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
