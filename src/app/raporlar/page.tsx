@@ -57,6 +57,7 @@ const statusToTurkish: Record<string, string> = {
     '-': 'Eksi',
     'Y': 'Yok',
     'G': 'İzinli',
+    'note': 'Not',
 };
 
 const chartConfig = {
@@ -124,7 +125,8 @@ export default function RaporlarPage() {
             return (
                 record.classId === selectedClassId &&
                 recordDate >= startDate &&
-                recordDate <= endDate
+                recordDate <= endDate &&
+                record.events.length > 0
             );
         });
 
@@ -148,23 +150,27 @@ export default function RaporlarPage() {
       }, {} as any);
 
       const dateMap: { [key: string]: { date: string, [key: string]: number | string } } = {};
+      const allEvents: {date: string, type: 'status' | 'note', value: string}[] = [];
 
       studentRecords.forEach(record => {
-          if (record.status && summary[record.status]) {
-              summary[record.status].count += 1;
-          }
+          record.events.forEach(event => {
+              if (event.type === 'status') {
+                if (summary[event.value]) {
+                    summary[event.value].count += 1;
+                }
 
-          const formattedDate = format(new Date(record.date), 'dd/MM');
-          if (!dateMap[formattedDate]) {
-            dateMap[formattedDate] = { date: formattedDate };
-            statusOptions.forEach(opt => dateMap[formattedDate][opt.value] = 0);
-          }
-          if (record.status) {
-            (dateMap[formattedDate][record.status] as number) += 1;
-          }
+                const formattedDate = format(new Date(record.date), 'dd/MM');
+                if (!dateMap[formattedDate]) {
+                    dateMap[formattedDate] = { date: formattedDate };
+                    statusOptions.forEach(opt => dateMap[formattedDate][opt.value] = 0);
+                }
+                (dateMap[formattedDate][event.value] as number) += 1;
+              }
+              allEvents.push({ date: record.date, ...event });
+          })
       });
       
-      return { summary, records: studentRecords, chartData: Object.values(dateMap) };
+      return { summary, events: allEvents, chartData: Object.values(dateMap) };
   }, [filteredData, selectedReportType, selectedStudentId]);
 
   const classReportData = React.useMemo(() => {
@@ -177,12 +183,14 @@ export default function RaporlarPage() {
       };
       
       studentRecords.forEach(record => {
-        if(record.status) {
-          summary[record.status]++;
-        }
+        record.events.forEach(event => {
+            if (event.type === 'status' && summary[event.value as AttendanceStatus] !== undefined) {
+                summary[event.value as AttendanceStatus]++;
+            }
+        });
       });
       
-      const totalScore = summary['+'] * 10 + summary['-'] * -10 + summary['P'] * -5;
+      const totalScore = summary['+'] * 10 + summary['P'] * 5 + summary['-'] * -5;
       
       return {
         ...student,
@@ -265,15 +273,18 @@ export default function RaporlarPage() {
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
 
-        if (individualReportData.records.length > 0) {
+        if (individualReportData.events.length > 0) {
             (doc as any).autoTable({
                 startY: 65,
                 head: [['Tarih', 'Durum', 'Açıklama']],
-                body: individualReportData.records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => [
-                    format(new Date(r.date), 'd MMM yyyy, cccc', { locale: tr }),
-                    statusToTurkish[r.status!] || 'Belirtilmemiş',
-                    r.description || '-'
-                ]),
+                body: individualReportData.events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => {
+                    const statusKey = e.type === 'status' ? e.value : e.type;
+                    return [
+                        format(new Date(e.date), 'd MMM yyyy, cccc', { locale: tr }),
+                        statusToTurkish[statusKey] || 'Belirtilmemiş',
+                        e.type === 'note' ? e.value : '-'
+                    ];
+                }),
                 theme: 'striped',
                 headStyles: { fillColor: [33, 150, 243], textColor: 255 },
                 styles: { font: 'liberationsans' },
@@ -310,7 +321,7 @@ export default function RaporlarPage() {
     }
     
     if(selectedReportType === 'bireysel' && individualReportData){
-      const { summary, records, chartData } = individualReportData;
+      const { summary, events, chartData } = individualReportData;
       return (
         <Card>
             <CardHeader className='flex-row items-center justify-between'>
@@ -346,7 +357,7 @@ export default function RaporlarPage() {
                                 <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                                     <CartesianGrid vertical={false} />
                                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                                    <YAxis />
+                                    <YAxis allowDecimals={false} />
                                     <ChartTooltip content={<ChartTooltipContent />} />
                                     <ChartLegend />
                                     {statusOptions.map(opt => (
@@ -360,30 +371,34 @@ export default function RaporlarPage() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Günlük Notlar</CardTitle>
-                        <CardDescription>Seçilen tarih aralığındaki gözlemler.</CardDescription>
+                        <CardTitle>Değerlendirme Geçmişi</CardTitle>
+                        <CardDescription>Seçilen tarih aralığındaki tüm olaylar.</CardDescription>
                     </CardHeader>
                     <CardContent>
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                            {records.length > 0 ? records.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(record => (
-                                <div key={record.id} className="flex items-start gap-4">
+                            {events.length > 0 ? events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event, index) => {
+                                const statusKey = event.type === 'status' ? event.value : event.type;
+                                const statusOption = statusOptions.find(o => o.value === statusKey);
+
+                                return (
+                                <div key={`${event.date}-${index}`} className="flex items-start gap-4">
                                     <div className="font-semibold text-center w-20">
-                                        <p>{format(new Date(record.date), 'dd MMMM', { locale: tr })}</p>
-                                        <p className="text-xs text-muted-foreground">{format(new Date(record.date), 'cccc', { locale: tr })}</p>
+                                        <p>{format(new Date(event.date), 'dd MMMM', { locale: tr })}</p>
+                                        <p className="text-xs text-muted-foreground">{format(new Date(event.date), 'cccc', { locale: tr })}</p>
                                     </div>
                                     <div className="border-l pl-4 flex-1">
                                         <p className="font-medium flex items-center gap-2">
-                                        {record.status && statusOptions.find(o=>o.value === record.status)?.icon &&
-                                                React.createElement(statusOptions.find(o=>o.value === record.status)!.icon!, {
-                                                    className: cn("h-5 w-5", statusOptions.find(o => o.value === record.status)?.color)
+                                        {event.type === 'status' && statusOption?.icon &&
+                                                React.createElement(statusOption.icon, {
+                                                    className: cn("h-5 w-5", statusOption.color)
                                                 })
                                         }
-                                            <span>{statusToTurkish[record.status!] || 'Belirtilmemiş'}</span>
+                                            <span>{statusToTurkish[statusKey] || 'Belirtilmemiş'}</span>
                                         </p>
-                                        <p className="text-sm text-muted-foreground">{record.description || "Ek bir not girilmemiş."}</p>
+                                        {event.type === 'note' && <p className="text-sm text-muted-foreground">{event.value || "Ek bir not girilmemiş."}</p>}
                                     </div>
                                 </div>
-                            )) : <p>Bu tarih aralığında not bulunmuyor.</p>}
+                            )}) : <p>Bu tarih aralığında not bulunmuyor.</p>}
                     </div>
                     </CardContent>
                 </Card>
@@ -548,3 +563,5 @@ export default function RaporlarPage() {
     </AppLayout>
   );
 }
+
+    

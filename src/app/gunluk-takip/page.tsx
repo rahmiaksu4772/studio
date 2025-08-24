@@ -6,14 +6,14 @@ import {
   FileText,
   Calendar as CalendarIcon,
   Loader2,
-  Save,
   MessageSquarePlus,
-  ArrowLeft,
   Users,
   AlertTriangle,
   FilePenLine,
+  Trash2,
+  CheckCircle,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { Student, DailyRecord, AttendanceStatus, ClassInfo } from '@/lib/types';
+import type { Student, DailyRecord, AttendanceStatus, ClassInfo, RecordEvent } from '@/lib/types';
 import { statusOptions } from '@/lib/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -53,27 +53,41 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type StudentRecordsState = {
-  [studentId: string]: Partial<Omit<DailyRecord, 'id' | 'classId' | 'studentId' | 'date' >>;
-};
 
 export default function GunlukTakipPage() {
   const { toast } = useToast();
   const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
-  const { getRecordsForDate, updateDailyRecords, isLoading: isRecordsLoading } = useDailyRecords();
+  const { 
+      records, 
+      addEvent, 
+      addBulkEvents,
+      removeEvent, 
+      isLoading: isRecordsLoading, 
+      getRecordsForDate 
+    } = useDailyRecords();
   
   const [students, setStudents] = React.useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo | null>(null);
   const [recordDate, setRecordDate] = React.useState<Date | null>(new Date());
-  const [studentRecords, setStudentRecords] = React.useState<StudentRecordsState>({});
-  const [initialRecordsState, setInitialRecordsState] = React.useState<StudentRecordsState>({});
-
+  
   const [editingNoteFor, setEditingNoteFor] = React.useState<Student | null>(null);
   const [currentNote, setCurrentNote] = React.useState('');
   
   const [isBulkNoteOpen, setIsBulkNoteOpen] = React.useState(false);
   const [bulkNoteContent, setBulkNoteContent] = React.useState('');
+
+  const dateStr = recordDate ? format(recordDate, 'yyyy-MM-dd') : '';
+  const dailyRecords = selectedClass ? getRecordsForDate(selectedClass.id, dateStr) : [];
+  
+  const recordsByStudentId = React.useMemo(() => {
+    return dailyRecords.reduce((acc, record) => {
+        acc[record.studentId] = record;
+        return acc;
+    }, {} as Record<string, DailyRecord>)
+  }, [dailyRecords]);
+
 
   // Set initial class
   React.useEffect(() => {
@@ -82,86 +96,87 @@ export default function GunlukTakipPage() {
     }
   }, [classes, selectedClass]);
   
-  // Fetch students and records when class or date changes
+  // Fetch students when class changes
   React.useEffect(() => {
-    if (!selectedClass || !recordDate) return;
+    if (!selectedClass) return;
     
     const currentClass = classes.find(c => c.id === selectedClass.id);
     const sortedStudents = currentClass?.students.sort((a, b) => a.studentNumber - b.studentNumber) || [];
     setStudents(sortedStudents);
 
-    const dateStr = format(recordDate, 'yyyy-MM-dd');
-    const existingRecords = getRecordsForDate(selectedClass.id, dateStr);
-    
-    const recordsByStudent = existingRecords.reduce((acc, record) => {
-      acc[record.studentId] = { status: record.status, description: record.description };
-      return acc;
-    }, {} as StudentRecordsState);
-      
-    setStudentRecords(recordsByStudent);
-    setInitialRecordsState(JSON.parse(JSON.stringify(recordsByStudent))); // Deep copy for comparison
-  }, [selectedClass, recordDate, classes, getRecordsForDate]);
+  }, [selectedClass, classes]);
 
-  const hasChanges = React.useMemo(() => {
-    return JSON.stringify(studentRecords) !== JSON.stringify(initialRecordsState);
-  }, [studentRecords, initialRecordsState]);
 
-  
-  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
-    setStudentRecords(prev => {
-        const currentStatus = prev[studentId]?.status;
-        return {
-            ...prev,
-            [studentId]: {
-                ...prev[studentId],
-                // If the same status is clicked again, unselect it. Otherwise, set the new status.
-                status: currentStatus === status ? undefined : status
-            }
-        };
+  const handleStatusClick = (studentId: string, status: AttendanceStatus) => {
+    if (!selectedClass || !dateStr) return;
+    addEvent(selectedClass.id, studentId, dateStr, { type: 'status', value: status });
+    toast({
+        title: "Durum Eklendi",
+        description: `Öğrenci için "${statusOptions.find(o => o.value === status)?.label}" durumu kaydedildi.`,
+        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
     });
   };
 
   const handleSetAllStatus = (status: AttendanceStatus) => {
-    setStudentRecords(prev => {
-        const newRecords = { ...prev };
-        students.forEach(student => {
-            newRecords[student.id] = {
-                ...newRecords[student.id],
-                status: status
-            };
-        });
-        return newRecords;
-    });
+    if (!selectedClass || !dateStr) return;
+
+    const studentIds = students.map(s => s.id);
+    addBulkEvents(selectedClass.id, studentIds, dateStr, { type: 'status', value: status });
+    
     toast({
-        title: "Tüm Sınıf İşaretlendi",
-        description: `Tüm öğrenciler "${statusOptions.find(o => o.value === status)?.label}" olarak işaretlendi. Değişiklikleri kaydetmeyi unutmayın.`
+        title: "Tüm Sınıfa Durum Atandı",
+        description: `Tüm öğrenciler "${statusOptions.find(o => o.value === status)?.label}" olarak işaretlendi.`
     })
   };
+  
+  const handleRemoveEvent = (studentId: string, eventId: string) => {
+    if (!selectedClass || !dateStr) return;
+    removeEvent(selectedClass.id, studentId, dateStr, eventId);
+     toast({
+        title: "Değerlendirme Silindi",
+        description: "Seçilen değerlendirme kayıtlardan kaldırıldı.",
+        variant: "destructive"
+    });
+  }
 
   const openNoteEditor = (student: Student) => {
     setEditingNoteFor(student);
-    setCurrentNote(studentRecords[student.id]?.description || '');
+    const existingNote = recordsByStudentId[student.id]?.events.find(e => e.type === 'note');
+    setCurrentNote(existingNote ? existingNote.value : '');
   }
 
   const handleSaveNote = () => {
-    if (!editingNoteFor) return;
-    setStudentRecords(prev => ({
-        ...prev,
-        [editingNoteFor.id]: {
-            ...prev[editingNoteFor.id],
-            description: currentNote
-        }
-    }));
+    if (!editingNoteFor || !selectedClass || !dateStr) return;
+    
+    // As a business rule, we'll allow only one note per day to avoid clutter.
+    // So we remove the previous note event if it exists.
+    const existingRecord = recordsByStudentId[editingNoteFor.id];
+    const existingNoteEvent = existingRecord?.events.find(e => e.type === 'note');
+    if (existingNoteEvent) {
+        removeEvent(selectedClass.id, editingNoteFor.id, dateStr, existingNoteEvent.id);
+    }
+    
+    // Add the new note if it's not empty
+    if (currentNote.trim()) {
+        addEvent(selectedClass.id, editingNoteFor.id, dateStr, { type: 'note', value: currentNote });
+        toast({
+            title: "Not Kaydedildi",
+            description: `${editingNoteFor.firstName} için not kaydedildi.`
+        });
+    } else if (existingNoteEvent) {
+        // If the new note is empty, but an old one existed, it means the user deleted the text.
+        toast({
+            title: "Not Kaldırıldı",
+            description: `${editingNoteFor.firstName} için not kaldırıldı.`
+        });
+    }
+
     setEditingNoteFor(null);
     setCurrentNote('');
-    toast({
-        title: "Not Kaydedildi",
-        description: `${editingNoteFor.firstName} için not taslak olarak kaydedildi. Ana kaydetme butonuna basmayı unutmayın.`
-    })
   }
 
   const handleSetAllDescriptions = () => {
-    if (bulkNoteContent.trim() === '') {
+    if (!selectedClass || !dateStr || bulkNoteContent.trim() === '') {
         toast({
             title: "Açıklama Boş",
             description: "Lütfen tüm sınıfa uygulamak için bir açıklama girin.",
@@ -169,57 +184,33 @@ export default function GunlukTakipPage() {
         });
         return;
     }
-    setStudentRecords(prev => {
-        const newRecords = { ...prev };
-        students.forEach(student => {
-            newRecords[student.id] = {
-                ...newRecords[student.id],
-                description: bulkNoteContent
-            };
-        });
-        return newRecords;
-    });
+    
+    const studentIds = students.map(s => s.id);
+    
+    // As a business rule, we will overwrite existing notes when setting a bulk note.
+    // First, remove all existing notes for the day.
+     studentIds.forEach(studentId => {
+        const existingRecord = recordsByStudentId[studentId];
+        const existingNoteEvent = existingRecord?.events.find(e => e.type === 'note');
+        if (existingNoteEvent) {
+            removeEvent(selectedClass.id, studentId, dateStr, existingNoteEvent.id);
+        }
+     });
+
+    // Then, add the new bulk note for everyone.
+    addBulkEvents(selectedClass.id, studentIds, dateStr, { type: 'note', value: bulkNoteContent });
+
     toast({
         title: "Toplu Açıklama Eklendi",
-        description: `Tüm öğrencilere aynı açıklama eklendi. Değişiklikleri kaydetmeyi unutmayın.`
+        description: `Tüm öğrencilere aynı açıklama eklendi.`
     });
     setIsBulkNoteOpen(false);
     setBulkNoteContent('');
   };
 
-  const handleSaveAll = async () => {
-    if (!recordDate || !selectedClass) return;
-
-    const dateStr = format(recordDate, 'yyyy-MM-dd');
-    const recordsToUpdate: Omit<DailyRecord, 'id'>[] = Object.entries(studentRecords)
-        .map(([studentId, record]) => ({
-            studentId,
-            classId: selectedClass.id,
-            date: dateStr,
-            status: record.status || undefined,
-            description: record.description || '',
-        }));
-
-    try {
-        updateDailyRecords(selectedClass.id, dateStr, recordsToUpdate);
-        setInitialRecordsState(JSON.parse(JSON.stringify(studentRecords))); // Update initial state
-        toast({
-          title: "Kayıt Başarılı",
-          description: `${selectedClass.name} sınıfı için ${format(recordDate, 'dd MMMM yyyy')} tarihli kayıtlar başarıyla kaydedildi.`,
-        });
-    } catch (error) {
-        console.error("Error saving records:", error);
-        toast({
-            title: "Kayıt Hatası",
-            description: "Kayıtlar kaydedilirken bir hata oluştu.",
-            variant: "destructive"
-        });
-    }
-  };
-  
   const isLoading = isClassesLoading || isRecordsLoading;
 
-  if (isLoading) {
+  if (isLoading && !selectedClass) {
     return (
       <AppLayout>
         <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
@@ -245,6 +236,7 @@ export default function GunlukTakipPage() {
                     const newClass = classes.find(c => c.id === classId);
                     if (newClass) setSelectedClass(newClass);
                   }}
+                  disabled={!classes || classes.length === 0}
                 >
                   <SelectTrigger className="w-[120px] md:w-[180px]">
                     <SelectValue placeholder="Sınıf Seç" />
@@ -283,17 +275,6 @@ export default function GunlukTakipPage() {
           </div>
         </div>
 
-        <div className='flex justify-end'>
-             <Button onClick={handleSaveAll} disabled={!hasChanges}>
-                <Save className="mr-2 h-4 w-4" />
-                Değişiklikleri Kaydet
-                {hasChanges && <span className="relative flex h-3 w-3 ml-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                </span>}
-            </Button>
-        </div>
-        
         <Card>
             <CardContent className="p-2 md:p-4">
                 <div className="space-y-1">
@@ -318,10 +299,10 @@ export default function GunlukTakipPage() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle className='flex items-center gap-2'>
                                             <AlertTriangle className='text-yellow-500'/>
-                                            Tüm Sınıfı İşaretle
+                                            Tüm Sınıfa Durum Ata
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Bu işlem tüm öğrencilerin durumunu <strong>"{option.label}"</strong> olarak ayarlayacaktır. Emin misiniz?
+                                            Bu işlem tüm öğrencilere birer adet <strong>"{option.label}"</strong> durumu ekleyecektir. Emin misiniz?
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -342,35 +323,80 @@ export default function GunlukTakipPage() {
                        </div>
                     </div>
                     {students.map(student => {
-                        const record = studentRecords[student.id] || { status: undefined, description: '' };
+                        const record = recordsByStudentId[student.id];
+                        const statusEvents = record?.events.filter(e => e.type === 'status') || [];
+                        const noteEvent = record?.events.find(e => e.type === 'note');
+
                         return (
                             <div key={student.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-3 border-b last:border-none hover:bg-muted/50 rounded-md">
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
                                 <div className='font-semibold'>{student.firstName} {student.lastName}</div>
                                 <div className="flex items-center justify-end gap-1 md:gap-2">
+                                     <div className="flex items-center gap-1.5 min-h-[40px] pr-2">
+                                        {statusEvents.map((event) => {
+                                            const option = statusOptions.find(o => o.value === event.value);
+                                            if (!option) return null;
+                                            return (
+                                                <AlertDialog key={event.id}>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button
+                                                                        variant={'outline'}
+                                                                        size='icon'
+                                                                        className={cn('rounded-full w-9 h-9 md:w-10 md:h-10 transition-all border-2')}
+                                                                        style={{
+                                                                            borderColor: option.color,
+                                                                            color: option.color,
+                                                                        } as React.CSSProperties}
+                                                                    >
+                                                                        {option.icon && <option.icon className="h-5 w-5" />}
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Silmek için tıkla: {option.label}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Değerlendirmeyi Sil</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Bu değerlendirmeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleRemoveEvent(student.id, event.id)}>Sil</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="flex items-center border-l-2 pl-1.5 gap-1">
                                      {statusOptions.map(option => (
                                          <Button
                                             key={option.value}
-                                            variant={record.status === option.value ? 'default' : 'outline'}
+                                            variant='outline'
                                             size='icon'
-                                            className={cn(
-                                                'rounded-full w-9 h-9 md:w-10 md:h-10 transition-all',
-                                                record.status === option.value && `bg-[var(--bg-color)] text-[var(--text-color)] hover:bg-[var(--bg-color)]/90 border-2 border-primary/50`,
-                                                record.status !== option.value && record.status !== undefined && 'opacity-50'
-                                            )}
+                                            className='rounded-full w-9 h-9 md:w-10 md:h-10 transition-all'
                                             style={{
                                                 '--bg-color': option.bgColor,
                                                 '--text-color': option.color,
                                             } as React.CSSProperties}
-                                            onClick={() => handleStatusChange(student.id, option.value)}
+                                            onClick={() => handleStatusClick(student.id, option.value)}
                                          >
                                             {option.icon && <option.icon className="h-5 w-5" />}
                                          </Button>
                                      ))}
                                     <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground h-9 w-9 md:h-10 md:h-10 relative" onClick={() => openNoteEditor(student)}>
                                         <MessageSquarePlus className="h-5 w-5"/>
-                                        {record.description && <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />}
+                                        {noteEvent && <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />}
                                     </Button>
+                                    </div>
                                 </div>
                             </div>
                         )
@@ -385,7 +411,7 @@ export default function GunlukTakipPage() {
             <DialogHeader>
                 <DialogTitle>Öğrenci Notu: {editingNoteFor?.firstName} {editingNoteFor?.lastName}</DialogTitle>
                 <DialogDescription>
-                    Bu öğrenci için {recordDate ? format(recordDate, 'dd MMMM yyyy', {locale: tr}) : ''} tarihine özel bir not ekleyin.
+                    Bu öğrenci için {recordDate ? format(recordDate, 'dd MMMM yyyy', {locale: tr}) : ''} tarihine özel bir not ekleyin. Mevcut notun üzerine yazılacaktır.
                 </DialogDescription>
             </DialogHeader>
             <Textarea 

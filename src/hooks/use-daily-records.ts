@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useToast } from './use-toast';
-import type { DailyRecord, Student, ClassInfo } from '@/lib/types';
+import type { DailyRecord, Student, ClassInfo, RecordEvent, RecordEventType, RecordEventValue } from '@/lib/types';
 import { dailyRecords as initialRecords } from '@/lib/mock-data';
 
 const RECORDS_STORAGE_KEY = 'daily-records';
@@ -24,24 +24,65 @@ export function useDailyRecords() {
     try {
       const savedRecords = localStorage.getItem(RECORDS_STORAGE_KEY);
       if (savedRecords) {
-        setRecords(JSON.parse(savedRecords));
+        // Data migration: check if old format exists
+        const parsed = JSON.parse(savedRecords);
+        if (parsed.length > 0 && 'status' in parsed[0]) {
+           // This is the old format, migrate it
+           const migrated = migrateV1ToV2(parsed);
+           setRecords(migrated);
+           localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(migrated));
+        } else {
+           setRecords(parsed);
+        }
       } else {
-        // Load initial mock data if nothing is in localStorage
-        setRecords(initialRecords);
-        localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(initialRecords));
+        // Load initial mock data if nothing is in localStorage, and migrate it
+        const migrated = migrateV1ToV2(initialRecords);
+        setRecords(migrated);
+        localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(migrated));
       }
     } catch (error) {
-      console.error("Failed to load records from localStorage", error);
+      console.error("Failed to load/migrate records from localStorage", error);
       toast({
         title: "Kayıtlar Yüklenemedi",
         description: "Günlük kayıtlarınız yüklenirken bir sorun oluştu.",
         variant: "destructive"
       });
-      setRecords(initialRecords); // Fallback to mock data on error
+      setRecords([]); 
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
+
+  const migrateV1ToV2 = (oldRecords: any[]): DailyRecord[] => {
+    const newRecords: Record<string, DailyRecord> = {};
+    oldRecords.forEach(old => {
+        const key = `${old.classId}-${old.date}-${old.studentId}`;
+        if (!newRecords[key]) {
+            newRecords[key] = {
+                id: key,
+                classId: old.classId,
+                date: old.date,
+                studentId: old.studentId,
+                events: []
+            };
+        }
+        if (old.status) {
+            newRecords[key].events.push({
+                id: `${key}-status-${newRecords[key].events.length}`,
+                type: 'status',
+                value: old.status,
+            });
+        }
+        if (old.description) {
+            newRecords[key].events.push({
+                id: `${key}-note-${newRecords[key].events.length}`,
+                type: 'note',
+                value: old.description,
+            });
+        }
+    });
+    return Object.values(newRecords);
+  }
 
   const updateLocalStorage = (updatedRecords: DailyRecord[]) => {
     try {
@@ -60,34 +101,96 @@ export function useDailyRecords() {
   const getRecordsForDate = React.useCallback((classId: string, date: string): DailyRecord[] => {
     return records.filter(record => record.classId === classId && record.date === date);
   }, [records]);
-
-  const updateDailyRecords = React.useCallback((classId: string, date: string, newRecords: Omit<DailyRecord, 'id'>[]) => {
-      setRecords(prevRecords => {
-          const newRecordsMap = new Map(newRecords.map(r => [r.studentId, r]));
-          const otherRecords = prevRecords.filter(r => r.classId !== classId || r.date !== date);
-          
-          const studentsInClass = new Set(newRecords.map(r => r.studentId));
-          const existingRecordsForDate = prevRecords.filter(r => r.classId === classId && r.date === date && studentsInClass.has(r.studentId));
-          
-          const updatedOrKeptRecords = existingRecordsForDate.map(existingRecord => {
-              if (newRecordsMap.has(existingRecord.studentId)) {
-                  const newRecord = newRecordsMap.get(existingRecord.studentId)!;
-                  newRecordsMap.delete(existingRecord.studentId);
-                  return { ...existingRecord, status: newRecord.status, description: newRecord.description };
-              }
-              return existingRecord;
-          });
-          
-          const brandNewRecords = Array.from(newRecordsMap.values()).map(nr => ({ ...nr, id: `${nr.studentId}-${nr.date}` } as DailyRecord));
-
-          const finalRecordsForDate = [...updatedOrKeptRecords, ...brandNewRecords].filter(r => r.status || r.description);
-
-          const allRecords = [...otherRecords, ...finalRecordsForDate];
-          updateLocalStorage(allRecords);
-          return allRecords;
-      });
-  }, []);
   
+  const addEvent = React.useCallback((classId: string, studentId: string, date: string, event: { type: RecordEventType, value: RecordEventValue }) => {
+    setRecords(prevRecords => {
+        const recordId = `${classId}-${date}-${studentId}`;
+        const newEvent: RecordEvent = {
+            id: new Date().toISOString(),
+            ...event
+        };
+        
+        const existingRecordIndex = prevRecords.findIndex(r => r.id === recordId);
+        
+        let newRecords = [...prevRecords];
+
+        if (existingRecordIndex > -1) {
+            newRecords[existingRecordIndex] = {
+                ...newRecords[existingRecordIndex],
+                events: [...newRecords[existingRecordIndex].events, newEvent]
+            };
+        } else {
+            newRecords.push({
+                id: recordId,
+                classId,
+                studentId,
+                date,
+                events: [newEvent]
+            });
+        }
+        
+        updateLocalStorage(newRecords);
+        return newRecords;
+    });
+  }, []);
+
+  const addBulkEvents = React.useCallback((classId: string, studentIds: string[], date: string, event: { type: RecordEventType, value: RecordEventValue }) => {
+    setRecords(prevRecords => {
+      let newRecords = [...prevRecords];
+      
+      studentIds.forEach(studentId => {
+        const recordId = `${classId}-${date}-${studentId}`;
+        const newEvent: RecordEvent = {
+            id: new Date().toISOString() + `-${studentId}`, // Ensure unique ID in bulk add
+            ...event
+        };
+        
+        const existingRecordIndex = newRecords.findIndex(r => r.id === recordId);
+
+        if (existingRecordIndex > -1) {
+            newRecords[existingRecordIndex] = {
+                ...newRecords[existingRecordIndex],
+                events: [...newRecords[existingRecordIndex].events, newEvent]
+            };
+        } else {
+            newRecords.push({
+                id: recordId,
+                classId,
+                studentId,
+                date,
+                events: [newEvent]
+            });
+        }
+      });
+        
+      updateLocalStorage(newRecords);
+      return newRecords;
+    });
+  }, []);
+
+  const removeEvent = React.useCallback((classId: string, studentId: string, date: string, eventId: string) => {
+    setRecords(prevRecords => {
+      const recordId = `${classId}-${date}-${studentId}`;
+      const existingRecordIndex = prevRecords.findIndex(r => r.id === recordId);
+
+      if (existingRecordIndex === -1) return prevRecords;
+
+      let newRecords = [...prevRecords];
+      const updatedEvents = newRecords[existingRecordIndex].events.filter(e => e.id !== eventId);
+      
+      newRecords[existingRecordIndex] = {
+        ...newRecords[existingRecordIndex],
+        events: updatedEvents
+      };
+
+      // If no events are left, we can either keep the record with empty events or remove it.
+      // Let's keep it for simplicity, as it doesn't harm.
+
+      updateLocalStorage(newRecords);
+      return newRecords;
+    });
+  }, []);
+
   const deleteRecordsForClass = (classId: string) => {
     setRecords(prevRecords => {
       const remainingRecords = prevRecords.filter(r => r.classId !== classId);
@@ -95,14 +198,22 @@ export function useDailyRecords() {
       return remainingRecords;
     });
   };
+  
+  const deleteRecordsForStudent = (classId: string, studentId: string) => {
+     setRecords(prevRecords => {
+      const remainingRecords = prevRecords.filter(r => !(r.classId === classId && r.studentId === studentId));
+      updateLocalStorage(remainingRecords);
+      return remainingRecords;
+    });
+  }
 
-  return { records, isLoading, getRecordsForDate, updateDailyRecords, deleteRecordsForClass };
+  return { records, isLoading, getRecordsForDate, addEvent, addBulkEvents, removeEvent, deleteRecordsForClass, deleteRecordsForStudent };
 }
 
 
 export function useClassesAndStudents() {
     const { toast } = useToast();
-    const { deleteRecordsForClass } = useDailyRecords();
+    const { deleteRecordsForClass, deleteRecordsForStudent } = useDailyRecords();
     const [classes, setClasses] = React.useState<ClassWithStudents[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
@@ -230,7 +341,10 @@ export function useClassesAndStudents() {
             return c;
         });
         updateStorage(updatedClasses);
+        deleteRecordsForStudent(classId, studentId);
     };
 
     return { classes, isLoading, addClass, updateClass, deleteClass, addStudent, addMultipleStudents, updateStudent, deleteStudent };
 }
+
+    

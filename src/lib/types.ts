@@ -15,14 +15,21 @@ export type ClassInfo = {
 };
 
 export type AttendanceStatus = '+' | 'P' | '-' | 'G' | 'Y';
+export type RecordEventType = 'status' | 'note';
+export type RecordEventValue = AttendanceStatus | string;
+
+export type RecordEvent = {
+    id: string;
+    type: RecordEventType;
+    value: RecordEventValue;
+}
 
 export type DailyRecord = {
-  id: string; 
+  id: string; // Composite key: `${classId}-${date}-${studentId}`
   studentId: string;
   classId: string;
   date: string; // YYYY-MM-DD
-  status?: AttendanceStatus;
-  description?: string;
+  events: RecordEvent[];
 };
 
 export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string, bgColor?: string }[] = [
@@ -62,3 +69,5 @@ export type WeeklyScheduleItem = {
   day: string;
   lessons: Lesson[];
 }
+
+    
