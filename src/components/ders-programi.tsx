@@ -3,9 +3,8 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpenCheck } from 'lucide-react';
-import { weeklySchedule as initialSchedule } from '@/lib/mock-data';
-import type { Lesson } from '@/lib/types';
+import { BookOpenCheck, Trash2 } from 'lucide-react';
+import type { Lesson, Day } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
 import {
@@ -16,41 +15,52 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
+import { AddLessonForm } from './add-lesson-form';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from '@/components/ui/alert-dialog';
+import { Button } from './ui/button';
 
-interface WeeklyScheduleItem {
-  day: string;
-  dayShort: string;
-  dayColor: string;
-  lessons: Lesson[];
-}
+const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
-const scheduleData: WeeklyScheduleItem[] = [
-  { day: 'PAZARTESİ', dayShort: 'P', dayColor: 'bg-orange-500', lessons: initialSchedule.find(d => d.day === 'Pazartesi')?.lessons || [] },
-  { day: 'SALI', dayShort: 'S', dayColor: 'bg-cyan-500', lessons: initialSchedule.find(d => d.day === 'Salı')?.lessons || [] },
-  { day: 'ÇARŞAMBA', dayShort: 'Ç', dayColor: 'bg-red-500', lessons: initialSchedule.find(d => d.day === 'Çarşamba')?.lessons || [] },
-  { day: 'PERŞEMBE', dayShort: 'P', dayColor: 'bg-yellow-500', lessons: initialSchedule.find(d => d.day === 'Perşembe')?.lessons || [] },
-  { day: 'CUMA', dayShort: 'C', dayColor: 'bg-purple-500', lessons: initialSchedule.find(d => d.day === 'Cuma')?.lessons || [] },
-  { day: 'CUMARTESİ', dayShort: 'C', dayColor: 'bg-slate-500', lessons: initialSchedule.find(d => d.day === 'Cumartesi')?.lessons || [] },
-  { day: 'PAZAR', dayShort: 'P', dayColor: 'bg-gray-400', lessons: initialSchedule.find(d => d.day === 'Pazar')?.lessons || [] },
-];
+const dayDetails: Record<Day, { short: string; color: string }> = {
+    'Pazartesi': { short: 'P', color: 'bg-orange-500' },
+    'Salı': { short: 'S', color: 'bg-cyan-500' },
+    'Çarşamba': { short: 'Ç', color: 'bg-red-500' },
+    'Perşembe': { short: 'P', color: 'bg-yellow-500' },
+    'Cuma': { short: 'C', color: 'bg-purple-500' },
+    'Cumartesi': { short: 'C', color: 'bg-slate-500' },
+    'Pazar': { short: 'P', color: 'bg-gray-400' },
+};
+
 
 export default function DersProgrami() {
-  const [activeDay, setActiveDay] = React.useState<string>('PAZARTESİ');
+  const { schedule, addLesson, deleteLesson, isLoading } = useWeeklySchedule();
+  const [activeDay, setActiveDay] = React.useState<Day>('Pazartesi');
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
     setIsMounted(true);
     const todayIndex = new Date().getDay();
-    // Sunday is 0, Monday is 1... Adjust to match our array (Pazartesi is 0)
     const adjustedDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
-    if(scheduleData[adjustedDayIndex]) {
-       setActiveDay(scheduleData[adjustedDayIndex].day);
+    if(dayOrder[adjustedDayIndex]) {
+       setActiveDay(dayOrder[adjustedDayIndex]);
     }
   }, []);
 
-  const activeDayData = scheduleData.find(d => d.day === activeDay);
+  const activeDayData = schedule.find(d => d.day === activeDay);
+  const activeDayColor = dayDetails[activeDay]?.color || 'bg-gray-500';
 
-  if (!isMounted) {
+  if (!isMounted || isLoading) {
     return (
         <Card className="w-full">
             <CardHeader>
@@ -76,23 +86,23 @@ export default function DersProgrami() {
         </div>
 
         <div className="grid grid-cols-7 gap-1 p-2 bg-gray-100 dark:bg-gray-800">
-            {scheduleData.map(day => (
+            {dayOrder.map(day => (
                 <button
-                    key={day.day}
-                    onClick={() => setActiveDay(day.day)}
+                    key={day}
+                    onClick={() => setActiveDay(day)}
                     className={cn(
                         'flex items-center justify-center aspect-square rounded-md text-white font-bold text-xl md:text-2xl transition-all duration-200 transform',
-                        day.dayColor,
-                        activeDay === day.day ? 'ring-2 ring-offset-2 ring-primary scale-105' : 'opacity-70 hover:opacity-100'
+                        dayDetails[day].color,
+                        activeDay === day ? 'ring-2 ring-offset-2 ring-primary scale-105' : 'opacity-70 hover:opacity-100'
                     )}
                 >
-                    {day.dayShort}
+                    {dayDetails[day].short}
                 </button>
             ))}
         </div>
       
-        <div className={cn("p-4 text-white", activeDayData?.dayColor)}>
-            <h3 className="text-center font-bold text-2xl tracking-widest">{activeDayData?.day}</h3>
+        <div className={cn("p-4 text-white", activeDayColor)}>
+            <h3 className="text-center font-bold text-2xl tracking-widest">{activeDay}</h3>
         </div>
         
         <CardContent className="p-0">
@@ -100,21 +110,46 @@ export default function DersProgrami() {
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className='bg-red-500 hover:bg-red-500/90'>
+                            <TableRow className={cn('hover:bg-muted/50', activeDayColor)}>
                                 <TableHead className="w-12 text-white">#</TableHead>
                                 <TableHead className="text-white">Ders Adı</TableHead>
+                                <TableHead className="text-white">Sınıf</TableHead>
                                 <TableHead className="text-right text-white">Zaman</TableHead>
+                                <TableHead className="w-12 text-right text-white"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {activeDayData.lessons.map((lesson, index) => (
-                                <TableRow key={index}>
+                            {activeDayData.lessons
+                                .sort((a,b) => a.time.localeCompare(b.time))
+                                .map((lesson, index) => (
+                                <TableRow key={lesson.id}>
                                     <TableCell className="font-medium">{index + 1}</TableCell>
-                                    <TableCell>
-                                        <p className="font-semibold">{lesson.subject}</p>
-                                        <p className="text-xs text-muted-foreground">{lesson.class}</p>
-                                    </TableCell>
+                                    <TableCell>{lesson.subject}</TableCell>
+                                    <TableCell>{lesson.class}</TableCell>
                                     <TableCell className="text-right">{lesson.time}</TableCell>
+                                    <TableCell className="text-right">
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className='h-8 w-8'>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Dersi Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Bu işlem geri alınamaz. "{lesson.subject} - {lesson.time}" dersini kalıcı olarak silecektir.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => deleteLesson(activeDay, lesson.id)} className='bg-destructive hover:bg-destructive/90'>
+                                                        Evet, Sil
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -125,6 +160,9 @@ export default function DersProgrami() {
                     <p>Bugün için ders programı bulunmuyor.</p>
                 </div>
             )}
+             <div className="p-4 flex justify-center">
+                <AddLessonForm day={activeDay} onAddLesson={addLesson} />
+            </div>
         </CardContent>
     </Card>
   );

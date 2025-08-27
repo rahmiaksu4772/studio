@@ -60,14 +60,15 @@ export type Plan = {
 };
 
 export type Lesson = {
+  id: string;
   time: string;
   subject: string;
   class: string;
 }
 
+export type Day = 'Pazartesi' | 'Salı' | 'Çarşamba' | 'Perşembe' | 'Cuma' | 'Cumartesi' | 'Pazar';
+
 export type WeeklyScheduleItem = {
-  day: string;
+  day: Day;
   lessons: Lesson[];
 }
-
-    

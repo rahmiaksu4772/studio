@@ -25,7 +25,7 @@ export const classes: (ClassInfo & { students: Student[] })[] = [
 
 export const students: Student[] = classes.flatMap(c => c.students);
 
-export const dailyRecords: DailyRecord[] = [
+export const dailyRecords: any[] = [
     { id: 'rec-1', studentId: '6A-1', classId: '6A', date: '2024-05-20', status: '+', description: 'Derse aktif katıldı.' },
     { id: 'rec-2', studentId: '6A-2', classId: '6A', date: '2024-05-20', status: 'P', description: 'Ödevini yarım yapmış.' },
     { id: 'rec-3', studentId: '6A-3', classId: '6A', date: '2024-05-20', status: '-', description: 'Arkadaşıyla konuştu.' },
@@ -37,52 +37,35 @@ export const weeklySchedule: WeeklyScheduleItem[] = [
   {
     day: 'Pazartesi',
     lessons: [
-      { time: '09:00 - 09:40', subject: 'Matematik', class: '6/A' },
-      { time: '09:50 - 10:30', subject: 'Matematik', class: '6/A' },
-      { time: '10:40 - 11:20', subject: 'Sosyal Bilgiler', class: '6/A' },
-      { time: '11:30 - 12:10', subject: 'Fen Bilimleri', class: '7/B' },
-      { time: '13:10 - 13:50', subject: 'Matematik', class: '7/B' },
-      { time: '14:00 - 14:40', subject: 'Matematik', class: '7/B' },
+      { id: '1', time: '09:00 - 09:40', subject: 'Matematik', class: '6/A' },
+      { id: '2', time: '09:50 - 10:30', subject: 'Matematik', class: '6/A' },
+      { id: '3', time: '13:10 - 13:50', subject: 'Matematik', class: '7/B' },
     ],
   },
   {
     day: 'Salı',
     lessons: [
-      { time: '09:00 - 09:40', subject: 'Türkçe', class: '6/A' },
-      { time: '09:50 - 10:30', subject: 'İngilizce', class: '6/A' },
-      { time: '10:40 - 11:20', subject: 'Matematik', class: '6/A' },
-      { time: '11:30 - 12:10', subject: 'Matematik', class: '6/A' },
-      { time: '13:10 - 13:50', subject: 'Türkçe', class: '7/B' },
-      { time: '14:00 - 14:40', subject: 'Fen Bilimleri', class: '7/B' },
+      { id: '4', time: '10:40 - 11:20', subject: 'Matematik', class: '6/A' },
     ],
   },
   {
     day: 'Çarşamba',
     lessons: [
-      { time: '09:00 - 09:40', subject: 'Matematik', class: '7/B' },
-      { time: '09:50 - 10:30', subject: 'Matematik', class: '7/B' },
-      { time: '10:40 - 11:20', subject: 'Beden Eğitimi', class: '6/A' },
-      { time: '11:30 - 12:10', subject: 'Beden Eğitimi', class: '6/A' },
-      { time: '13:10 - 13:50', subject: 'Matematik', class: '6/A' },
+       { id: '5', time: '09:00 - 09:40', subject: 'Matematik', class: '7/B' },
+       { id: '6', time: '09:50 - 10:30', subject: 'Matematik', class: '7/B' },
     ],
   },
   {
     day: 'Perşembe',
     lessons: [
-       { time: '09:50 - 10:30', subject: 'Fen Bilimleri', class: '6/A' },
-       { time: '10:40 - 11:20', subject: 'Fen Bilimleri', class: '6/A' },
-       { time: '11:30 - 12:10', subject: 'Matematik', class: '7/B' },
-       { time: '13:10 - 13:50', subject: 'Sosyal Bilgiler', class: '7/B' },
-       { time: '14:00 - 14:40', subject: 'İngilizce', class: '7/B' },
+       { id: '7', time: '11:30 - 12:10', subject: 'Matematik', class: '7/B' },
     ],
   },
   {
     day: 'Cuma',
     lessons: [
-       { time: '09:00 - 09:40', subject: 'Matematik', class: '6/A' },
-       { time: '09:50 - 10:30', subject: 'Görsel Sanatlar', class: '7/B' },
-       { time: '10:40 - 11:20', subject: 'Matematik', class: '7/B' },
-       { time: '11:30 - 12:10', subject: 'Müzik', class: '6/A' },
+       { id: '8', time: '09:00 - 09:40', subject: 'Matematik', class: '6/A' },
+       { id: '9', time: '10:40 - 11:20', subject: 'Matematik', class: '7/B' },
     ],
   },
   {
