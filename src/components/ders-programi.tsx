@@ -3,72 +3,58 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpenCheck, Clock, Plus, Save, Trash2 } from 'lucide-react';
+import { BookOpenCheck } from 'lucide-react';
 import { weeklySchedule as initialSchedule } from '@/lib/mock-data';
 import type { Lesson } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface WeeklyScheduleItem {
   day: string;
+  dayShort: string;
+  dayColor: string;
   lessons: Lesson[];
 }
 
-const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+const scheduleData: WeeklyScheduleItem[] = [
+  { day: 'PAZARTESİ', dayShort: 'P', dayColor: 'bg-orange-500', lessons: initialSchedule.find(d => d.day === 'Pazartesi')?.lessons || [] },
+  { day: 'SALI', dayShort: 'S', dayColor: 'bg-cyan-500', lessons: initialSchedule.find(d => d.day === 'Salı')?.lessons || [] },
+  { day: 'ÇARŞAMBA', dayShort: 'Ç', dayColor: 'bg-red-500', lessons: initialSchedule.find(d => d.day === 'Çarşamba')?.lessons || [] },
+  { day: 'PERŞEMBE', dayShort: 'P', dayColor: 'bg-yellow-500', lessons: initialSchedule.find(d => d.day === 'Perşembe')?.lessons || [] },
+  { day: 'CUMA', dayShort: 'C', dayColor: 'bg-purple-500', lessons: initialSchedule.find(d => d.day === 'Cuma')?.lessons || [] },
+  { day: 'CUMARTESİ', dayShort: 'C', dayColor: 'bg-slate-500', lessons: initialSchedule.find(d => d.day === 'Cumartesi')?.lessons || [] },
+  { day: 'PAZAR', dayShort: 'P', dayColor: 'bg-gray-400', lessons: initialSchedule.find(d => d.day === 'Pazar')?.lessons || [] },
+];
 
 export default function DersProgrami() {
-  const { toast } = useToast();
-  const [schedule, setSchedule] = React.useState<WeeklyScheduleItem[]>(initialSchedule);
-  const [activeDay, setActiveDay] = React.useState<string>(daysOfWeek[0]);
+  const [activeDay, setActiveDay] = React.useState<string>('PAZARTESİ');
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
     setIsMounted(true);
     const todayIndex = new Date().getDay();
-    // Sunday is 0, Monday is 1... Adjust to match our array (Monday is 0)
+    // Sunday is 0, Monday is 1... Adjust to match our array (Pazartesi is 0)
     const adjustedDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
-    if(daysOfWeek[adjustedDayIndex]) {
-       setActiveDay(daysOfWeek[adjustedDayIndex]);
+    if(scheduleData[adjustedDayIndex]) {
+       setActiveDay(scheduleData[adjustedDayIndex].day);
     }
   }, []);
 
-
-  const handleLessonChange = (dayIndex: number, lessonIndex: number, field: keyof Lesson, value: string) => {
-    const newSchedule = [...schedule];
-    (newSchedule[dayIndex].lessons[lessonIndex] as any)[field] = value;
-    setSchedule(newSchedule);
-  };
-  
-  const addLesson = (dayIndex: number) => {
-    const newSchedule = [...schedule];
-    newSchedule[dayIndex].lessons.push({ time: '00:00 - 00:00', subject: 'Yeni Ders', class: 'Sınıf' });
-    setSchedule(newSchedule);
-  };
-  
-  const deleteLesson = (dayIndex: number, lessonIndex: number) => {
-    const newSchedule = [...schedule];
-    newSchedule[dayIndex].lessons.splice(lessonIndex, 1);
-    setSchedule(newSchedule);
-  };
-
-  const handleSaveChanges = () => {
-    console.log('Kaydedilen Program:', schedule);
-    toast({
-      title: 'Program Kaydedildi',
-      description: 'Ders programındaki değişiklikler başarıyla kaydedildi. (Konsolu kontrol edin)',
-    });
-  };
-  
-  const activeDayIndex = schedule.findIndex(d => d.day === activeDay);
+  const activeDayData = scheduleData.find(d => d.day === activeDay);
 
   if (!isMounted) {
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                     <BookOpenCheck className="h-5 w-5" />
                     Haftalık Ders Programı
                 </CardTitle>
@@ -81,73 +67,65 @@ export default function DersProgrami() {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-            <BookOpenCheck className="h-5 w-5" />
-            Haftalık Ders Programı
+    <Card className="w-full overflow-hidden">
+        <div className="flex justify-between items-center p-4">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <BookOpenCheck className="h-5 w-5" />
+                Haftalık Ders Programı
             </CardTitle>
-            <Button onClick={handleSaveChanges}>
-                <Save className='mr-2 h-4 w-4' />
-                Değişiklikleri Kaydet
-            </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4">
-          <div className="flex space-x-2 border-b">
-            {schedule.map(day => (
-              <button
-                key={day.day}
-                onClick={() => setActiveDay(day.day)}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium',
-                  activeDay === day.day
-                    ? 'border-b-2 border-primary text-primary'
-                    : 'text-muted-foreground'
-                )}
-              >
-                {day.day}
-              </button>
+
+        <div className="grid grid-cols-7 gap-1 p-2 bg-gray-100 dark:bg-gray-800">
+            {scheduleData.map(day => (
+                <button
+                    key={day.day}
+                    onClick={() => setActiveDay(day.day)}
+                    className={cn(
+                        'flex items-center justify-center aspect-square rounded-md text-white font-bold text-xl md:text-2xl transition-all duration-200 transform',
+                        day.dayColor,
+                        activeDay === day.day ? 'ring-2 ring-offset-2 ring-primary scale-105' : 'opacity-70 hover:opacity-100'
+                    )}
+                >
+                    {day.dayShort}
+                </button>
             ))}
-          </div>
+        </div>
+      
+        <div className={cn("p-4 text-white", activeDayData?.dayColor)}>
+            <h3 className="text-center font-bold text-2xl tracking-widest">{activeDayData?.day}</h3>
         </div>
         
-        <div className="space-y-4">
-            {activeDayIndex !== -1 && schedule[activeDayIndex].lessons.map((lesson, lessonIndex) => (
-                 <div key={`${activeDayIndex}-${lessonIndex}`} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted">
-                     <div className="flex items-center gap-2 font-semibold text-primary">
-                         <Clock className="h-5 w-5" />
-                         <Input
-                            value={lesson.time}
-                            onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'time', e.target.value)}
-                            className="bg-transparent border-0 focus-visible:ring-1"
-                        />
-                     </div>
-                     <div className="flex-grow">
-                         <Input
-                            value={lesson.subject}
-                            onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'subject', e.target.value)}
-                            className="font-bold text-lg bg-transparent border-0 focus-visible:ring-1"
-                        />
-                         <Input
-                            value={lesson.class}
-                            onChange={(e) => handleLessonChange(activeDayIndex, lessonIndex, 'class', e.target.value)}
-                            className="text-sm text-muted-foreground bg-transparent border-0 focus-visible:ring-1"
-                        />
-                     </div>
-                     <Button variant="ghost" size="icon" onClick={() => deleteLesson(activeDayIndex, lessonIndex)}>
-                         <Trash2 className="h-4 w-4 text-destructive" />
-                     </Button>
-                 </div>
-            ))}
-             <Button variant="outline" className="w-full mt-4" onClick={() => addLesson(activeDayIndex)}>
-                <Plus className="mr-2 h-4 w-4"/>
-                Yeni Ders Ekle
-            </Button>
-        </div>
-      </CardContent>
+        <CardContent className="p-0">
+            {activeDayData && activeDayData.lessons.length > 0 ? (
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className='bg-red-500 hover:bg-red-500/90'>
+                                <TableHead className="w-12 text-white">#</TableHead>
+                                <TableHead className="text-white">Ders Adı</TableHead>
+                                <TableHead className="text-right text-white">Zaman</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {activeDayData.lessons.map((lesson, index) => (
+                                <TableRow key={index}>
+                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                    <TableCell>
+                                        <p className="font-semibold">{lesson.subject}</p>
+                                        <p className="text-xs text-muted-foreground">{lesson.class}</p>
+                                    </TableCell>
+                                    <TableCell className="text-right">{lesson.time}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            ) : (
+                <div className="text-center p-10 text-muted-foreground">
+                    <p>Bugün için ders programı bulunmuyor.</p>
+                </div>
+            )}
+        </CardContent>
     </Card>
   );
 }
