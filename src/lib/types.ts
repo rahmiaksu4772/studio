@@ -14,7 +14,7 @@ export type ClassInfo = {
   name: string;
 };
 
-export type AttendanceStatus = '+' | 'P' | '-' | 'G' | 'Y';
+export type AttendanceStatus = '+' | 'Y' | '-' | 'G' | 'D';
 export type RecordEventType = 'status' | 'note';
 export type RecordEventValue = AttendanceStatus | string;
 
@@ -34,9 +34,9 @@ export type DailyRecord = {
 
 export const statusOptions: { value: AttendanceStatus; label: string, icon?: LucideIcon, color?: string, bgColor?: string }[] = [
     { value: '+', label: 'Artı', icon: PlusCircle, color: 'hsl(142.1, 70.6%, 45.1%)', bgColor: 'hsl(142.1, 76.2%, 95.1%)' },
-    { value: 'P', label: 'Yarım', icon: CircleSlash, color: 'hsl(47.9, 95.8%, 53.1%)', bgColor: 'hsl(47.9, 95.8%, 95.1%)' },
+    { value: 'Y', label: 'Yarım', icon: CircleSlash, color: 'hsl(47.9, 95.8%, 53.1%)', bgColor: 'hsl(47.9, 95.8%, 95.1%)' },
     { value: '-', label: 'Eksi', icon: MinusCircle, color: 'hsl(0, 84.2%, 60.2%)', bgColor: 'hsl(0, 84.2%, 95.1%)' },
-    { value: 'Y', label: 'Yok', icon: UserX, color: 'hsl(222.2, 47.4%, 11.2%)', bgColor: 'hsl(222.2, 47.4%, 95.1%)' },
+    { value: 'D', label: 'Yok', icon: UserX, color: 'hsl(222.2, 47.4%, 11.2%)', bgColor: 'hsl(222.2, 47.4%, 95.1%)' },
     { value: 'G', label: 'İzinli', icon: FileCheck, color: 'hsl(221, 83%, 53%)', bgColor: 'hsl(221, 83%, 95.1%)' },
 ];
 

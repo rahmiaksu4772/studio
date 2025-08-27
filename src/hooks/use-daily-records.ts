@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useToast } from './use-toast';
-import type { DailyRecord, Student, ClassInfo, RecordEvent, RecordEventType, RecordEventValue } from '@/lib/types';
+import type { DailyRecord, Student, ClassInfo, RecordEvent, RecordEventType, RecordEventValue, AttendanceStatus } from '@/lib/types';
 import { dailyRecords as initialRecords } from '@/lib/mock-data';
 
 const RECORDS_STORAGE_KEY = 'daily-records';
@@ -67,10 +67,14 @@ export function useDailyRecords() {
             };
         }
         if (old.status) {
+            let newStatus = old.status;
+            if (old.status === 'P') newStatus = 'Y'; // Migrate P to Y
+            if (old.status === 'Y') newStatus = 'D'; // Migrate old Y to D
+            
             newRecords[key].events.push({
                 id: `${key}-status-${newRecords[key].events.length}`,
                 type: 'status',
-                value: old.status,
+                value: newStatus,
             });
         }
         if (old.description) {

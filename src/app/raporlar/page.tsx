@@ -49,13 +49,14 @@ import 'jspdf-autotable';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
 import { useClassesAndStudents, useDailyRecords } from '@/hooks/use-daily-records';
+import { liberationSansNormal } from '@/lib/fonts';
 
 
 const statusToTurkish: Record<string, string> = {
     '+': 'Artı',
-    'P': 'Yarım',
+    'Y': 'Yarım',
     '-': 'Eksi',
-    'Y': 'Yok',
+    'D': 'Yok',
     'G': 'İzinli',
     'note': 'Not',
 };
@@ -67,9 +68,9 @@ const chartConfig = {
   ...statusOptions.reduce((acc, option) => {
     let color = 'hsl(var(--primary))'; // default
     if (option.value === '+') color = 'hsl(142 71% 45%)';
-    if (option.value === 'P') color = 'hsl(142 60% 65%)';
+    if (option.value === 'Y') color = 'hsl(142 60% 65%)';
     if (option.value === '-') color = 'hsl(0 72% 51%)';
-    if (option.value === 'Y') color = 'hsl(48 96% 53%)';
+    if (option.value === 'D') color = 'hsl(48 96% 53%)';
     if (option.value === 'G') color = 'hsl(221 83% 53%)';
 
     acc[option.value] = {
@@ -179,7 +180,7 @@ export default function RaporlarPage() {
     const studentSummaries = students.map(student => {
       const studentRecords = filteredData.filter(r => r.studentId === student.id);
       const summary: Record<AttendanceStatus, number> = {
-        '+': 0, 'P': 0, '-': 0, 'Y': 0, 'G': 0
+        '+': 0, 'Y': 0, '-': 0, 'D': 0, 'G': 0
       };
       
       studentRecords.forEach(record => {
@@ -190,7 +191,7 @@ export default function RaporlarPage() {
         });
       });
       
-      const totalScore = summary['+'] * 10 + summary['P'] * 5 + summary['-'] * -5;
+      const totalScore = summary['+'] * 10 + summary['Y'] * 5 + summary['-'] * -5;
       
       return {
         ...student,
@@ -205,6 +206,12 @@ export default function RaporlarPage() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
+    
+    // Add the custom font
+    doc.addFileToVFS('liberation-sans.ttf', liberationSansNormal);
+    doc.addFont('liberation-sans.ttf', 'liberation-sans', 'normal');
+    doc.setFont('liberation-sans');
+
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
@@ -233,20 +240,20 @@ export default function RaporlarPage() {
             s.studentNumber,
             `${s.firstName} ${s.lastName}`,
             s.summary['+'],
-            s.summary['P'],
-            s.summary['-'],
             s.summary['Y'],
+            s.summary['-'],
+            s.summary['D'],
             s.summary['G'],
             s.totalScore
         ]);
 
         (doc as any).autoTable({
-            head: [['No', 'Adı Soyadı', '+', 'P', '-', 'Yok', 'İzinli', 'Toplam Puan']],
+            head: [['No', 'Adı Soyadı', '+', 'Yarım', '-', 'Yok', 'İzinli', 'Toplam Puan']],
             body: tableData,
             startY: 30,
             theme: 'grid',
-            headStyles: { fillColor: [33, 150, 243], textColor: 255 },
-            styles: { font: 'liberationsans' },
+            headStyles: { fillColor: [33, 150, 243], textColor: 255, font: 'liberation-sans' },
+            styles: { font: 'liberation-sans' },
             alternateRowStyles: { fillColor: [240, 244, 255] },
             didDrawPage: (data: any) => {
                 pageHeader(data);
@@ -286,8 +293,8 @@ export default function RaporlarPage() {
                     ];
                 }),
                 theme: 'striped',
-                headStyles: { fillColor: [33, 150, 243], textColor: 255 },
-                styles: { font: 'liberationsans' },
+                headStyles: { fillColor: [33, 150, 243], textColor: 255, font: 'liberation-sans' },
+                styles: { font: 'liberation-sans' },
                 didDrawPage: (data: any) => {
                     pageHeader(data);
                     pageFooter(data);
