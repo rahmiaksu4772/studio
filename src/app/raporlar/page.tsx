@@ -49,7 +49,6 @@ import 'jspdf-autotable';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
 import { useClassesAndStudents, useDailyRecords } from '@/hooks/use-daily-records';
-import { liberationSansNormal } from '@/lib/fonts';
 
 
 const statusToTurkish: Record<string, string> = {
@@ -68,9 +67,9 @@ const chartConfig = {
   ...statusOptions.reduce((acc, option) => {
     let color = 'hsl(var(--primary))'; // default
     if (option.value === '+') color = 'hsl(142 71% 45%)';
-    if (option.value === 'Y') color = 'hsl(142 60% 65%)';
+    if (option.value === 'Y') color = 'hsl(47.9 95.8% 53.1%)'; // updated from P
     if (option.value === '-') color = 'hsl(0 72% 51%)';
-    if (option.value === 'D') color = 'hsl(48 96% 53%)';
+    if (option.value === 'D') color = 'hsl(222.2 47.4% 11.2%)'; // updated from Y
     if (option.value === 'G') color = 'hsl(221 83% 53%)';
 
     acc[option.value] = {
@@ -207,11 +206,6 @@ export default function RaporlarPage() {
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
     
-    // Add the custom font
-    doc.addFileToVFS('liberation-sans.ttf', liberationSansNormal);
-    doc.addFont('liberation-sans.ttf', 'liberation-sans', 'normal');
-    doc.setFont('liberation-sans');
-
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
@@ -235,6 +229,11 @@ export default function RaporlarPage() {
         doc.text(text, doc.internal.pageSize.width - data.settings.margin.right - textWidth, doc.internal.pageSize.height - 10);
     };
 
+    const tableStyles = {
+        font: "helvetica",
+        fontStyle: 'normal'
+    };
+
     if (selectedReportType === 'sinif' && classReportData) {
         const tableData = classReportData.studentSummaries.map(s => [
             s.studentNumber,
@@ -252,8 +251,8 @@ export default function RaporlarPage() {
             body: tableData,
             startY: 30,
             theme: 'grid',
-            headStyles: { fillColor: [33, 150, 243], textColor: 255, font: 'liberation-sans' },
-            styles: { font: 'liberation-sans' },
+            headStyles: { fillColor: [33, 150, 243], textColor: 255, ...tableStyles },
+            styles: tableStyles,
             alternateRowStyles: { fillColor: [240, 244, 255] },
             didDrawPage: (data: any) => {
                 pageHeader(data);
@@ -293,8 +292,8 @@ export default function RaporlarPage() {
                     ];
                 }),
                 theme: 'striped',
-                headStyles: { fillColor: [33, 150, 243], textColor: 255, font: 'liberation-sans' },
-                styles: { font: 'liberation-sans' },
+                headStyles: { fillColor: [33, 150, 243], textColor: 255, ...tableStyles },
+                styles: tableStyles,
                 didDrawPage: (data: any) => {
                     pageHeader(data);
                     pageFooter(data);
