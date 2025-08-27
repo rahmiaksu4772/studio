@@ -313,20 +313,34 @@ export default function RaporlarPage() {
     }
     
     if (filteredData.length === 0) {
-        return <div className="text-center py-10 text-muted-foreground">Rapor oluşturmak için yukarıdaki filtreleri kullanın ve "Raporu Oluştur" düğmesine tıklayın.</div>
+        return (
+            <div className="text-center py-10 px-4 text-muted-foreground">
+                <FileSearch className="mx-auto h-12 w-12" />
+                <h3 className="mt-4 text-lg font-semibold">Rapor Bekleniyor</h3>
+                <p className="mt-2 text-sm">Rapor oluşturmak için yukarıdaki filtreleri kullanın ve "Raporu Oluştur" düğmesine tıklayın.</p>
+            </div>
+        )
     }
 
     if (selectedReportType === 'bireysel' && !individualReportData) {
-        return <div className="text-center py-10 text-muted-foreground">Raporu görüntülemek için lütfen bir öğrenci seçin.</div>
+        return (
+            <div className="text-center py-10 px-4 text-muted-foreground">
+                <Users className="mx-auto h-12 w-12" />
+                <h3 className="mt-4 text-lg font-semibold">Öğrenci Seçin</h3>
+                <p className="mt-2 text-sm">Bireysel raporu görüntülemek için lütfen bir öğrenci seçin.</p>
+            </div>
+        )
     }
     
     if(selectedReportType === 'bireysel' && individualReportData){
       const { summary, events, chartData } = individualReportData;
+      const selectedStudent = students.find(s => s.id === selectedStudentId);
+
       return (
         <Card>
-            <CardHeader className='flex-row items-center justify-between'>
+            <CardHeader className='flex-col md:flex-row items-start md:items-center justify-between gap-4'>
                 <div>
-                    <CardTitle>Bireysel Rapor: {students.find(s => s.id === selectedStudentId)?.firstName} {students.find(s => s.id === selectedStudentId)?.lastName}</CardTitle>
+                    <CardTitle>Bireysel Rapor: {selectedStudent?.firstName} {selectedStudent?.lastName}</CardTitle>
                     <CardDescription>Aşağıda öğrencinin seçilen tarih aralığındaki performansını görebilirsiniz.</CardDescription>
                 </div>
                  <Button variant="outline" onClick={handleDownloadPdf}>
@@ -375,14 +389,14 @@ export default function RaporlarPage() {
                         <CardDescription>Seçilen tarih aralığındaki tüm olaylar.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
                             {events.length > 0 ? events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event, index) => {
                                 const statusKey = event.type === 'status' ? event.value : event.type;
                                 const statusOption = statusOptions.find(o => o.value === statusKey);
 
                                 return (
                                 <div key={`${event.date}-${index}`} className="flex items-start gap-4">
-                                    <div className="font-semibold text-center w-20">
+                                    <div className="font-semibold text-center w-20 flex-shrink-0">
                                         <p>{format(new Date(event.date), 'dd MMMM', { locale: tr })}</p>
                                         <p className="text-xs text-muted-foreground">{format(new Date(event.date), 'cccc', { locale: tr })}</p>
                                     </div>
@@ -410,7 +424,7 @@ export default function RaporlarPage() {
     if(selectedReportType === 'sinif' && classReportData){
         return (
             <Card>
-                <CardHeader className='flex-row items-center justify-between'>
+                <CardHeader className='flex-col md:flex-row items-start md:items-center justify-between gap-4'>
                     <div>
                         <CardTitle>Sınıf Geneli Performans Raporu</CardTitle>
                         <CardDescription>
@@ -423,30 +437,32 @@ export default function RaporlarPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[80px]">No</TableHead>
-                                <TableHead>Adı Soyadı</TableHead>
-                                {statusOptions.map(opt => (
-                                    <TableHead key={opt.value} className="text-center">{opt.label}</TableHead>
-                                ))}
-                                <TableHead className="text-right">Toplam Puan</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {classReportData.studentSummaries.map(student => (
-                                <TableRow key={student.id}>
-                                    <TableCell className="font-medium">{student.studentNumber}</TableCell>
-                                    <TableCell>{student.firstName} {student.lastName}</TableCell>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[80px]">No</TableHead>
+                                    <TableHead>Adı Soyadı</TableHead>
                                     {statusOptions.map(opt => (
-                                        <TableCell key={opt.value} className="text-center">{student.summary[opt.value]}</TableCell>
+                                        <TableHead key={opt.value} className="text-center">{opt.label}</TableHead>
                                     ))}
-                                    <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
+                                    <TableHead className="text-right">Toplam Puan</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {classReportData.studentSummaries.map(student => (
+                                    <TableRow key={student.id}>
+                                        <TableCell className="font-medium">{student.studentNumber}</TableCell>
+                                        <TableCell>{student.firstName} {student.lastName}</TableCell>
+                                        {statusOptions.map(opt => (
+                                            <TableCell key={opt.value} className="text-center">{student.summary[opt.value]}</TableCell>
+                                        ))}
+                                        <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         )
@@ -457,7 +473,7 @@ export default function RaporlarPage() {
   
   return (
     <AppLayout>
-      <main className="flex-1 space-y-4 p-8 pt-6">
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Raporlar</h2>
         </div>
@@ -563,5 +579,3 @@ export default function RaporlarPage() {
     </AppLayout>
   );
 }
-
-    
