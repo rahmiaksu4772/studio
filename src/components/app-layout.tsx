@@ -32,6 +32,7 @@ import {
   } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useAuth } from '@/hooks/use-auth';
 
 
 const menuItems = [
@@ -45,6 +46,27 @@ const menuItems = [
 
 const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     const pathname = usePathname();
+    const router = useRouter();
+    const { logOut } = useAuth();
+    const { toast } = useToast();
+
+    const handleLogout = async () => {
+        try {
+            await logOut();
+            toast({
+                title: 'Çıkış Yapıldı',
+                description: 'Giriş sayfasına yönlendiriliyorsunuz.',
+            });
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            toast({
+                title: 'Hata',
+                description: 'Çıkış yapılırken bir sorun oluştu.',
+                variant: 'destructive',
+            });
+        }
+    };
 
     return (
         <div className="flex h-full max-h-screen flex-col">
@@ -73,7 +95,7 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                 </nav>
             </div>
             <div className="mt-auto p-4 border-t">
-                 <nav className="grid items-start gap-2 px-4 text-sm font-medium">
+                 <nav className="grid items-start gap-2 px-2 text-sm font-medium">
                     <Link
                         href="/ayarlar"
                         onClick={onLinkClick}
@@ -85,6 +107,28 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                         <Settings className="h-5 w-5" />
                         Ayarlar
                     </Link>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <button className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive')}>
+                                <LogOut className="h-5 w-5" />
+                                Çıkış Yap
+                            </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Çıkış Yapmak Üzere misiniz?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Oturumu sonlandırmak istediğinizden emin misiniz? Tekrar giriş yapmanız gerekecektir.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
+                                    Evet, Çıkış Yap
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                  </nav>
             </div>
         </div>
@@ -92,13 +136,9 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
-    const { profile } = useUserProfile();
+    const { user, loading } = useAuth();
+    const { profile } = useUserProfile(user?.uid);
     const [open, setOpen] = React.useState(false);
-
-    if (pathname === '/login' || pathname === '/kayit' || pathname === '/') {
-        return <>{children}</>;
-    }
 
     return (
         <div className="grid min-h-screen w-full md:grid-cols-[280px_1fr]">

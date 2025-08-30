@@ -51,6 +51,8 @@ import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
 import { useClassesAndStudents } from '@/hooks/use-daily-records';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
 
 const statusToTurkish: Record<string, string> = {
@@ -83,8 +85,9 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 
-export default function RaporlarPage() {
-  const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
+function RaporlarPageContent() {
+  const { user } = useAuth();
+  const { classes, isLoading: isClassesLoading } = useClassesAndStudents(user?.uid);
   
   const [students, setStudents] = React.useState<Student[]>([]);
   const [filteredData, setFilteredData] = React.useState<DailyRecord[]>([]);
@@ -106,7 +109,10 @@ export default function RaporlarPage() {
   }, [classes, selectedClassId]);
 
   React.useEffect(() => {
-    if (!selectedClassId) return;
+    if (!selectedClassId) {
+        setStudents([]);
+        return;
+    };
     const currentClass = classes.find(c => c.id === selectedClassId);
     const sortedStudents = currentClass?.students.sort((a,b) => a.studentNumber - b.studentNumber) || [];
     setStudents(sortedStudents);
@@ -115,7 +121,7 @@ export default function RaporlarPage() {
   }, [selectedClassId, classes]);
 
   const handleGenerateReport = React.useCallback(async () => {
-    if (!selectedClassId || !dateRange?.from) return;
+    if (!user?.uid || !selectedClassId || !dateRange?.from) return;
     
     setIsGenerating(true);
     setFilteredData([]);
@@ -124,7 +130,7 @@ export default function RaporlarPage() {
         const startDate = format(dateRange.from, 'yyyy-MM-dd');
         const endDate = format(dateRange.to || dateRange.from, 'yyyy-MM-dd');
         
-        const q = query(collection(db, `classes/${selectedClassId}/records`), 
+        const q = query(collection(db, `users/${user.uid}/classes/${selectedClassId}/records`), 
             where("date", ">=", startDate), 
             where("date", "<=", endDate)
         );
@@ -139,7 +145,7 @@ export default function RaporlarPage() {
     } finally {
         setIsGenerating(false);
     }
-  }, [selectedClassId, dateRange]);
+  }, [selectedClassId, dateRange, user?.uid]);
 
 
   const individualReportData = React.useMemo(() => {
@@ -588,3 +594,11 @@ export default function RaporlarPage() {
     </AppLayout>
   );
 }
+
+export default function RaporlarPage() {
+    return (
+      <AuthGuard>
+        <RaporlarPageContent />
+      </AuthGuard>
+    );
+  }

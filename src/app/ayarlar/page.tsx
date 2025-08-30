@@ -23,17 +23,21 @@ import { useToast } from '@/hooks/use-toast';
 import { ChangePasswordForm } from '@/components/change-password-form';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import type { UserProfile } from '@/hooks/use-user-profile';
+import { useAuth } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
 
-export default function AyarlarPage() {
+function AyarlarPageContent() {
   const { toast } = useToast();
   const [activeTheme, setActiveTheme] = React.useState('light');
-  const { profile, updateProfile, isLoading } = useUserProfile();
+  const { user } = useAuth();
+  const { profile, updateProfile, isLoading } = useUserProfile(user?.uid);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
+    if (!user?.uid) return;
     updateProfile(updatedProfile);
     toast({
       title: 'Profil Güncellendi!',
@@ -47,7 +51,7 @@ export default function AyarlarPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        if(profile){
+        if(profile && user?.uid){
             updateProfile({ ...profile, avatarUrl: reader.result as string });
         }
       };
@@ -227,3 +231,11 @@ export default function AyarlarPage() {
     </AppLayout>
   );
 }
+
+export default function AyarlarPage() {
+    return (
+      <AuthGuard>
+        <AyarlarPageContent />
+      </AuthGuard>
+    );
+  }

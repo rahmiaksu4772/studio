@@ -5,6 +5,7 @@ import * as React from 'react';
 import { useToast } from './use-toast';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { useAuth } from './use-auth';
 
 export type UserProfile = {
   fullName: string;
@@ -15,43 +16,51 @@ export type UserProfile = {
   avatarUrl: string;
 };
 
-const defaultProfile: UserProfile = {
-  fullName: 'Ayşe Öğretmen',
-  title: 'Matematik Öğretmeni',
-  email: 'ornek.eposta@gmail.com',
-  branch: 'Matematik',
-  workplace: 'Atatürk İlkokulu',
+const defaultProfile: Omit<UserProfile, 'email'> = {
+  fullName: 'Yeni Kullanıcı',
+  title: 'Öğretmen',
+  branch: 'Belirtilmemiş',
+  workplace: 'Belirtilmemiş',
   avatarUrl: 'https://placehold.co/96x96.png',
 };
 
-// For this single-user application, we'll use a fixed ID.
-// In a multi-user app, this would be the authenticated user's ID.
-const PROFILE_DOC_ID = 'default-user'; 
-
-export function useUserProfile() {
+export function useUserProfile(userId?: string) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (!userId) {
+      setIsLoading(false);
+      setProfile(null);
+      return;
+    }
+
     setIsLoading(true);
-    const profileDocRef = doc(db, 'profiles', PROFILE_DOC_ID);
+    const profileDocRef = doc(db, 'users', userId);
 
     const unsubscribe = onSnapshot(profileDocRef, async (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
       } else {
-        // Profile doesn't exist, create it with default data
-        try {
-          await setDoc(profileDocRef, defaultProfile);
-          setProfile(defaultProfile);
-        } catch (error) {
-          console.error("Failed to create default profile:", error);
-          toast({
-            title: 'Profil Oluşturulamadı',
-            description: 'Varsayılan kullanıcı profili oluşturulamadı.',
-            variant: 'destructive',
-          });
+        // Profile doesn't exist, create it with default data for the new user
+        if (user?.email) {
+          try {
+            const newProfile: UserProfile = {
+              ...defaultProfile,
+              email: user.email,
+            };
+            await setDoc(profileDocRef, newProfile);
+            setProfile(newProfile);
+          } catch (error) {
+            console.error("Failed to create default profile:", error);
+            toast({
+              title: 'Profil Oluşturulamadı',
+              description: 'Varsayılan kullanıcı profili oluşturulamadı.',
+              variant: 'destructive',
+            });
+          }
         }
       }
       setIsLoading(false);
@@ -66,12 +75,15 @@ export function useUserProfile() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [userId, user?.email, toast]);
 
   const updateProfile = async (updatedProfile: UserProfile) => {
-    const profileDocRef = doc(db, 'profiles', PROFILE_DOC_ID);
+    if (!userId) return;
+    const profileDocRef = doc(db, 'users', userId);
     try {
-      await updateDoc(profileDocRef, updatedProfile);
+      // We don't want to pass the full user object, just the profile data.
+      const { ...profileData } = updatedProfile;
+      await updateDoc(profileDocRef, profileData);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({

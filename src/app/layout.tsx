@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
+import { AuthProvider } from '@/hooks/use-auth.tsx';
 
 export const metadata: Metadata = {
   title: 'SınıfPlanım | Öğretmenin Dijital Asistanı',
@@ -17,8 +18,10 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
-        {children}
-        <Toaster />
+        <AuthProvider>
+            {children}
+            <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

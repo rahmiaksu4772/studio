@@ -25,10 +25,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useClassesAndStudents } from '@/hooks/use-daily-records';
 import { EditClassForm } from '@/components/edit-class-form';
+import { useAuth } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
-export default function SiniflarimPage() {
+function SiniflarimPageContent() {
   const { toast } = useToast();
-  const { classes, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, updateClass, deleteClass, isLoading } = useClassesAndStudents();
+  const { user } = useAuth();
+  const { classes, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, updateClass, deleteClass, isLoading } = useClassesAndStudents(user?.uid);
   const [editingStudent, setEditingStudent] = React.useState<Student | null>(null);
   const [editingClass, setEditingClass] = React.useState<ClassInfo | null>(null);
 
@@ -37,12 +40,14 @@ export default function SiniflarimPage() {
   }, [classes]);
 
   const handleAddClass = async (className: string) => {
-    await addClass(className);
+    if (!user?.uid) return;
+    await addClass(user.uid, className);
   };
   
   const handleUpdateClass = async (classId: string, newName: string) => {
+    if (!user?.uid) return;
     try {
-        await updateClass(classId, newName);
+        await updateClass(user.uid, classId, newName);
         toast({
             title: 'Başarılı!',
             description: 'Sınıf adı güncellendi.',
@@ -54,8 +59,9 @@ export default function SiniflarimPage() {
   };
   
   const handleDeleteClass = async (classId: string) => {
+    if (!user?.uid) return;
     try {
-        await deleteClass(classId);
+        await deleteClass(user.uid, classId);
         toast({
           title: 'Sınıf Silindi',
           description: 'Sınıf ve içindeki tüm öğrenciler başarıyla silindi.',
@@ -67,8 +73,9 @@ export default function SiniflarimPage() {
   };
 
   const handleAddStudent = async (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
+    if (!user?.uid) return;
     try {
-        await addStudent(classId, studentData);
+        await addStudent(user.uid, classId, studentData);
          toast({
           title: 'Başarılı!',
           description: `Öğrenci "${studentData.firstName} ${studentData.lastName}" eklendi.`,
@@ -79,8 +86,9 @@ export default function SiniflarimPage() {
   };
   
   const handleBulkAddStudents = async (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
+    if (!user?.uid) return;
     try {
-        await addMultipleStudents(classId, newStudents);
+        await addMultipleStudents(user.uid, classId, newStudents);
         toast({
             title: "Öğrenciler Başarıyla Aktarıldı!",
             description: `${newStudents.length} öğrenci "${classes.find(c=>c.id === classId)?.name}" sınıfına eklendi.`
@@ -91,8 +99,9 @@ export default function SiniflarimPage() {
   };
 
   const handleUpdateStudent = async (updatedStudent: Student) => {
+    if (!user?.uid) return;
     try {
-        await updateStudent(updatedStudent.classId, updatedStudent);
+        await updateStudent(user.uid, updatedStudent.classId, updatedStudent);
         toast({
           title: 'Başarılı!',
           description: `Öğrenci "${updatedStudent.firstName} ${updatedStudent.lastName}" güncellendi.`,
@@ -104,8 +113,9 @@ export default function SiniflarimPage() {
   };
 
   const handleStudentDelete = async (classId: string, studentId: string) => {
+    if (!user?.uid) return;
     try {
-        await deleteStudent(classId, studentId);
+        await deleteStudent(user.uid, classId, studentId);
         toast({
           title: 'Öğrenci Silindi',
           description: 'Öğrenci başarıyla listeden kaldırıldı.',
@@ -255,5 +265,14 @@ export default function SiniflarimPage() {
         )}
       </main>
     </AppLayout>
+  );
+}
+
+
+export default function SiniflarimPage() {
+  return (
+    <AuthGuard>
+      <SiniflarimPageContent />
+    </AuthGuard>
   );
 }

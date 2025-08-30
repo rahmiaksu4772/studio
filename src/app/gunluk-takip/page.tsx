@@ -55,22 +55,23 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuth } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
-
-export default function GunlukTakipPage() {
+function GunlukTakipPageContent() {
   const { toast } = useToast();
-  const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
+  const { user } = useAuth();
+  const { classes, isLoading: isClassesLoading } = useClassesAndStudents(user?.uid);
   
   const [students, setStudents] = React.useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo | null>(null);
   const [recordDate, setRecordDate] = React.useState<Date | null>(new Date());
   
-  // records are now fetched based on selectedClass.id
   const { 
       records: allRecords, 
       isLoading: isRecordsLoading, 
       bulkUpdateRecords
-  } = useDailyRecords(selectedClass?.id);
+  } = useDailyRecords(user?.uid, selectedClass?.id);
 
   const [editingNoteFor, setEditingNoteFor] = React.useState<Student | null>(null);
   const [currentNote, setCurrentNote] = React.useState('');
@@ -110,7 +111,10 @@ export default function GunlukTakipPage() {
   
   // Fetch students when class changes
   React.useEffect(() => {
-    if (!selectedClass) return;
+    if (!selectedClass) {
+        setStudents([]);
+        return;
+    };
     
     const currentClass = classes.find(c => c.id === selectedClass.id);
     const sortedStudents = currentClass?.students.sort((a, b) => a.studentNumber - b.studentNumber) || [];
@@ -128,7 +132,7 @@ export default function GunlukTakipPage() {
           } else {
               if(!selectedClass || !dateStr) return prev;
               const newRecord: DailyRecord = {
-                  id: `${selectedClass.id}-${dateStr}-${studentId}-${Math.random()}`, // Make ID more unique for local state before saving
+                  id: `${selectedClass.id}-${dateStr}-${studentId}-${Math.random()}`,
                   classId: selectedClass.id,
                   studentId,
                   date: dateStr,
@@ -237,8 +241,8 @@ export default function GunlukTakipPage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!selectedClass || !dateStr) return;
-    await bulkUpdateRecords(selectedClass.id, dateStr, dailyRecords);
+    if (!user?.uid || !selectedClass || !dateStr) return;
+    await bulkUpdateRecords(user.uid, selectedClass.id, dateStr, dailyRecords);
     setIsDirty(false);
     toast({
       title: 'Değişiklikler Kaydedildi',
@@ -519,3 +523,11 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
+
+export default function GunlukTakipPage() {
+    return (
+      <AuthGuard>
+        <GunlukTakipPageContent />
+      </AuthGuard>
+    );
+  }

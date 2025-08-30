@@ -1,11 +1,10 @@
-
 'use server';
 
 import { descriptionAutoFill } from '@/ai/flows/description-auto-fill';
 import type { DescriptionAutoFillInput } from '@/ai/flows/description-auto-fill';
 
 // This file is now only for server-side AI actions.
-// Data fetching has been moved back to client-side hooks with localStorage.
+// Data fetching is now done via hooks that respect user authentication.
 
 export async function generateDescriptionAction(input: DescriptionAutoFillInput) {
   try {

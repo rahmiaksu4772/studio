@@ -22,20 +22,34 @@ import { UploadPlanForm } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
 import type { Plan } from '@/lib/types';
 import { format } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
-const PLANS_STORAGE_KEY = 'lesson-plans';
+const PLANS_STORAGE_KEY_PREFIX = 'lesson-plans_';
 
-export default function PlanlarimPage() {
+function PlanlarimPageContent() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
   const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
 
+  const getStorageKey = React.useCallback(() => {
+    if (!user) return null;
+    return `${PLANS_STORAGE_KEY_PREFIX}${user.uid}`;
+  }, [user]);
+
   React.useEffect(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey) {
+        setIsLoading(false);
+        return;
+    }
+    
     setIsLoading(true);
     try {
-        const savedPlans = localStorage.getItem(PLANS_STORAGE_KEY);
+        const savedPlans = localStorage.getItem(storageKey);
         if (savedPlans) {
             setPlans(JSON.parse(savedPlans));
         }
@@ -49,11 +63,13 @@ export default function PlanlarimPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, getStorageKey]);
 
   React.useEffect(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey || isLoading) return;
     try {
-        localStorage.setItem(PLANS_STORAGE_KEY, JSON.stringify(plans));
+        localStorage.setItem(storageKey, JSON.stringify(plans));
     } catch (error) {
         console.error("Failed to save plans to localStorage", error);
         toast({
@@ -62,7 +78,7 @@ export default function PlanlarimPage() {
             variant: "destructive"
         });
     }
-  }, [plans, toast]);
+  }, [plans, toast, getStorageKey, isLoading]);
 
 
   const handleAddPlan = (planData: Omit<Plan, 'id' | 'uploadDate'>) => {
@@ -253,3 +269,11 @@ export default function PlanlarimPage() {
     </AppLayout>
   );
 }
+
+export default function PlanlarimPage() {
+    return (
+      <AuthGuard>
+        <PlanlarimPageContent />
+      </AuthGuard>
+    );
+  }
