@@ -1,26 +1,32 @@
 
 import * as admin from 'firebase-admin';
 
-const serviceAccount = {
-  "type": "service_account",
-  "project_id": process.env.FIREBASE_PROJECT_ID,
-  "private_key_id": process.env.FIREBASE_PRIVATE_KEY_ID,
-  "private_key": process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  "client_email": process.env.FIREBASE_CLIENT_EMAIL,
-  "client_id": process.env.FIREBASE_CLIENT_ID,
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": process.env.FIREBASE_CLIENT_X509_CERT_URL,
-} as admin.ServiceAccount;
+// Check if the service account JSON is available in environment variables
+const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+let adminApp: admin.app.App;
+
+// Initialize Firebase Admin SDK
+if (admin.apps.length === 0) {
+    if (serviceAccountJson) {
+        const serviceAccount = JSON.parse(serviceAccountJson);
+        adminApp = admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            projectId: serviceAccount.project_id,
+        });
+    } else {
+        // Fallback for local development or environments without the JSON string
+        // This will use Application Default Credentials if available.
+        adminApp = admin.initializeApp({
+            projectId: 'takip-k0hdb', // Manually set your project ID here
+        });
+        console.warn("FIREBASE_SERVICE_ACCOUNT_JSON not found. Initializing with Project ID only. This may not work for all services.");
+    }
+} else {
+    adminApp = admin.app();
+}
+
 
 export function initializeAdmin() {
-  if (admin.apps.length > 0) {
-    return admin.app();
-  }
-
-  return admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: process.env.FIREBASE_PROJECT_ID,
-  });
+  return adminApp;
 }
