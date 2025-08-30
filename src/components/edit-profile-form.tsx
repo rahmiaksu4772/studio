@@ -27,6 +27,7 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Geçerli bir e-posta adresi girin.' }),
   branch: z.string().min(2, { message: 'Branş en az 2 karakter olmalıdır.' }),
   workplace: z.string().min(2, { message: 'Görev yeri en az 2 karakter olmalıdır.' }),
+  hometown: z.string().min(2, { message: 'Memleket en az 2 karakter olmalıdır.' }),
   avatarUrl: z.string().url().or(z.string().startsWith('data:image/')),
 });
 
@@ -175,6 +176,19 @@ export function EditProfileForm({ user, onUpdate, onClose, isOpen }: EditProfile
                   <FormLabel>Görev Yeri</FormLabel>
                   <FormControl>
                     <Input placeholder="Örn: Atatürk İlkokulu" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="hometown"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Memleket</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Örn: Ankara" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

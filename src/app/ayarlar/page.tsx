@@ -14,6 +14,7 @@ import {
   Palette,
   Camera,
   Loader2,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -151,6 +152,10 @@ function AyarlarPageContent() {
                     <li className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4"/> Görev Yeri</span>
                       <span className="font-medium">{profile.workplace}</span>
+                    </li>
+                     <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-muted-foreground"><Globe className="h-4 w-4"/> Memleket</span>
+                      <span className="font-medium">{profile.hometown}</span>
                     </li>
                   </ul>
                 </CardContent>

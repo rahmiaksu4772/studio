@@ -14,13 +14,13 @@ export type UserProfile = {
   branch: string;
   workplace: string;
   avatarUrl: string;
+  hometown: string;
 };
 
-const defaultProfile: Omit<UserProfile, 'email'> = {
+const defaultProfile: Omit<UserProfile, 'email' | 'workplace' | 'hometown'> = {
   fullName: 'Yeni Kullanıcı',
   title: 'Öğretmen',
   branch: 'Belirtilmemiş',
-  workplace: 'Belirtilmemiş',
   avatarUrl: `https://placehold.co/96x96.png`,
 };
 
@@ -44,12 +44,15 @@ export function useUserProfile(userId?: string) {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
       } else {
-        // Profile doesn't exist, create it with default data for the new user
+        // This case will now be rare, as profile is created on sign up.
+        // But it's good for resilience (e.g. if signup flow changes).
         if (user?.email) {
           try {
             const newProfile: UserProfile = {
               ...defaultProfile,
               email: user.email,
+              workplace: 'Okul Belirtilmemiş',
+              hometown: 'Memleket Belirtilmemiş',
             };
             await setDoc(profileDocRef, newProfile);
             setProfile(newProfile);
