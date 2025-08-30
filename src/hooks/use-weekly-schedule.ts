@@ -4,106 +4,100 @@
 import * as React from 'react';
 import { useToast } from './use-toast';
 import type { WeeklyScheduleItem, Lesson, Day } from '@/lib/types';
-import { weeklySchedule as initialSchedule } from '@/lib/mock-data';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
-const SCHEDULE_STORAGE_KEY = 'weekly-schedule';
 
-// Add IDs to initial mock data for consistency
-const getInitialDataWithIds = (): WeeklyScheduleItem[] => {
-    return initialSchedule.map(dayItem => ({
-        ...dayItem,
-        lessons: dayItem.lessons.map((lesson, index) => ({
-            ...lesson,
-            id: `${dayItem.day}-${index}-${new Date().getTime()}`
-        }))
-    }));
-}
-
+const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 export function useWeeklySchedule() {
   const { toast } = useToast();
   const [schedule, setSchedule] = React.useState<WeeklyScheduleItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const scheduleId = "main-schedule"; // We'll use a single document for the schedule
 
   React.useEffect(() => {
     setIsLoading(true);
-    try {
-      const savedSchedule = localStorage.getItem(SCHEDULE_STORAGE_KEY);
-      if (savedSchedule) {
-        setSchedule(JSON.parse(savedSchedule));
-      } else {
-        const initialData = getInitialDataWithIds();
-        setSchedule(initialData);
-        localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(initialData));
-      }
-    } catch (error) {
-      console.error("Failed to load schedule from localStorage", error);
+    const scheduleDocRef = doc(db, "schedules", scheduleId);
+
+    const unsubscribe = onSnapshot(scheduleDocRef, (doc) => {
+        if (doc.exists()) {
+            const data = doc.data();
+            const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => ({
+                day,
+                lessons: data[day] || []
+            }));
+            setSchedule(scheduleData);
+        } else {
+            // Document doesn't exist, maybe create it with a default structure
+             const defaultSchedule = dayOrder.reduce((acc, day) => ({ ...acc, [day]: [] }), {});
+             updateDoc(scheduleDocRef, defaultSchedule, { merge: true });
+        }
+        setIsLoading(false);
+    }, (error) => {
+      console.error("Failed to load schedule from Firestore", error);
       toast({
         title: "Program Yüklenemedi",
         description: "Ders programı yüklenirken bir sorun oluştu.",
         variant: "destructive"
       });
-      setSchedule([]); 
-    } finally {
       setIsLoading(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, [toast]);
 
-  const updateLocalStorage = (updatedSchedule: WeeklyScheduleItem[]) => {
-    try {
-      localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(updatedSchedule));
-      setSchedule(updatedSchedule);
-    } catch (error) {
-      console.error("Failed to save schedule to localStorage", error);
-      toast({
-        title: "Program Kaydedilemedi",
-        description: "Değişiklikleriniz kaydedilirken bir sorun oluştu.",
-        variant: "destructive"
-      });
-    }
-  };
 
-  const addLesson = (day: Day, lessonData: Omit<Lesson, 'id'>) => {
+  const addLesson = async (day: Day, lessonData: Omit<Lesson, 'id'>) => {
     const newLesson: Lesson = {
         ...lessonData,
         id: new Date().toISOString(),
     };
     
-    const updatedSchedule = schedule.map(dayItem => {
-        if (dayItem.day === day) {
-            return { ...dayItem, lessons: [...dayItem.lessons, newLesson] };
-        }
-        return dayItem;
-    });
-
-    // If the day doesn't exist in the schedule, create it.
-    if (!schedule.some(d => d.day === day)) {
-        updatedSchedule.push({ day, lessons: [newLesson] });
+    const scheduleDocRef = doc(db, "schedules", scheduleId);
+    try {
+        await updateDoc(scheduleDocRef, {
+            [day]: arrayUnion(newLesson)
+        });
+        toast({
+            title: "Ders Eklendi!",
+            description: `"${lessonData.subject}" dersi ${day} gününe eklendi.`
+        });
+    } catch (error) {
+        console.error("Error adding lesson:", error);
+         toast({
+            title: "Hata!",
+            description: "Ders eklenirken bir hata oluştu.",
+            variant: "destructive"
+        });
     }
-
-    updateLocalStorage(updatedSchedule);
-    toast({
-        title: "Ders Eklendi!",
-        description: `"${lessonData.subject}" dersi ${day} gününe eklendi.`
-    });
   };
 
-  const deleteLesson = (day: Day, lessonId: string) => {
-     const updatedSchedule = schedule.map(dayItem => {
-        if (dayItem.day === day) {
-            const lessonToDelete = dayItem.lessons.find(l => l.id === lessonId);
-            toast({
-                title: "Ders Silindi!",
-                description: `"${lessonToDelete?.subject}" dersi programdan kaldırıldı.`,
-                variant: 'destructive'
-            });
-            return { ...dayItem, lessons: dayItem.lessons.filter(l => l.id !== lessonId) };
-        }
-        return dayItem;
-    });
-    updateLocalStorage(updatedSchedule);
+  const deleteLesson = async (day: Day, lessonId: string) => {
+     const daySchedule = schedule.find(d => d.day === day);
+     const lessonToDelete = daySchedule?.lessons.find(l => l.id === lessonId);
+     
+     if (!lessonToDelete) return;
+
+     const scheduleDocRef = doc(db, "schedules", scheduleId);
+     try {
+        await updateDoc(scheduleDocRef, {
+            [day]: arrayRemove(lessonToDelete)
+        });
+        toast({
+            title: "Ders Silindi!",
+            description: `"${lessonToDelete.subject}" dersi programdan kaldırıldı.`,
+            variant: 'destructive'
+        });
+     } catch (error) {
+         console.error("Error deleting lesson:", error);
+         toast({
+            title: "Hata!",
+            description: "Ders silinirken bir hata oluştu.",
+            variant: "destructive"
+        });
+     }
   };
   
-
   return { schedule, isLoading, addLesson, deleteLesson };
 }

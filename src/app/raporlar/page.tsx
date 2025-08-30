@@ -48,7 +48,9 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
-import { useClassesAndStudents, useDailyRecords } from '@/hooks/use-daily-records';
+import { useClassesAndStudents } from '@/hooks/use-daily-records';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 
 const statusToTurkish: Record<string, string> = {
@@ -83,7 +85,6 @@ const chartConfig = {
 
 export default function RaporlarPage() {
   const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
-  const { records, isLoading: isRecordsLoading } = useDailyRecords();
   
   const [students, setStudents] = React.useState<Student[]>([]);
   const [filteredData, setFilteredData] = React.useState<DailyRecord[]>([]);
@@ -110,33 +111,35 @@ export default function RaporlarPage() {
     const sortedStudents = currentClass?.students.sort((a,b) => a.studentNumber - b.studentNumber) || [];
     setStudents(sortedStudents);
     setSelectedStudentId(null);
+    setFilteredData([]);
   }, [selectedClassId, classes]);
 
-  const handleGenerateReport = React.useCallback(() => {
+  const handleGenerateReport = React.useCallback(async () => {
     if (!selectedClassId || !dateRange?.from) return;
     
     setIsGenerating(true);
-    try {
-        const startDate = dateRange.from;
-        const endDate = dateRange.to || dateRange.from;
-        
-        const filteredRecords = records.filter(record => {
-            const recordDate = new Date(record.date);
-            return (
-                record.classId === selectedClassId &&
-                recordDate >= startDate &&
-                recordDate <= endDate &&
-                record.events.length > 0
-            );
-        });
+    setFilteredData([]);
 
-        setFilteredData(filteredRecords);
+    try {
+        const startDate = format(dateRange.from, 'yyyy-MM-dd');
+        const endDate = format(dateRange.to || dateRange.from, 'yyyy-MM-dd');
+        
+        const q = query(collection(db, `classes/${selectedClassId}/records`), 
+            where("date", ">=", startDate), 
+            where("date", "<=", endDate)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const recordsData = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as DailyRecord);
+        
+        setFilteredData(recordsData);
+
     } catch (error) {
         console.error("Error generating report:", error);
     } finally {
         setIsGenerating(false);
     }
-  }, [selectedClassId, dateRange, records]);
+  }, [selectedClassId, dateRange]);
 
 
   const individualReportData = React.useMemo(() => {
@@ -307,7 +310,7 @@ export default function RaporlarPage() {
     }
   };
 
-  const isLoading = isClassesLoading || isRecordsLoading;
+  const isLoading = isClassesLoading || isGenerating;
   
   const renderReportContent = () => {
     if (isLoading) {

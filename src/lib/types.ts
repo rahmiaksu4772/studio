@@ -12,6 +12,7 @@ export type Student = {
 export type ClassInfo = {
   id: string;
   name: string;
+  students: Student[];
 };
 
 export type AttendanceStatus = '+' | 'Y' | '-' | 'G' | 'D';
@@ -25,7 +26,7 @@ export type RecordEvent = {
 }
 
 export type DailyRecord = {
-  id: string; // Composite key: `${classId}-${date}-${studentId}`
+  id: string; // Firestore document ID
   studentId: string;
   classId: string;
   date: string; // YYYY-MM-DD

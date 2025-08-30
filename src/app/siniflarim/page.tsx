@@ -33,23 +33,24 @@ export default function SiniflarimPage() {
   const [editingClass, setEditingClass] = React.useState<ClassInfo | null>(null);
 
   const sortedClasses = React.useMemo(() => {
-    return classes.map(c => ({
-      ...c,
-      students: [...c.students].sort((a, b) => a.studentNumber - b.studentNumber)
-    })).sort((a, b) => a.name.localeCompare(b.name));
+    return [...classes].sort((a, b) => a.name.localeCompare(b.name));
   }, [classes]);
 
-  const handleAddClass = (className: string) => {
+  const handleAddClass = async (className: string) => {
     try {
-        addClass(className);
+        await addClass(className);
+        toast({
+          title: 'Başarılı!',
+          description: `"${className}" sınıfı eklendi.`,
+        });
     } catch (error: any) {
          toast({ title: 'Hata', description: error.message, variant: 'destructive'});
     }
   };
   
-  const handleUpdateClass = (classId: string, newName: string) => {
+  const handleUpdateClass = async (classId: string, newName: string) => {
     try {
-        updateClass(classId, newName);
+        await updateClass(classId, newName);
         toast({
             title: 'Başarılı!',
             description: 'Sınıf adı güncellendi.',
@@ -60,9 +61,9 @@ export default function SiniflarimPage() {
     }
   };
   
-  const handleDeleteClass = (classId: string) => {
+  const handleDeleteClass = async (classId: string) => {
     try {
-        deleteClass(classId);
+        await deleteClass(classId);
         toast({
           title: 'Sınıf Silindi',
           description: 'Sınıf ve içindeki tüm öğrenciler başarıyla silindi.',
@@ -73,9 +74,9 @@ export default function SiniflarimPage() {
     }
   };
 
-  const handleAddStudent = (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
+  const handleAddStudent = async (classId: string, studentData: Omit<Student, 'id' | 'classId'>) => {
     try {
-        addStudent(classId, studentData);
+        await addStudent(classId, studentData);
          toast({
           title: 'Başarılı!',
           description: `Öğrenci "${studentData.firstName} ${studentData.lastName}" eklendi.`,
@@ -85,9 +86,9 @@ export default function SiniflarimPage() {
     }
   };
   
-  const handleBulkAddStudents = (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
+  const handleBulkAddStudents = async (classId: string, newStudents: Omit<Student, 'id' | 'classId'>[]) => {
     try {
-        addMultipleStudents(classId, newStudents);
+        await addMultipleStudents(classId, newStudents);
         toast({
             title: "Öğrenciler Başarıyla Aktarıldı!",
             description: `${newStudents.length} öğrenci "${classes.find(c=>c.id === classId)?.name}" sınıfına eklendi.`
@@ -97,9 +98,9 @@ export default function SiniflarimPage() {
     }
   };
 
-  const handleUpdateStudent = (updatedStudent: Student) => {
+  const handleUpdateStudent = async (updatedStudent: Student) => {
     try {
-        updateStudent(updatedStudent.classId, updatedStudent);
+        await updateStudent(updatedStudent.classId, updatedStudent);
         toast({
           title: 'Başarılı!',
           description: `Öğrenci "${updatedStudent.firstName} ${updatedStudent.lastName}" güncellendi.`,
@@ -110,9 +111,9 @@ export default function SiniflarimPage() {
     }
   };
 
-  const handleStudentDelete = (classId: string, studentId: string) => {
+  const handleStudentDelete = async (classId: string, studentId: string) => {
     try {
-        deleteStudent(classId, studentId);
+        await deleteStudent(classId, studentId);
         toast({
           title: 'Öğrenci Silindi',
           description: 'Öğrenci başarıyla listeden kaldırıldı.',
@@ -193,14 +194,14 @@ export default function SiniflarimPage() {
                 {c.students.length > 0 ? (
                   <div className="border rounded-md max-h-80 overflow-y-auto">
                     <ul className="divide-y divide-border">
-                      {c.students.map(student => (
+                      {[...c.students].sort((a, b) => a.studentNumber - b.studentNumber).map(student => (
                           <li key={student.id} className="flex items-center justify-between p-3">
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-bold text-primary w-8 text-center">{student.studentNumber}</span>
                               <span className="font-medium">{student.firstName} {student.lastName}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => setEditingStudent(student)}>
+                              <Button variant="ghost" size="icon" onClick={() => setEditingStudent({...student, classId: c.id})}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <AlertDialog>

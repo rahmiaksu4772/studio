@@ -60,16 +60,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 export default function GunlukTakipPage() {
   const { toast } = useToast();
   const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
-  const { 
-      records: allRecords, 
-      isLoading: isRecordsLoading, 
-      bulkUpdateRecords
-    } = useDailyRecords();
   
   const [students, setStudents] = React.useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = React.useState<ClassInfo | null>(null);
   const [recordDate, setRecordDate] = React.useState<Date | null>(new Date());
   
+  // records are now fetched based on selectedClass.id
+  const { 
+      records: allRecords, 
+      isLoading: isRecordsLoading, 
+      bulkUpdateRecords
+  } = useDailyRecords(selectedClass?.id);
+
   const [editingNoteFor, setEditingNoteFor] = React.useState<Student | null>(null);
   const [currentNote, setCurrentNote] = React.useState('');
   
@@ -101,7 +103,8 @@ export default function GunlukTakipPage() {
   // Set initial class
   React.useEffect(() => {
     if (classes.length > 0 && !selectedClass) {
-      setSelectedClass(classes[0]);
+      const firstClass = classes[0];
+      setSelectedClass(firstClass);
     }
   }, [classes, selectedClass]);
   
@@ -125,7 +128,7 @@ export default function GunlukTakipPage() {
           } else {
               if(!selectedClass || !dateStr) return prev;
               const newRecord: DailyRecord = {
-                  id: `${selectedClass.id}-${dateStr}-${studentId}`,
+                  id: `${selectedClass.id}-${dateStr}-${studentId}-${Math.random()}`, // Make ID more unique for local state before saving
                   classId: selectedClass.id,
                   studentId,
                   date: dateStr,
@@ -233,9 +236,9 @@ export default function GunlukTakipPage() {
     setBulkNoteContent('');
   };
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (!selectedClass || !dateStr) return;
-    bulkUpdateRecords(selectedClass.id, dateStr, dailyRecords);
+    await bulkUpdateRecords(selectedClass.id, dateStr, dailyRecords);
     setIsDirty(false);
     toast({
       title: 'Değişiklikler Kaydedildi',
@@ -258,7 +261,7 @@ export default function GunlukTakipPage() {
 
   const isLoading = isClassesLoading || isRecordsLoading;
 
-  if (isLoading && !selectedClass) {
+  if (isClassesLoading) {
     return (
       <AppLayout>
         <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
@@ -341,6 +344,11 @@ export default function GunlukTakipPage() {
 
         <Card>
             <CardContent className="p-2 md:p-4">
+                {isLoading ? (
+                    <div className="flex items-center justify-center p-20">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : (
                 <div className="space-y-1">
                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 text-sm font-medium text-muted-foreground border-b">
                        <div>No</div>
@@ -455,6 +463,7 @@ export default function GunlukTakipPage() {
                         )
                     })}
                 </div>
+                )}
             </CardContent>
         </Card>
       </main>
@@ -510,5 +519,3 @@ export default function GunlukTakipPage() {
     </AppLayout>
   );
 }
-
-    
