@@ -41,6 +41,8 @@ const initialProfile: UserProfile = {
   avatarUrl: 'https://placehold.co/96x96.png',
 };
 
+const PROFILE_STORAGE_KEY = 'user-profile';
+
 export default function AyarlarPage() {
   const { toast } = useToast();
   const [activeTheme, setActiveTheme] = React.useState('light');
@@ -48,6 +50,25 @@ export default function AyarlarPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    try {
+        const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
+        if(savedProfile) {
+            setProfile(JSON.parse(savedProfile));
+        }
+    } catch (error) {
+        console.error("Failed to load profile from localStorage", error);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    try {
+        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    } catch(error) {
+        console.error("Failed to save profile to localStorage", error);
+    }
+  }, [profile]);
 
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
