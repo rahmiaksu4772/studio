@@ -72,5 +72,5 @@ export function useAllUsersData(isAdmin: boolean) {
         return () => unsubscribe();
     }, [isAdmin, toast]);
 
-    return { usersData, isLoading };
+    return { usersData, isLoading, setUsersData };
 }
