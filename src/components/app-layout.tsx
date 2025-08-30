@@ -31,6 +31,8 @@ import {
     AlertDialogTrigger,
   } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useUserProfile } from '@/hooks/use-user-profile';
+
 
 const menuItems = [
     { href: '/anasayfa', label: 'Ana Sayfa', icon: Home },
@@ -91,6 +93,7 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { profile } = useUserProfile();
     const [open, setOpen] = React.useState(false);
 
     if (pathname === '/login' || pathname === '/kayit' || pathname === '/') {
@@ -128,8 +131,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <div className="w-full flex-1" />
                     <Link href="/ayarlar">
                         <Avatar>
-                            <AvatarImage src="https://placehold.co/40x40.png" alt="Ayşe Öğretmen" data-ai-hint="teacher portrait" />
-                            <AvatarFallback>AÖ</AvatarFallback>
+                            <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName} data-ai-hint="teacher portrait" />
+                            <AvatarFallback>{profile?.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                     </Link>
                 </header>

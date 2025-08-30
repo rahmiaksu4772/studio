@@ -11,10 +11,9 @@ import {
   Mail,
   Book,
   MapPin,
-  Lock,
   Palette,
-  Bell,
   Camera,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -22,56 +21,20 @@ import { Switch } from '@/components/ui/switch';
 import { EditProfileForm } from '@/components/edit-profile-form';
 import { useToast } from '@/hooks/use-toast';
 import { ChangePasswordForm } from '@/components/change-password-form';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import type { UserProfile } from '@/hooks/use-user-profile';
 
-export type UserProfile = {
-  fullName: string;
-  title: string;
-  email: string;
-  branch: string;
-  workplace: string;
-  avatarUrl: string;
-};
-
-const initialProfile: UserProfile = {
-  fullName: 'Ayşe Öğretmen',
-  title: 'Matematik Öğretmeni',
-  email: 'rahmi.aksu.47@gmail.com',
-  branch: 'Matematik',
-  workplace: 'Atatürk İlkokulu',
-  avatarUrl: 'https://placehold.co/96x96.png',
-};
-
-const PROFILE_STORAGE_KEY = 'user-profile';
 
 export default function AyarlarPage() {
   const { toast } = useToast();
   const [activeTheme, setActiveTheme] = React.useState('light');
-  const [profile, setProfile] = React.useState<UserProfile>(initialProfile);
+  const { profile, updateProfile, isLoading } = useUserProfile();
   const [isEditing, setIsEditing] = React.useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    try {
-        const savedProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
-        if(savedProfile) {
-            setProfile(JSON.parse(savedProfile));
-        }
-    } catch (error) {
-        console.error("Failed to load profile from localStorage", error);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    try {
-        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-    } catch(error) {
-        console.error("Failed to save profile to localStorage", error);
-    }
-  }, [profile]);
-
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
-    setProfile(updatedProfile);
+    updateProfile(updatedProfile);
     toast({
       title: 'Profil Güncellendi!',
       description: 'Bilgileriniz başarıyla kaydedildi.',
@@ -84,8 +47,9 @@ export default function AyarlarPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfile(prev => ({ ...prev, avatarUrl: reader.result as string }));
-        setIsEditing(true); // Open the edit dialog after selecting a new photo
+        if(profile){
+            updateProfile({ ...profile, avatarUrl: reader.result as string });
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -97,6 +61,16 @@ export default function AyarlarPage() {
         description: "Yeni şifrenizle giriş yapabilirsiniz.",
     });
     setIsChangePasswordOpen(false);
+  }
+
+  if (isLoading || !profile) {
+    return (
+        <AppLayout>
+            <main className="flex-1 space-y-4 p-8 pt-6 flex justify-center items-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </main>
+        </AppLayout>
+    )
   }
 
   return (
@@ -238,12 +212,12 @@ export default function AyarlarPage() {
         </div>
       </main>
 
-      <EditProfileForm
+      {profile && <EditProfileForm
         isOpen={isEditing}
         onClose={() => setIsEditing(false)}
         user={profile}
         onUpdate={handleProfileUpdate}
-      />
+      />}
       
       <ChangePasswordForm
         isOpen={isChangePasswordOpen}

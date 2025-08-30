@@ -17,13 +17,14 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { UserProfile } from '@/app/ayarlar/page';
+import { UserProfile } from '@/hooks/use-user-profile';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Camera } from 'lucide-react';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'Ad soyad en az 2 karakter olmalıdır.' }),
   title: z.string().min(2, { message: 'Unvan en az 2 karakter olmalıdır.' }),
+  email: z.string().email({ message: 'Geçerli bir e-posta adresi girin.' }),
   branch: z.string().min(2, { message: 'Branş en az 2 karakter olmalıdır.' }),
   workplace: z.string().min(2, { message: 'Görev yeri en az 2 karakter olmalıdır.' }),
   avatarUrl: z.string().url().or(z.string().startsWith('data:image/')),
@@ -135,6 +136,19 @@ export function EditProfileForm({ user, onUpdate, onClose, isOpen }: EditProfile
                   <FormLabel>Unvan</FormLabel>
                   <FormControl>
                     <Input placeholder="Örn: Matematik Öğretmeni" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>E-posta</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Örn: ayse.yilmaz@ornek.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
