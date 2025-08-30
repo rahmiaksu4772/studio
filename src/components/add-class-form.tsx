@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -40,6 +40,8 @@ export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps)
       className: '',
     },
   });
+
+  const { isSubmitting } = form.formState;
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -89,8 +91,15 @@ export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps)
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Ekleniyor...' : 'Sınıfı Ekle'}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Ekleniyor...
+                  </>
+                ) : (
+                  'Sınıfı Ekle'
+                )}
               </Button>
             </form>
           </Form>
