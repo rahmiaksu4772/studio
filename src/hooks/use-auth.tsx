@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   getAuth,
+  sendPasswordResetEmail,
   type User,
 } from 'firebase/auth';
 import { app, db } from '@/lib/firebase';
@@ -23,6 +24,7 @@ interface AuthContextType {
   signUp: (email: string, pass: string) => Promise<void>;
   logIn: (email: string, pass: string) => Promise<void>;
   logOut: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +78,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
     }
   };
+  
+  const sendPasswordReset = async (email: string): Promise<boolean> => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+        return true;
+    } catch(err: any) {
+        setError(mapFirebaseAuthError(err.code));
+        return false;
+    }
+  }
 
   const value = {
     user,
@@ -84,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     logIn,
     logOut,
+    sendPasswordReset,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -105,9 +118,10 @@ function mapFirebaseAuthError(errorCode: string): string {
       case 'auth/user-disabled':
         return 'Bu kullanıcı hesabı devre dışı bırakılmış.';
       case 'auth/user-not-found':
-      case 'auth/wrong-password':
       case 'auth/invalid-credential':
         return 'E-posta veya şifre yanlış.';
+      case 'auth/wrong-password':
+          return 'Yanlış şifre. Lütfen tekrar deneyin.';
       case 'auth/email-already-in-use':
         return 'Bu e-posta adresi zaten başka bir hesap tarafından kullanılıyor.';
       case 'auth/weak-password':

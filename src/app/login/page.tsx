@@ -37,7 +37,8 @@ const formSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { logIn, error, loading, user } = useAuth();
+  const { logIn, sendPasswordReset, error, loading, user } = useAuth();
+  const [resetLoading, setResetLoading] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,6 +52,35 @@ export default function LoginPage() {
     await logIn(values.email, values.password);
   };
   
+  const handlePasswordReset = async () => {
+    const email = form.getValues('email');
+    if (!email) {
+        form.trigger('email');
+        toast({
+            title: 'E-posta Gerekli',
+            description: 'Şifre sıfırlama için lütfen e-posta adresinizi girin.',
+            variant: 'destructive',
+        });
+        return;
+    }
+    
+    setResetLoading(true);
+    const success = await sendPasswordReset(email);
+    if(success) {
+        toast({
+            title: 'E-posta Gönderildi',
+            description: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.',
+        });
+    } else {
+         toast({
+            title: 'Hata',
+            description: 'Şifre sıfırlama e-postası gönderilemedi. Lütfen e-posta adresini kontrol edin veya daha sonra tekrar deneyin.',
+            variant: 'destructive',
+        });
+    }
+    setResetLoading(false);
+  }
+
   React.useEffect(() => {
     if (user) {
         toast({
@@ -105,7 +135,17 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Şifre</FormLabel>
+                    <div className="flex items-center">
+                      <FormLabel>Şifre</FormLabel>
+                      <button
+                        type="button"
+                        onClick={handlePasswordReset}
+                        disabled={resetLoading}
+                        className="ml-auto inline-block text-sm underline"
+                      >
+                        Şifrenizi mi unuttunuz?
+                      </button>
+                    </div>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
@@ -113,7 +153,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || resetLoading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
