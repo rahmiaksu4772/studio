@@ -1,4 +1,3 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
@@ -8,12 +7,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDJC45bkju3DUARcefHKF7-9e-hUsLRets",
-  authDomain: "takip-sistemi-jlej4.firebaseapp.com",
-  projectId: "takip-sistemi-jlej4",
-  storageBucket: "takip-sistemi-jlej4.firebasestorage.app",
-  messagingSenderId: "250028828318",
-  appId: "1:250028828318:web:965696395b5e9dbadb7d8f"
+  apiKey: "AIzaSyCJ3G_aB6dj3gvxgjg3sygeMnMNnEcXywE",
+  authDomain: "takip-k0hdb.firebaseapp.com",
+  projectId: "takip-k0hdb",
+  storageBucket: "takip-k0hdb.firebasestorage.app",
+  messagingSenderId: "1093335320755",
+  appId: "1:1093335320755:web:b029a206cb0fe66f7408c6"
 };
 
 // Initialize Firebase
