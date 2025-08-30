@@ -20,27 +20,12 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  signUp: (email: string, pass: string, profileData: { workplace: string, hometown: string }) => Promise<void>;
+  signUp: (email: string, pass: string) => Promise<void>;
   logIn: (email: string, pass: string) => Promise<void>;
   logOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const createInitialUserProfile = async (userId: string, email: string, profileData: { workplace: string, hometown: string }) => {
-    const userProfileRef = doc(db, 'users', userId);
-    const newProfile: Omit<UserProfile, 'email'> & { email: string; hometown: string; } = {
-        fullName: 'Yeni Kullanıcı',
-        title: 'Öğretmen',
-        branch: 'Belirtilmemiş',
-        avatarUrl: `https://placehold.co/96x96.png`,
-        email: email,
-        workplace: profileData.workplace,
-        hometown: profileData.hometown,
-    };
-    await setDoc(userProfileRef, newProfile);
-};
-
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -55,13 +40,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const signUp = async (email: string, pass: string, profileData: { workplace: string, hometown: string }) => {
+  const signUp = async (email: string, pass: string) => {
     setLoading(true);
     setError(null);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      // After user is created in Auth, create their profile in Firestore
-      await createInitialUserProfile(userCredential.user.uid, email, profileData);
+      // Just create the user in Auth. Profile will be created lazily by useUserProfile.
+      await createUserWithEmailAndPassword(auth, email, pass);
     } catch (err: any) {
       setError(mapFirebaseAuthError(err.code));
     } finally {

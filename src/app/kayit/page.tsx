@@ -32,8 +32,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const formSchema = z.object({
   email: z.string().email({ message: 'Lütfen geçerli bir e-posta adresi girin.' }),
   password: z.string().min(6, { message: 'Şifre en az 6 karakter olmalıdır.' }),
-  workplace: z.string().min(2, { message: 'Okul adı en az 2 karakter olmalıdır.' }),
-  hometown: z.string().min(2, { message: 'Memleket en az 2 karakter olmalıdır.' }),
 });
 
 export default function KayitPage() {
@@ -46,16 +44,11 @@ export default function KayitPage() {
     defaultValues: {
       email: '',
       password: '',
-      workplace: '',
-      hometown: '',
     },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    await signUp(values.email, values.password, {
-        workplace: values.workplace,
-        hometown: values.hometown,
-    });
+    await signUp(values.email, values.password);
   };
   
   React.useEffect(() => {
@@ -115,32 +108,6 @@ export default function KayitPage() {
                     <FormLabel>Şifre</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="workplace"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Okul İsmi</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Örn: Atatürk İlkokulu" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="hometown"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Memleket</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Örn: Ankara" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
