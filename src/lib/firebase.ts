@@ -8,12 +8,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDJC45bkju3DUARcefHKF7-9e-hUsLRets",
+  authDomain: "takip-sistemi-jlej4.firebaseapp.com",
+  projectId: "takip-sistemi-jlej4",
+  storageBucket: "takip-sistemi-jlej4.firebasestorage.app",
+  messagingSenderId: "250028828318",
+  appId: "1:250028828318:web:965696395b5e9dbadb7d8f"
 };
 
 // Initialize Firebase

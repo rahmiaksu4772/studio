@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "takip-sistemi-jlej4"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

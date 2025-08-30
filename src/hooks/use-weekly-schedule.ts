@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useToast } from './use-toast';
 import type { WeeklyScheduleItem, Lesson, Day } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, setDoc } from 'firebase/firestore';
 
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -20,7 +20,7 @@ export function useWeeklySchedule() {
     setIsLoading(true);
     const scheduleDocRef = doc(db, "schedules", scheduleId);
 
-    const unsubscribe = onSnapshot(scheduleDocRef, (doc) => {
+    const unsubscribe = onSnapshot(scheduleDocRef, async (doc) => {
         if (doc.exists()) {
             const data = doc.data();
             const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => ({
@@ -29,9 +29,13 @@ export function useWeeklySchedule() {
             }));
             setSchedule(scheduleData);
         } else {
-            // Document doesn't exist, maybe create it with a default structure
+            // Document doesn't exist, create it with a default structure
              const defaultSchedule = dayOrder.reduce((acc, day) => ({ ...acc, [day]: [] }), {});
-             updateDoc(scheduleDocRef, defaultSchedule, { merge: true });
+             try {
+                await setDoc(scheduleDocRef, defaultSchedule);
+             } catch (error) {
+                console.error("Failed to create default schedule", error);
+             }
         }
         setIsLoading(false);
     }, (error) => {
