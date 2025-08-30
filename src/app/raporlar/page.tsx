@@ -69,9 +69,9 @@ const chartConfig = {
   ...statusOptions.reduce((acc, option) => {
     let color = 'hsl(var(--primary))'; // default
     if (option.value === '+') color = 'hsl(142 71% 45%)';
-    if (option.value === 'Y') color = 'hsl(47.9 95.8% 53.1%)'; // updated from P
+    if (option.value === 'Y') color = 'hsl(47.9 95.8% 53.1%)';
     if (option.value === '-') color = 'hsl(0 72% 51%)';
-    if (option.value === 'D') color = 'hsl(222.2 47.4% 11.2%)'; // updated from Y
+    if (option.value === 'D') color = 'hsl(222.2 47.4% 11.2%)';
     if (option.value === 'G') color = 'hsl(221 83% 53%)';
 
     acc[option.value] = {

@@ -6,7 +6,7 @@ import { useToast } from './use-toast';
 import type { DailyRecord, Student, ClassInfo } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { 
-    collection, onSnapshot, doc, getDocs, writeBatch, deleteDoc, addDoc, updateDoc, query
+    collection, onSnapshot, doc, getDocs, writeBatch, deleteDoc, addDoc, updateDoc, query, where
 } from 'firebase/firestore';
 
 
@@ -105,11 +105,11 @@ export function useClassesAndStudents() {
         return () => unsubscribe();
     }, [toast]);
     
-    const addClass = async (name: string) => {
-        if (classes.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-            throw new Error(`"${name}" adında bir sınıf zaten mevcut.`);
+    const addClass = async (className: string) => {
+        if (classes.some(c => c.name.toLowerCase() === className.toLowerCase())) {
+            throw new Error(`"${className}" adında bir sınıf zaten mevcut.`);
         }
-        await addDoc(collection(db, "classes"), { name });
+        await addDoc(collection(db, "classes"), { name: className });
     };
     
     const updateClass = async (classId: string, newName: string) => {
