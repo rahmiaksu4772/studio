@@ -53,10 +53,10 @@ export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps)
         form.reset();
         setOpen(false);
     } catch (error: any) {
-        form.setError("className", { type: "manual", message: error.message });
+        console.error("Failed to add class:", error);
         toast({
           title: 'Hata!',
-          description: 'Sınıf eklenirken bir sorun oluştu.',
+          description: error.message || 'Sınıf eklenirken bir sorun oluştu. Firestore kurallarınızı veya bağlantınızı kontrol edin.',
           variant: 'destructive',
         });
     }

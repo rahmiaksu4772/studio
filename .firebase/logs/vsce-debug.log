@@ -277,3 +277,25 @@ I0830 12:14:35.669805   28574 dev.go:102] Listening on address (HTTP + gRPC): 12
  {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0830 12:14:35.295845   28574 load.go:31] Reloading schema and connectors...\nI0830 12:14:35.443741   28574 control.go:94] [/emulator/studio 71c4] UpdateResources(): done\nSchema: sources: schema/schema.gql [1992B] \nConnector \"example\": sources: example/queries.gql [1801B] example/mutations.gql [1243B] \nI0830 12:14:35.593120   28574 codegen.go:82] [connector \"example\" javascriptSdk] Generating sources into \"/home/user/studio/src/dataconnect-generated\"\nI0830 12:14:35.640752   28574 collector.go:107] schema extensions wrote into \"/home/user/studio/dataconnect/.dataconnect/schema\"\nGenerated sources: main/relation.gql [13742B] prelude.gql [73251B] main/query.gql [5099B] main/mutation.gql [13679B] main/implicit.gql [1261B] main/input.gql [28173B] \nI0830 12:14:35.647556   28574 collector.go:107] connector \"example\" javascriptSdk wrote into \"/home/user/studio/src/dataconnect-generated\"\nGenerated sources: react/index.cjs.js [3439B] react/esm/index.esm.js [3269B] react/README.md [48299B] esm/package.json [17B] index.cjs.js [4046B] react/index.d.ts [3961B] react/package.json [460B] index.d.ts [8025B] esm/index.esm.js [3556B] package.json [852B] README.md [40931B] react/esm/package.json [17B] \nI0830 12:14:35.657001   28574 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation\nI0830 12:14:35.657074   28574 load.go:109] Finished reloading\nI0830 12:14:35.669805   28574 dev.go:102] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
 [debug] [2025-08-30T12:14:36.044Z] I0830 12:14:36.043849   28574 engine.go:171] [/emulator/studio 71c4] ExecuteGraphqlRead IntrospectionQuery: succeeded. 
  {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0830 12:14:36.043849   28574 engine.go:171] [/emulator/studio 71c4] ExecuteGraphqlRead IntrospectionQuery: succeeded. \n"}}
+[debug] [2025-08-30T12:18:04.014Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: true
+[debug] [2025-08-30T12:18:04.016Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2025-08-30T12:18:04.018Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2025-08-30T12:18:04.018Z] > authorizing via signed-in user (rahmi.aksu.47@gmail.com)
+[debug] [2025-08-30T12:18:04.020Z] [Firebase Plugin] Value of process.env.MONOSPACE_ENV: true
+[debug] [2025-08-30T12:18:04.021Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2025-08-30T12:18:04.021Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/userinfo.email"]
+[debug] [2025-08-30T12:18:04.022Z] > authorizing via signed-in user (rahmi.aksu.47@gmail.com)
+[debug] [2025-08-30T12:18:04.026Z] No OAuth tokens found
+[debug] [2025-08-30T12:18:04.027Z] No OAuth tokens found
+[debug] [2025-08-30T12:18:04.027Z] [Firebase Plugin] User found:  rahmi.aksu.47@gmail.com
+[debug] [2025-08-30T12:18:04.028Z] [Firebase Plugin] User found:  rahmi.aksu.47@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2025-08-30T12:18:04.030Z] No OAuth tokens found
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2025-08-30T12:18:04.032Z] No OAuth tokens found
+[debug] [2025-08-30T12:18:04.035Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-08-30T12:18:04.041Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-08-30T12:18:04.559Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-08-30T12:18:04.560Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2025-08-30T12:18:04.561Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-08-30T12:18:04.562Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
