@@ -18,7 +18,7 @@ const formSchema = z.object({
 });
 
 type AddClassFormProps = {
-  onAddClass: (className: string) => void;
+  onAddClass: (className: string) => Promise<void>;
   existingClasses: ClassInfo[];
 };
 
@@ -41,9 +41,9 @@ export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps)
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-        onAddClass(values.className);
+        await onAddClass(values.className);
         toast({
           title: 'Başarılı!',
           description: `"${values.className}" sınıfı eklendi.`,
@@ -51,8 +51,12 @@ export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps)
         form.reset();
         setOpen(false);
     } catch (error: any) {
-        // This will be caught by the hook's try-catch, but as a fallback:
         form.setError("className", { type: "manual", message: error.message });
+        toast({
+          title: 'Hata!',
+          description: 'Sınıf eklenirken bir sorun oluştu.',
+          variant: 'destructive',
+        });
     }
   }
 
@@ -85,7 +89,9 @@ export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps)
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">Sınıfı Ekle</Button>
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Ekleniyor...' : 'Sınıfı Ekle'}
+              </Button>
             </form>
           </Form>
         </div>

@@ -37,15 +37,7 @@ export default function SiniflarimPage() {
   }, [classes]);
 
   const handleAddClass = async (className: string) => {
-    try {
-        await addClass(className);
-        toast({
-          title: 'Başarılı!',
-          description: `"${className}" sınıfı eklendi.`,
-        });
-    } catch (error: any) {
-         toast({ title: 'Hata', description: error.message, variant: 'destructive'});
-    }
+    await addClass(className);
   };
   
   const handleUpdateClass = async (classId: string, newName: string) => {
