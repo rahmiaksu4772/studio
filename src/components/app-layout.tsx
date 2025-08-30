@@ -14,6 +14,7 @@ import {
     LogOut,
     Menu,
     StickyNote,
+    ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
@@ -47,6 +48,8 @@ const menuItems = [
 const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     const pathname = usePathname();
     const router = useRouter();
+    const { user } = useAuth();
+    const { profile } = useUserProfile(user?.uid);
     const { logOut } = useAuth();
     const { toast } = useToast();
 
@@ -92,6 +95,19 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                             {item.label}
                         </Link>
                     ))}
+                    {profile?.role === 'admin' && (
+                         <Link
+                            href="/admin"
+                            onClick={onLinkClick}
+                            className={cn(
+                                'flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive',
+                                pathname.startsWith('/admin') ? 'bg-destructive/10 text-destructive' : ''
+                            )}
+                        >
+                            <ShieldCheck className="h-5 w-5" />
+                            Admin Paneli
+                        </Link>
+                    )}
                 </nav>
             </div>
             <div className="mt-auto p-4 border-t">
@@ -172,7 +188,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/ayarlar">
                         <Avatar>
                             <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName} data-ai-hint="teacher portrait" />
-                            <AvatarFallback>{profile?.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            <AvatarFallback>{profile?.fullName?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                     </Link>
                 </header>

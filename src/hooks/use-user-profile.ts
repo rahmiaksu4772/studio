@@ -15,14 +15,18 @@ export type UserProfile = {
   workplace: string;
   avatarUrl: string;
   hometown: string;
+  role: 'admin' | 'teacher';
 };
 
-const defaultProfile: Omit<UserProfile, 'email' | 'workplace' | 'hometown'> = {
+const defaultProfile: Omit<UserProfile, 'email' | 'workplace' | 'hometown' | 'role'> = {
   fullName: 'Yeni Kullanıcı',
   title: 'Öğretmen',
   branch: 'Belirtilmemiş',
   avatarUrl: `https://placehold.co/96x96.png`,
 };
+
+// E-posta adresi için özel admin kontrolü
+const ADMIN_EMAIL = 'rahmi.aksu.47@gmail.com';
 
 export function useUserProfile(userId?: string) {
   const { toast } = useToast();
@@ -44,18 +48,24 @@ export function useUserProfile(userId?: string) {
       if (docSnap.exists()) {
         setProfile(docSnap.data() as UserProfile);
       } else {
-        // This case will now be rare, as profile is created on sign up.
-        // But it's good for resilience (e.g. if signup flow changes).
         if (user?.email) {
           try {
+            const userRole = user.email === ADMIN_EMAIL ? 'admin' : 'teacher';
             const newProfile: UserProfile = {
               ...defaultProfile,
               email: user.email,
               workplace: 'Okul Belirtilmemiş',
               hometown: 'Memleket Belirtilmemiş',
+              role: userRole,
             };
             await setDoc(profileDocRef, newProfile);
             setProfile(newProfile);
+             if (userRole === 'admin') {
+              toast({
+                title: 'Admin Yetkisi Verildi!',
+                description: 'Bu hesaba yönetici ayrıcalıkları tanındı.',
+              });
+            }
           } catch (error) {
             console.error("Failed to create default profile:", error);
             toast({
