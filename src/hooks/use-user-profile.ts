@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useToast } from './use-toast';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useAuth } from './use-auth';
 
 export type UserProfile = {
@@ -21,7 +21,7 @@ const defaultProfile: Omit<UserProfile, 'email'> = {
   title: 'Öğretmen',
   branch: 'Belirtilmemiş',
   workplace: 'Belirtilmemiş',
-  avatarUrl: 'https://placehold.co/96x96.png',
+  avatarUrl: `https://placehold.co/96x96.png`,
 };
 
 export function useUserProfile(userId?: string) {
@@ -81,9 +81,7 @@ export function useUserProfile(userId?: string) {
     if (!userId) return;
     const profileDocRef = doc(db, 'users', userId);
     try {
-      // We don't want to pass the full user object, just the profile data.
-      const { ...profileData } = updatedProfile;
-      await updateDoc(profileDocRef, profileData);
+      await setDoc(profileDocRef, updatedProfile, { merge: true });
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
