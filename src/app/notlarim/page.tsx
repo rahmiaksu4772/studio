@@ -33,6 +33,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Note } from '@/lib/types';
 import { format } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
 const noteColors = [
   'bg-yellow-50 border-yellow-200',
@@ -42,9 +44,10 @@ const noteColors = [
   'bg-purple-50 border-purple-200',
 ];
 
-const NOTES_STORAGE_KEY = 'personal-notes';
+const NOTES_STORAGE_KEY_PREFIX = 'personal-notes_';
 
-export default function NotlarimPage() {
+function NotlarimPageContent() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [notes, setNotes] = React.useState<Note[]>([]);
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
@@ -59,11 +62,22 @@ export default function NotlarimPage() {
   const recognitionRef = React.useRef<any>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  const getStorageKey = React.useCallback(() => {
+    if (!user) return null;
+    return `${NOTES_STORAGE_KEY_PREFIX}${user.uid}`;
+  }, [user]);
   
   React.useEffect(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey) {
+        setIsLoading(false);
+        return;
+    };
+
     setIsLoading(true);
     try {
-      const savedNotes = localStorage.getItem(NOTES_STORAGE_KEY);
+      const savedNotes = localStorage.getItem(storageKey);
       if (savedNotes) {
         setNotes(JSON.parse(savedNotes));
       }
@@ -77,11 +91,13 @@ export default function NotlarimPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, getStorageKey]);
   
   React.useEffect(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey || isLoading) return;
     try {
-        localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+        localStorage.setItem(storageKey, JSON.stringify(notes));
     } catch(error) {
         console.error("Failed to save notes to localStorage", error);
          toast({
@@ -90,7 +106,7 @@ export default function NotlarimPage() {
             variant: "destructive"
         })
     }
-  }, [notes, toast]);
+  }, [notes, toast, getStorageKey, isLoading]);
 
   React.useEffect(() => {
     const getCameraPermission = async () => {
@@ -250,6 +266,16 @@ export default function NotlarimPage() {
     
     recognition.start();
   };
+  
+   if (isLoading) {
+    return (
+      <AppLayout>
+        <main className="flex-1 p-8 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </main>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -337,11 +363,7 @@ export default function NotlarimPage() {
           </form>
         </Card>
 
-        {isLoading ? (
-            <div className="flex items-center justify-center p-20">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-        ) : notes.length > 0 ? (
+        {notes.length > 0 ? (
           <div
             className="grid gap-4 mt-8"
             style={{
@@ -438,4 +460,12 @@ export default function NotlarimPage() {
       </Dialog>
     </AppLayout>
   );
+}
+
+export default function NotlarimPage() {
+    return (
+        <AuthGuard>
+            <NotlarimPageContent />
+        </AuthGuard>
+    )
 }
