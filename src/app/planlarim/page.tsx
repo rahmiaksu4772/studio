@@ -27,6 +27,7 @@ import AuthGuard from '@/components/auth-guard';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
 import * as XLSX from 'xlsx';
 import { PlanViewer } from '@/components/plan-viewer';
+import { usePlans } from '@/hooks/use-plans';
 
 const PLANS_STORAGE_KEY_PREFIX = 'lesson-plans_';
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -35,57 +36,12 @@ function PlanlarimPageContent() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { setSchedule } = useWeeklySchedule(user?.uid);
-  const [plans, setPlans] = React.useState<Plan[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { plans, isLoading, addPlan, deletePlan } = usePlans(user?.uid);
+  
   const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
   const [viewingPlanContent, setViewingPlanContent] = React.useState<LessonPlanEntry[] | null>(null);
   const [viewingPlanTitle, setViewingPlanTitle] = React.useState<string>('');
 
-
-  const getStorageKey = React.useCallback(() => {
-    if (!user) return null;
-    return `${PLANS_STORAGE_KEY_PREFIX}${user.uid}`;
-  }, [user]);
-
-  React.useEffect(() => {
-    const storageKey = getStorageKey();
-    if (!storageKey) {
-        setIsLoading(false);
-        return;
-    }
-    
-    setIsLoading(true);
-    try {
-        const savedPlans = localStorage.getItem(storageKey);
-        if (savedPlans) {
-            setPlans(JSON.parse(savedPlans));
-        }
-    } catch (error) {
-        console.error("Failed to load plans from localStorage", error);
-        toast({
-            title: "Planlar Yüklenemedi",
-            description: "Planlarınız yüklenirken bir sorun oluştu.",
-            variant: "destructive"
-        });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast, getStorageKey]);
-
-  React.useEffect(() => {
-    const storageKey = getStorageKey();
-    if (!storageKey || isLoading) return;
-    try {
-        localStorage.setItem(storageKey, JSON.stringify(plans));
-    } catch (error) {
-        console.error("Failed to save plans to localStorage", error);
-        toast({
-            title: "Planlar Kaydedilemedi",
-            description: "Değişiklikleriniz kaydedilirken bir sorun oluştu.",
-            variant: "destructive"
-        });
-    }
-  }, [plans, toast, getStorageKey, isLoading]);
 
   const processAndImportSchedule = async (file: File) => {
     try {
@@ -131,16 +87,11 @@ function PlanlarimPageContent() {
   };
 
   const handleAddPlan = (planData: Omit<Plan, 'id' | 'uploadDate'>, importToSchedule: boolean, file?: File) => {
-    const newPlan: Plan = {
+    const newPlanData = {
       ...planData,
-      id: new Date().toISOString(),
-      uploadDate: format(new Date(), 'dd.MM.yyyy'),
+      uploadDate: new Date().toISOString(),
     };
-    setPlans(prevPlans => [newPlan, ...prevPlans]);
-    toast({
-      title: 'Plan Başarıyla Yüklendi!',
-      description: `"${newPlan.title}" adlı planınız eklendi.`,
-    });
+    addPlan(newPlanData);
     
     if (importToSchedule && file) {
       processAndImportSchedule(file);
@@ -148,13 +99,7 @@ function PlanlarimPageContent() {
   };
 
   const handleDeletePlan = async (idToDelete: string) => {
-    const planToDelete = plans.find(p => p.id === idToDelete);
-    setPlans(prevPlans => prevPlans.filter(p => p.id !== idToDelete));
-    toast({
-      title: 'Plan Silindi',
-      description: `"${planToDelete?.title}" adlı planınız başarıyla silindi.`,
-      variant: 'destructive',
-    });
+    await deletePlan(idToDelete);
   };
   
   const getFileIcon = (fileType: string) => {
@@ -296,7 +241,7 @@ function PlanlarimPageContent() {
                 </CardHeader>
                 <CardContent className="flex-grow p-4 pt-0 text-xs text-muted-foreground space-y-1">
                     <p>
-                        Yüklenme: {plan.uploadDate}
+                        Yüklenme: {format(new Date(plan.uploadDate), 'dd.MM.yyyy')}
                     </p>
                     <p className="truncate">
                         Dosya: {getFriendlyFileType(plan.fileType)}
@@ -359,5 +304,3 @@ export default function PlanlarimPage() {
       </AuthGuard>
     );
   }
-
-    

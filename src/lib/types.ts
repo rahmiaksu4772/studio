@@ -55,7 +55,7 @@ export type Plan = {
     title: string;
     type: 'annual' | 'weekly';
     fileDataUrl: string;
-    uploadDate: string;
+    uploadDate: string; // ISO string for ordering
     fileType: string;
     fileName: string;
 };
