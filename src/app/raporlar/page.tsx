@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/chart';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
-import { format, startOfMonth } from 'date-fns';
+import { format, startOfMonth, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import jsPDF from 'jspdf';
@@ -121,24 +121,27 @@ function RaporlarPageContent() {
   }, [selectedClassId, classes]);
 
   const handleGenerateReport = React.useCallback(async () => {
-    if (!user?.uid || !selectedClassId || !dateRange?.from) return;
+    if (!user?.uid || !selectedClassId || !dateRange?.from || !dateRange?.to) return;
     
     setIsGenerating(true);
     setFilteredData([]);
 
     try {
-        const startDate = format(dateRange.from, 'yyyy-MM-dd');
-        const endDate = format(dateRange.to || dateRange.from, 'yyyy-MM-dd');
-        
-        const q = query(collection(db, `users/${user.uid}/classes/${selectedClassId}/records`), 
-            where("date", ">=", startDate), 
-            where("date", "<=", endDate)
-        );
-        
+        // Fetch all records for the class
+        const q = query(collection(db, `users/${user.uid}/classes/${selectedClassId}/records`));
         const querySnapshot = await getDocs(q);
-        const recordsData = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as DailyRecord);
+        const allRecords = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as DailyRecord);
         
-        setFilteredData(recordsData);
+        // Filter by date range on the client side
+        const recordsInRange = allRecords.filter(record => {
+            // Firestore date is YYYY-MM-DD, need to parse it correctly.
+            // new Date('2024-01-01') can have timezone issues. A safer way is to split.
+            const [year, month, day] = record.date.split('-').map(Number);
+            const recordDate = new Date(year, month - 1, day);
+            return isWithinInterval(recordDate, { start: dateRange.from!, end: dateRange.to! });
+        });
+
+        setFilteredData(recordsInRange);
 
     } catch (error) {
         console.error("Error generating report:", error);
@@ -168,7 +171,7 @@ function RaporlarPageContent() {
                     summary[event.value].count += 1;
                 }
 
-                const formattedDate = format(new Date(record.date), 'dd/MM');
+                const formattedDate = format(new Date(record.date.replace(/-/g, '/')), 'dd/MM');
                 if (!dateMap[formattedDate]) {
                     dateMap[formattedDate] = { date: formattedDate };
                     statusOptions.forEach(opt => dateMap[formattedDate][opt.value] = 0);
@@ -307,7 +310,7 @@ function RaporlarPageContent() {
                 body: individualReportData.events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => {
                     const statusKey = e.type === 'status' ? e.value : e.type;
                     return [
-                        format(new Date(e.date), 'd MMM yyyy, cccc', { locale: tr }),
+                        format(new Date(e.date.replace(/-/g, '/')), 'd MMM yyyy, cccc', { locale: tr }),
                         statusToTurkish[statusKey] || 'Belirtilmemiş',
                         e.type === 'note' ? e.value : '-'
                     ];
@@ -424,8 +427,8 @@ function RaporlarPageContent() {
                                 return (
                                 <div key={`${event.date}-${index}`} className="flex items-start gap-4">
                                     <div className="font-semibold text-center w-20 flex-shrink-0">
-                                        <p>{format(new Date(event.date), 'dd MMMM', { locale: tr })}</p>
-                                        <p className="text-xs text-muted-foreground">{format(new Date(event.date), 'cccc', { locale: tr })}</p>
+                                        <p>{format(new Date(event.date.replace(/-/g, '/')), 'dd MMMM', { locale: tr })}</p>
+                                        <p className="text-xs text-muted-foreground">{format(new Date(event.date.replace(/-/g, '/')), 'cccc', { locale: tr })}</p>
                                     </div>
                                     <div className="border-l pl-4 flex-1">
                                         <p className="font-medium flex items-center gap-2">
@@ -482,7 +485,7 @@ function RaporlarPageContent() {
                                         <TableCell className="font-medium">{student.studentNumber}</TableCell>
                                         <TableCell>{student.firstName} {student.lastName}</TableCell>
                                         {statusOptions.map(opt => (
-                                            <TableCell key={opt.value} className="text-center">{student.summary[opt.value]}</TableCell>
+                                            <TableCell key={opt.value} className="text-center">{student.summary[opt.value as AttendanceStatus]}</TableCell>
                                         ))}
                                         <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
                                     </TableRow>
