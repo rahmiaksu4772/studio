@@ -46,15 +46,17 @@ const formSchema = z.object({
     .custom<FileList>()
     .refine((files) => files?.length > 0, 'Lütfen bir dosya seçin.'),
 }).refine((data) => {
-    if (!data.file || data.file.length === 0) return false;
+    if (!data.file || data.file.length === 0) return true; // Let the required check handle this
     const fileType = data.file[0].type;
-    const acceptedTypes = data.importToSchedule ? ACCEPTED_FILE_TYPES_SCHEDULE : ACCEPTED_FILE_TYPES_DOC;
-    return acceptedTypes.includes(fileType);
+    if (data.importToSchedule) {
+      return ACCEPTED_FILE_TYPES_SCHEDULE.includes(fileType);
+    }
+    return ACCEPTED_FILE_TYPES_DOC.includes(fileType);
 }, {
     message: 'Geçersiz dosya türü. PDF, Word veya Excel dosyası yükleyebilirsiniz. Program aktarımı için sadece Excel dosyaları desteklenir.',
     path: ['file'],
 }).refine((data) => {
-    if(!data.file || data.file.length === 0) return false;
+    if(!data.file || data.file.length === 0) return true;
     return data.file[0].size <= MAX_FILE_SIZE;
 }, {
     message: `Maksimum dosya boyutu 5MB'dir.`,
