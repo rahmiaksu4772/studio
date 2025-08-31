@@ -240,13 +240,16 @@ function RaporlarPageContent() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
-    doc.setFont('Helvetica', 'normal');
+    doc.setFont('PT Sans', 'normal');
     
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
     const pageHeader = (data: any) => {
-        doc.setFont('Helvetica', 'normal');
+        if (data.pageNumber > 1) {
+            return;
+        }
+        doc.setFont('PT Sans', 'normal');
         doc.setFontSize(18);
         doc.setTextColor(40);
         if (selectedReportType === 'sinif' && classReportData) {
@@ -258,7 +261,7 @@ function RaporlarPageContent() {
     };
 
     const pageFooter = (data: any) => {
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('PT Sans', 'normal');
         const pageCount = doc.getNumberOfPages();
         doc.setFontSize(8);
         doc.setTextColor(150);
@@ -268,7 +271,7 @@ function RaporlarPageContent() {
     };
 
     const tableStyles: any = {
-        font: "Helvetica",
+        font: "PT Sans",
         fontStyle: 'normal',
     };
 
@@ -287,7 +290,7 @@ function RaporlarPageContent() {
             ]);
             if (s.notes.length > 0) {
                 const notesText = s.notes.map(n => `  - ${format(parseISO(n.date), 'dd/MM/yy', { locale: tr })}: ${normalizeTurkishChars(n.content)}`).join('\n');
-                body.push([{ content: normalizeTurkishChars(`Ogretmen Gorusleri:\n${notesText}`), colSpan: 8, styles: { font: "Helvetica", fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
+                body.push([{ content: normalizeTurkishChars(`Ogretmen Gorusleri:\n${notesText}`), colSpan: 8, styles: { font: "PT Sans", fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
             }
         }
 
@@ -309,7 +312,7 @@ function RaporlarPageContent() {
     } else if (selectedReportType === 'bireysel' && individualReportData) {
         const selectedStudent = students.find(s => s.id === selectedStudentId);
         
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('PT Sans', 'normal');
         doc.setFontSize(11);
         doc.setTextColor(100);
         doc.text(normalizeTurkishChars(`Sinif: ${selectedClass?.name}`), 14, 32);
@@ -322,7 +325,7 @@ function RaporlarPageContent() {
         doc.setFontSize(12);
         doc.setTextColor(40);
         doc.text(normalizeTurkishChars('Genel Durum Ozeti'), 14, 50);
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('PT Sans', 'normal');
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
 
@@ -717,4 +720,3 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
-
