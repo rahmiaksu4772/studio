@@ -45,7 +45,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
   } from "@/components/ui/collapsible"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, isWithinInterval } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -416,16 +416,16 @@ function RaporlarPageContent() {
                     <CardContent>
                         <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-                                    <CartesianGrid vertical={false} />
+                                <LineChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
                                     <YAxis allowDecimals={false} />
                                     <ChartTooltip content={<ChartTooltipContent />} />
                                     <ChartLegend />
                                     {statusOptions.map(opt => (
-                                        <Bar key={opt.value} dataKey={opt.value} fill={`var(--color-${opt.value})`} stackId="a" radius={[4, 4, 0, 0]} name={opt.label} />
+                                        <Line key={opt.value} type="monotone" dataKey={opt.value} stroke={`var(--color-${opt.value})`} strokeWidth={2} name={opt.label} dot={false} />
                                     ))}
-                                </BarChart>
+                                </LineChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </CardContent>
@@ -664,4 +664,5 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
+
 
