@@ -29,6 +29,7 @@ import {
     AlertDialogTrigger,
   } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
+import { useAuth } from '@/hooks/use-auth';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
@@ -44,7 +45,8 @@ const dayDetails: Record<Day, { short: string; color: string }> = {
 
 
 export default function DersProgrami() {
-  const { schedule, addLesson, deleteLesson, isLoading } = useWeeklySchedule();
+  const { user } = useAuth();
+  const { schedule, addLesson, deleteLesson, isLoading } = useWeeklySchedule(user?.uid);
   const [activeDay, setActiveDay] = React.useState<Day>('Pazartesi');
   const [isMounted, setIsMounted] = React.useState(false);
 
