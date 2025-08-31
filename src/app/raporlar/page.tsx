@@ -38,16 +38,15 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
-  ChartConfig,
 } from '@/components/ui/chart';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
   } from "@/components/ui/collapsible"
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { cn } from '@/lib/utils';
-import { format, startOfMonth, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, isWithinInterval, eachDayOfInterval, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import jsPDF from 'jspdf';
@@ -71,23 +70,10 @@ const statusToTurkish: Record<string, string> = {
 };
 
 const chartConfig = {
-  views: {
-    label: 'Durumlar',
+  puan: {
+    label: 'Performans Puanı',
+    color: 'hsl(var(--primary))',
   },
-  ...statusOptions.reduce((acc, option) => {
-    let color = 'hsl(var(--primary))'; // default
-    if (option.value === '+') color = 'hsl(142 71% 45%)';
-    if (option.value === 'Y') color = 'hsl(47.9 95.8% 53.1%)';
-    if (option.value === '-') color = 'hsl(0 72% 51%)';
-    if (option.value === 'D') color = 'hsl(222.2 47.4% 11.2%)';
-    if (option.value === 'G') color = 'hsl(221 83% 53%)';
-
-    acc[option.value] = {
-      label: option.label,
-      color: color,
-    };
-    return acc;
-  }, {} as any)
 } satisfies ChartConfig;
 
 
@@ -140,8 +126,6 @@ function RaporlarPageContent() {
         
         // Filter by date range on the client side
         const recordsInRange = allRecords.filter(record => {
-            // Firestore date is YYYY-MM-DD, need to parse it correctly.
-            // new Date('2024-01-01') can have timezone issues. A safer way is to split.
             const [year, month, day] = record.date.split('-').map(Number);
             const recordDate = new Date(year, month - 1, day);
             return isWithinInterval(recordDate, { start: dateRange.from!, end: dateRange.to! });
@@ -158,38 +142,53 @@ function RaporlarPageContent() {
 
 
   const individualReportData = React.useMemo(() => {
-      if (selectedReportType !== 'bireysel' || !selectedStudentId) return null;
-      
-      const studentRecords = filteredData.filter(r => r.studentId === selectedStudentId);
+    if (selectedReportType !== 'bireysel' || !selectedStudentId || !dateRange?.from) return null;
 
-      const summary = statusOptions.reduce((acc, option) => {
-          acc[option.value] = { count: 0, label: option.label, icon: option.icon };
-          return acc;
-      }, {} as any);
+    const studentRecords = filteredData.filter(r => r.studentId === selectedStudentId);
 
-      const dateMap: { [key: string]: { date: string, [key: string]: number | string } } = {};
-      const allEvents: {date: string, type: 'status' | 'note', value: string}[] = [];
+    const summary = statusOptions.reduce((acc, option) => {
+        acc[option.value] = { count: 0, label: option.label, icon: option.icon };
+        return acc;
+    }, {} as any);
 
-      studentRecords.forEach(record => {
-          record.events.forEach(event => {
-              if (event.type === 'status') {
-                if (summary[event.value]) {
-                    summary[event.value].count += 1;
+    const allEvents: { date: string, type: 'status' | 'note', value: string }[] = [];
+    const scoresByDate: { [date: string]: number } = {};
+    const scoreValues: { [key in AttendanceStatus]: number } = {
+        '+': 1,
+        'Y': 0.5,
+        '-': -1,
+        'D': 0,
+        'G': 0,
+    };
+    
+    studentRecords.forEach(record => {
+        record.events.forEach(event => {
+            if (event.type === 'status') {
+                const status = event.value as AttendanceStatus;
+                if (summary[status]) {
+                    summary[status].count += 1;
                 }
+                const score = scoresByDate[record.date] || 0;
+                scoresByDate[record.date] = score + scoreValues[status];
+            }
+            allEvents.push({ date: record.date, ...event });
+        });
+    });
 
-                const formattedDate = format(new Date(record.date.replace(/-/g, '/')), 'dd/MM');
-                if (!dateMap[formattedDate]) {
-                    dateMap[formattedDate] = { date: formattedDate };
-                    statusOptions.forEach(opt => dateMap[formattedDate][opt.value] = 0);
-                }
-                (dateMap[formattedDate][event.value] as number) += 1;
-              }
-              allEvents.push({ date: record.date, ...event });
-          })
-      });
-      
-      return { summary, events: allEvents, chartData: Object.values(dateMap) };
-  }, [filteredData, selectedReportType, selectedStudentId]);
+    const intervalDays = eachDayOfInterval({ start: dateRange.from, end: dateRange.to || dateRange.from });
+    let cumulativeScore = 0;
+    const chartData = intervalDays.map(day => {
+        const dateStr = format(day, 'yyyy-MM-dd');
+        cumulativeScore += scoresByDate[dateStr] || 0;
+        return {
+            date: format(day, 'dd/MM'),
+            puan: cumulativeScore,
+        };
+    });
+
+    return { summary, events: allEvents, chartData };
+  }, [filteredData, selectedReportType, selectedStudentId, dateRange]);
+
 
   const classReportData = React.useMemo(() => {
     if (selectedReportType !== 'sinif') return null;
@@ -229,16 +228,6 @@ function RaporlarPageContent() {
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
     
-    // Add the font for Turkish characters
-    // This is a simplified approach. For production, you might need to host the font file.
-    // jsPDF has some built-in fonts, but for full Turkish support, embedding is best.
-    // For now, we will try to get by with standard fonts and proper encoding.
-    // A better approach would be:
-    // doc.addFileToVFS('PTSans-Regular-normal.ttf', fontFileAsBase64String);
-    // doc.addFont('PTSans-Regular-normal.ttf', 'PTSans-Regular', 'normal');
-    // doc.setFont('PTSans-Regular');
-    // Due to environment limitations, we'll proceed without custom font embedding.
-
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
@@ -263,10 +252,8 @@ function RaporlarPageContent() {
     };
 
     const tableStyles: any = {
-        font: "helvetica", // Using a standard font
+        font: "helvetica",
         fontStyle: 'normal',
-        // To handle Turkish characters, jspdf-autotable relies on the font capabilities.
-        // Without a custom embedded font, some characters may not render correctly.
     };
 
     if (selectedReportType === 'sinif' && classReportData) {
@@ -411,7 +398,8 @@ function RaporlarPageContent() {
                 
                 <Card>
                     <CardHeader>
-                        <CardTitle>İstatistik Grafiği</CardTitle>
+                        <CardTitle>Performans Grafiği</CardTitle>
+                         <CardDescription>Öğrencinin seçilen tarih aralığındaki kümülatif performans puanı trendi.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
@@ -419,12 +407,16 @@ function RaporlarPageContent() {
                                 <LineChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                                    <YAxis allowDecimals={false} />
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                    <ChartLegend />
-                                    {statusOptions.map(opt => (
-                                        <Line key={opt.value} type="monotone" dataKey={opt.value} stroke={`var(--color-${opt.value})`} strokeWidth={2} name={opt.label} dot={false} />
-                                    ))}
+                                    <YAxis domain={['auto', 'auto']} allowDecimals={false} />
+                                    <RechartsTooltip 
+                                        contentStyle={{
+                                            backgroundColor: 'hsl(var(--background))',
+                                            borderColor: 'hsl(var(--border))'
+                                        }}
+                                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                                    />
+                                    <ChartLegend content={<ChartLegendContent />} />
+                                    <Line type="monotone" dataKey="puan" stroke="var(--color-puan)" strokeWidth={2} dot={false} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </ChartContainer>
@@ -666,3 +658,6 @@ export default function RaporlarPage() {
   }
 
 
+
+
+    
