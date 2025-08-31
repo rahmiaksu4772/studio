@@ -15,6 +15,8 @@ import {
   Camera,
   Loader2,
   Globe,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -26,11 +28,12 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import type { UserProfile } from '@/hooks/use-user-profile';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
+import { useTheme } from 'next-themes';
 
 
 function AyarlarPageContent() {
   const { toast } = useToast();
-  const [activeTheme, setActiveTheme] = React.useState('light');
+  const { theme, setTheme } = useTheme();
   const { user } = useAuth();
   const { profile, updateProfile, isLoading } = useUserProfile(user?.uid);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -170,32 +173,28 @@ function AyarlarPageContent() {
                   <p className="text-sm font-medium mb-4">Tema Seçimi</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div
-                      onClick={() => setActiveTheme('light')}
+                      onClick={() => setTheme('light')}
                       className={cn(
-                        'p-4 rounded-lg border-2 cursor-pointer',
-                        activeTheme === 'light'
+                        'p-4 rounded-lg border-2 cursor-pointer flex flex-col items-center justify-center gap-2',
+                        theme === 'light'
                           ? 'border-primary'
                           : 'border-border'
                       )}
                     >
+                      <Sun className="h-8 w-8" />
                       <h3 className="font-semibold">Açık Tema</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Gündüz kullanımı için aydınlık ve ferah arayüz.
-                      </p>
                     </div>
                     <div
-                      onClick={() => setActiveTheme('dark')}
+                      onClick={() => setTheme('dark')}
                       className={cn(
-                        'p-4 rounded-lg border-2 cursor-pointer',
-                        activeTheme === 'dark'
+                        'p-4 rounded-lg border-2 cursor-pointer flex flex-col items-center justify-center gap-2',
+                        theme === 'dark'
                           ? 'border-primary'
                           : 'border-border'
                       )}
                     >
+                      <Moon className="h-8 w-8" />
                       <h3 className="font-semibold">Koyu Tema</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Göz yormayan, gece kullanımı için ideal arayüz.
-                      </p>
                     </div>
                   </div>
                 </CardContent>
