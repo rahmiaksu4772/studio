@@ -3,9 +3,9 @@
 
 import * as React from 'react';
 import { useToast } from './use-toast';
-import type { WeeklyScheduleItem, Day, Lesson, DaySchedule } from '@/lib/types';
+import type { WeeklyScheduleItem, Day, Lesson, ScheduleSettings } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
@@ -14,17 +14,23 @@ const getDefaultSchedule = (): WeeklyScheduleItem[] => {
         day,
         lessons: [],
     }));
-}
+};
+
+const defaultSettings: ScheduleSettings = {
+    timeSlots: ['08:30', '09:20', '10:10', '11:00', '11:50', '13:30', '14:20', '15:10']
+};
 
 export function useWeeklySchedule(userId?: string) {
   const { toast } = useToast();
   const [schedule, setScheduleState] = React.useState<WeeklyScheduleItem[]>(getDefaultSchedule());
+  const [settings, setSettings] = React.useState<ScheduleSettings>(defaultSettings);
   const [isLoading, setIsLoading] = React.useState(true);
   const scheduleDocId = "weekly-lessons-schedule"; 
 
   React.useEffect(() => {
     if (!userId) {
         setScheduleState(getDefaultSchedule());
+        setSettings(defaultSettings);
         setIsLoading(false);
         return;
     }
@@ -35,23 +41,29 @@ export function useWeeklySchedule(userId?: string) {
     const unsubscribe = onSnapshot(scheduleDocRef, async (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => {
-                const dayLessons: Lesson[] = data[day] || [];
-                return {
-                    day: day,
-                    lessons: dayLessons,
-                };
-            });
+            
+            const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => ({
+                day: day,
+                lessons: data[day] || [],
+            }));
             setScheduleState(scheduleData);
+
+            const scheduleSettings: ScheduleSettings = {
+                timeSlots: data.timeSlots || defaultSettings.timeSlots,
+            };
+            setSettings(scheduleSettings);
         } else {
-             const defaultScheduleData = dayOrder.reduce((acc, day) => {
+            const defaultScheduleData = dayOrder.reduce((acc, day) => {
                 acc[day] = [];
                 return acc;
             }, {} as { [key in Day]: Lesson[] });
 
+            const initialData = { ...defaultScheduleData, ...defaultSettings };
+
              try {
-                await setDoc(scheduleDocRef, defaultScheduleData);
+                await setDoc(scheduleDocRef, initialData);
                 setScheduleState(getDefaultSchedule());
+                setSettings(defaultSettings);
              } catch (error) {
                 console.error("Failed to create default schedule for user", error);
                 toast({ title: "Hata!", description: "Varsayılan ders programı oluşturulamadı.", variant: "destructive" });
@@ -72,7 +84,7 @@ export function useWeeklySchedule(userId?: string) {
   }, [userId, toast]);
 
 
-  const updateLesson = async (day: Day, lessonSlot: number, lesson: Lesson | null) => {
+  const updateLesson = async (day: Day, lesson: Lesson | null, lessonSlot: number) => {
     if (!userId) return;
 
     const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
@@ -84,27 +96,27 @@ export function useWeeklySchedule(userId?: string) {
         
         let updatedLessons: Lesson[];
 
+        const existingIndex = dayLessons.findIndex(l => l.lessonSlot === lessonSlot);
+
         if (lesson) {
-             const lessonWithSlot = { ...lesson, lessonSlot };
-             const existingIndex = dayLessons.findIndex(l => l.lessonSlot === lessonSlot);
              if (existingIndex > -1) {
-                // Update existing lesson for the slot
                 updatedLessons = [...dayLessons];
-                updatedLessons[existingIndex] = lessonWithSlot;
+                updatedLessons[existingIndex] = lesson;
              } else {
-                // Add new lesson for the slot
-                updatedLessons = [...dayLessons, lessonWithSlot];
+                updatedLessons = [...dayLessons, lesson];
              }
         } else {
-            // Remove lesson from the slot
-            updatedLessons = dayLessons.filter(l => l.lessonSlot !== lessonSlot);
+            if (existingIndex > -1) {
+                 updatedLessons = dayLessons.filter(l => l.lessonSlot !== lessonSlot);
+            } else {
+                // Nothing to remove
+                return;
+            }
         }
 
-        await setDoc(scheduleDocRef, {
-            ...currentData,
+        await updateDoc(scheduleDocRef, {
             [day]: updatedLessons
         });
-        // No toast here, will be handled in the component for better user feedback
     } catch (error) {
          console.error("Error updating lesson:", error);
          toast({
@@ -114,6 +126,21 @@ export function useWeeklySchedule(userId?: string) {
         });
     }
   };
+
+  const updateTimeSlots = async (newTimeSlots: string[]) => {
+    if (!userId) return;
+    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
+    try {
+        await updateDoc(scheduleDocRef, { timeSlots: newTimeSlots });
+    } catch (error) {
+         console.error("Error updating time slots:", error);
+         toast({
+            title: "Hata!",
+            description: "Zaman aralıkları güncellenirken bir hata oluştu.",
+            variant: "destructive"
+        });
+    }
+  };
   
-  return { schedule, isLoading, updateLesson };
+  return { schedule, settings, isLoading, updateLesson, updateTimeSlots };
 }

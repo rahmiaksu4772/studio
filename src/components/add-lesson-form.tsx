@@ -38,11 +38,12 @@ type AddLessonFormProps = {
   day: Day;
   lessonSlot: number;
   lesson: Lesson | null;
-  onSave: (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'>) => void;
+  onSave: (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'|'lessonSlot'>) => void;
   onClear: (day: Day, lessonSlot: number) => void;
+  timeSlot: string;
 };
 
-export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave, onClear }: AddLessonFormProps) {
+export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave, onClear, timeSlot }: AddLessonFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -69,7 +70,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
         <DialogHeader>
           <DialogTitle>{lesson?.subject ? 'Dersi Düzenle' : 'Yeni Ders Ekle'}</DialogTitle>
           <DialogDescription>
-            {day} günü, {lessonSlot + 1}. ders saati için bilgileri girin.
+            {day} günü, {timeSlot} saati için bilgileri girin.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -100,7 +101,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                 </FormItem>
               )}
             />
-            <DialogFooter className='justify-between'>
+            <DialogFooter className='justify-between pt-4'>
                 <div>
                 {lesson && (
                     <Button type="button" variant="destructive" onClick={() => onClear(day, lessonSlot)}>

@@ -69,9 +69,12 @@ export type Lesson = {
 
 export type Day = 'Pazartesi' | 'Salı' | 'Çarşamba' | 'Perşembe' | 'Cuma' | 'Cumartesi' | 'Pazar';
 
-// Kept for legacy compatibility, but new schedule logic uses a simpler model
 export type DaySchedule = {
     lessons: Lesson[];
+}
+
+export type ScheduleSettings = {
+    timeSlots: string[];
 }
 
 export type WeeklyScheduleItem = {
