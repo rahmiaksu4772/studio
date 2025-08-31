@@ -54,7 +54,8 @@ export default function DersProgrami() {
     const lessonToSave: Lesson = {
         id: editingLesson?.lesson?.id || `${day}-${lessonSlot}-${new Date().getTime()}`,
         lessonSlot: lessonSlot,
-        ...lessonData
+        ...lessonData,
+        time: settings.timeSlots[lessonSlot] || ''
     };
     
     await updateLesson(day, lessonToSave);
@@ -98,12 +99,12 @@ export default function DersProgrami() {
 
   return (
     <>
-      <Card className="w-full overflow-hidden shadow-lg">
+      <Card className="w-full overflow-hidden shadow-lg bg-card/80 backdrop-blur-lg">
           <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                   <Calendar className="h-5 w-5 text-primary" /> Haftalık Ders Programı
               </CardTitle>
-              <div className='text-sm text-muted-foreground flex flex-col sm:flex-row items-center gap-2 sm:gap-4 pt-2'>
+              <div className='text-sm text-muted-foreground flex items-center gap-2 sm:gap-4 pt-2'>
                 <div className='flex items-center gap-2'>
                     <Label htmlFor="lessonDuration" className='flex-shrink-0'>Ders Süresi (dk):</Label>
                     <Input
@@ -117,8 +118,8 @@ export default function DersProgrami() {
                 </div>
               </div>
           </CardHeader>
-          <CardContent className="p-2 md:p-4">
-              <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1">
+          <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
+              <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 min-w-[600px]">
                   {/* Time Header */}
                   <div className="text-center font-bold p-1 rounded-t-lg flex items-center justify-center">
                     <Clock className='h-4 w-4'/>
@@ -164,8 +165,9 @@ export default function DersProgrami() {
                               const color = lesson ? stringToColor(lesson.subject) : '#808080';
                               
                               return (
-                                  <div 
+                                  <button
                                       key={`${day}-${slotIndex}`}
+                                      type="button"
                                       onClick={() => setEditingLesson({ day, lessonSlot: slotIndex, lesson: lesson || null })}
                                       className={cn(
                                         "h-20 md:h-24 flex flex-col justify-center items-center rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md border p-1 text-center",
@@ -184,7 +186,7 @@ export default function DersProgrami() {
                                       ) : (
                                           <span className="text-muted-foreground text-xs">+ Ekle</span>
                                       )}
-                                  </div>
+                                  </button>
                               )
                           })}
                       </React.Fragment>
