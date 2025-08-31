@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon, X as CloseIcon } from 'lucide-react';
+import { Trash2, FileText, Plus, Loader2, Download, Sheet as ExcelIcon, File as WordIcon } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
-import type { Plan, Lesson, Day, WeeklyScheduleItem } from '@/lib/types';
+import type { Plan, Lesson, Day, WeeklyScheduleItem, LessonPlanEntry } from '@/lib/types';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
 import * as XLSX from 'xlsx';
+import { PlanViewer } from '@/components/plan-viewer';
 
 const PLANS_STORAGE_KEY_PREFIX = 'lesson-plans_';
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -37,7 +38,9 @@ function PlanlarimPageContent() {
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
-  const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
+  const [viewingPlanContent, setViewingPlanContent] = React.useState<LessonPlanEntry[] | null>(null);
+  const [viewingPlanTitle, setViewingPlanTitle] = React.useState<string>('');
+
 
   const getStorageKey = React.useCallback(() => {
     if (!user) return null;
@@ -188,31 +191,63 @@ function PlanlarimPageContent() {
     }
   }
 
-  const viewFile = (plan: Plan) => {
+  const viewFile = async (plan: Plan) => {
+    setViewingPlan(plan); // For both PDF and Excel
+    setViewingPlanTitle(plan.title);
+    
+    const blob = dataURIToBlob(plan.fileDataUrl);
+    if (!blob) {
+        toast({ title: 'Hata', description: 'Dosya verisi okunamadı.', variant: 'destructive' });
+        return;
+    }
+
     if (plan.fileType.includes('pdf')) {
-      const blob = dataURIToBlob(plan.fileDataUrl);
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-        setViewingPlan(plan);
-      } else {
-        toast({
-          title: 'PDF Görüntülenemedi',
-          description: 'Dosya verisi bozuk veya desteklenmiyor.',
-          variant: 'destructive',
-        });
+      // PDF viewing remains the same
+      const url = URL.createObjectURL(blob);
+      const newWindow = window.open(url);
+      if(!newWindow) {
+        toast({ title: 'Hata', description: 'PDF yeni sekmede açılamadı. Lütfen pop-up engelleyicinizi kontrol edin.', variant: 'destructive' });
       }
+      // Cleanup
+      if(newWindow) {
+        newWindow.onload = () => URL.revokeObjectURL(url);
+      }
+    } else if (plan.fileType.includes('sheet') || plan.fileType.includes('excel')) {
+        // New: Excel viewing logic
+        try {
+            const data = await blob.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json<any>(worksheet, {
+                header: ['month', 'week', 'hours', 'unit', 'topic', 'objective', 'objectiveExplanation', 'methods', 'assessment', 'specialDays', 'extracurricular']
+            });
+            // Assuming first few rows are headers, find the start of actual data
+            const startIndex = json.findIndex(row => row.week && (row.week.toString().includes('Hafta') || /\d/.test(row.week.toString())));
+            const planEntries = json.slice(startIndex).map((row, index) => ({
+                id: `${plan.id}-${index}`,
+                ...row
+            } as LessonPlanEntry));
+
+            setViewingPlanContent(planEntries);
+        } catch(e) {
+             console.error("Error parsing excel file: ", e);
+             toast({ title: 'Hata', description: 'Excel dosyası işlenirken bir hata oluştu.', variant: 'destructive' });
+             setViewingPlan(null);
+             setViewingPlanTitle('');
+        }
+
     } else {
       downloadFile(plan.fileDataUrl, plan.fileName);
+      setViewingPlan(null); // Reset since we are just downloading
+      setViewingPlanTitle('');
     }
   };
   
   const closeViewer = () => {
-    if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-    }
     setViewingPlan(null);
-    setPdfUrl(null);
+    setViewingPlanContent(null);
+    setViewingPlanTitle('');
   }
 
   if (isLoading) {
@@ -299,23 +334,13 @@ function PlanlarimPageContent() {
           </div>
         )}
 
-        {viewingPlan && pdfUrl && (
-          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl w-full h-full max-w-4xl flex flex-col">
-                <div className="flex justify-between items-center p-4 border-b">
-                    <h2 className="text-lg font-semibold">{viewingPlan.title}</h2>
-                    <Button variant="ghost" size="icon" onClick={closeViewer}>
-                        <CloseIcon className="h-6 w-6" />
-                    </Button>
-                </div>
-                <div className="flex-1 w-full h-full">
-                    <object data={pdfUrl} type="application/pdf" width="100%" height="100%">
-                        <p>PDF görüntüleyici yüklenemedi. Tarayıcınız desteklemiyor olabilir.</p>
-                    </object>
-                </div>
-            </div>
-          </div>
-        )}
+        <PlanViewer 
+            isOpen={!!viewingPlanContent}
+            onClose={closeViewer}
+            title={viewingPlanTitle}
+            entries={viewingPlanContent || []}
+        />
+        
       </main>
     </AppLayout>
   );
@@ -328,3 +353,4 @@ export default function PlanlarimPage() {
       </AuthGuard>
     );
   }
+

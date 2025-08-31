@@ -73,3 +73,18 @@ export type WeeklyScheduleItem = {
   day: Day;
   lessons: Lesson[];
 }
+
+export type LessonPlanEntry = {
+    id: string;
+    month?: string;
+    week?: string;
+    hours?: number;
+    unit?: string;
+    topic?: string;
+    objective?: string;
+    objectiveExplanation?: string;
+    methods?: string;
+    assessment?: string;
+    specialDays?: string;
+    extracurricular?: string;
+};
