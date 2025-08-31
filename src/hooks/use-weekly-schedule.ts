@@ -7,7 +7,7 @@ import type { WeeklyScheduleItem, Day, Lesson, ScheduleSettings } from '@/lib/ty
 import { db } from '@/lib/firebase';
 import { doc, setDoc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 
-const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 
 const getDefaultSchedule = (): WeeklyScheduleItem[] => {
     return dayOrder.map(day => ({
@@ -17,7 +17,8 @@ const getDefaultSchedule = (): WeeklyScheduleItem[] => {
 };
 
 const defaultSettings: ScheduleSettings = {
-    timeSlots: ['08:30', '09:20', '10:10', '11:00', '11:50', '13:30', '14:20', '15:10']
+    timeSlots: ['08:30', '09:20', '10:10', '11:00', '11:50', '13:30', '14:20', '15:10'],
+    lessonDuration: 40,
 };
 
 export function useWeeklySchedule(userId?: string) {
@@ -50,6 +51,7 @@ export function useWeeklySchedule(userId?: string) {
 
             const scheduleSettings: ScheduleSettings = {
                 timeSlots: data.timeSlots || defaultSettings.timeSlots,
+                lessonDuration: data.lessonDuration || defaultSettings.lessonDuration,
             };
             setSettings(scheduleSettings);
         } else {
@@ -127,20 +129,20 @@ export function useWeeklySchedule(userId?: string) {
     }
   };
 
-  const updateTimeSlots = async (newTimeSlots: string[]) => {
+  const updateSettings = async (newSettings: Partial<ScheduleSettings>) => {
     if (!userId) return;
     const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
     try {
-        await updateDoc(scheduleDocRef, { timeSlots: newTimeSlots });
+        await updateDoc(scheduleDocRef, newSettings);
     } catch (error) {
-         console.error("Error updating time slots:", error);
+         console.error("Error updating settings:", error);
          toast({
             title: "Hata!",
-            description: "Zaman aralıkları güncellenirken bir hata oluştu.",
+            description: "Ayarlar güncellenirken bir hata oluştu.",
             variant: "destructive"
         });
     }
   };
   
-  return { schedule, settings, isLoading, updateLesson, updateTimeSlots };
+  return { schedule, settings, isLoading, updateLesson, updateSettings };
 }

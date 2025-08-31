@@ -75,6 +75,7 @@ export type DaySchedule = {
 
 export type ScheduleSettings = {
     timeSlots: string[];
+    lessonDuration: number;
 }
 
 export type WeeklyScheduleItem = {

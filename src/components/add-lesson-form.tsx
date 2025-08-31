@@ -60,7 +60,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
   }, [lesson, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(day, lessonSlot, values);
+    onSave(day, lessonSlot, { ...values, time: timeSlot });
     onClose();
   }
 
@@ -104,7 +104,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
             <DialogFooter className='justify-between pt-4'>
                 <div>
                 {lesson && (
-                    <Button type="button" variant="destructive" onClick={() => onClear(day, lessonSlot)}>
+                    <Button type="button" variant="destructive" onClick={() => { onClear(day, lessonSlot); onClose(); }}>
                         <Trash2 className='mr-2 h-4 w-4' /> Dersi Temizle
                     </Button>
                 )}
