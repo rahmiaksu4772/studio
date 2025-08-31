@@ -3,45 +3,71 @@
 
 import * as React from 'react';
 import { useToast } from './use-toast';
-import type { WeeklyScheduleItem, Lesson, Day } from '@/lib/types';
+import type { WeeklyScheduleItem, Day } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, arrayUnion, arrayRemove, setDoc, onSnapshot } from 'firebase/firestore';
-
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
+const getDefaultSchedule = (): WeeklyScheduleItem[] => {
+    return dayOrder.map(day => ({
+        day,
+        lessons: [],
+        startTime: '09:00',
+        lessonDuration: 40,
+        breakDuration: 10
+    }));
+}
+
 export function useWeeklySchedule(userId?: string) {
   const { toast } = useToast();
-  const [schedule, setScheduleState] = React.useState<WeeklyScheduleItem[]>([]);
+  const [schedule, setScheduleState] = React.useState<WeeklyScheduleItem[]>(getDefaultSchedule());
   const [isLoading, setIsLoading] = React.useState(true);
-  const scheduleId = "main-schedule"; // This is now a sub-document ID under the user
+  const scheduleDocId = "main-schedule"; // Using a single document to hold the entire week's schedule object
 
   React.useEffect(() => {
     if (!userId) {
-        setScheduleState(dayOrder.map(day => ({ day, lessons: [] })));
+        setScheduleState(getDefaultSchedule());
         setIsLoading(false);
         return;
     }
 
     setIsLoading(true);
-    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleId);
+    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
 
     const unsubscribe = onSnapshot(scheduleDocRef, async (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => ({
-                day,
-                lessons: data[day] || []
-            }));
+            const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => {
+                // Merge saved data with defaults to ensure all fields are present
+                const dayData = data[day] || {};
+                return {
+                    day: day,
+                    lessons: dayData.lessons || [],
+                    startTime: dayData.startTime || '09:00',
+                    lessonDuration: dayData.lessonDuration || 40,
+                    breakDuration: dayData.breakDuration || 10
+                };
+            });
             setScheduleState(scheduleData);
         } else {
             // Document doesn't exist, create it with a default structure for the user
-             const defaultSchedule = dayOrder.reduce((acc, day) => ({ ...acc, [day]: [] }), {});
+             const defaultScheduleData = dayOrder.reduce((acc, day) => {
+                acc[day] = {
+                    lessons: [],
+                    startTime: '09:00',
+                    lessonDuration: 40,
+                    breakDuration: 10
+                };
+                return acc;
+            }, {} as { [key in Day]: any });
+
              try {
-                await setDoc(scheduleDocRef, defaultSchedule);
-                setScheduleState(dayOrder.map(day => ({ day, lessons: [] })));
+                await setDoc(scheduleDocRef, defaultScheduleData);
+                setScheduleState(getDefaultSchedule());
              } catch (error) {
                 console.error("Failed to create default schedule for user", error);
+                toast({ title: "Hata!", description: "Varsayılan ders programı oluşturulamadı.", variant: "destructive" });
              }
         }
         setIsLoading(false);
@@ -59,80 +85,24 @@ export function useWeeklySchedule(userId?: string) {
   }, [userId, toast]);
 
 
-  const addLesson = async (day: Day, lessonData: Omit<Lesson, 'id'>) => {
+  const updateDaySchedule = async (day: Day, dayData: Omit<WeeklyScheduleItem, 'day'>) => {
     if (!userId) return;
 
-    const newLesson: Lesson = {
-        ...lessonData,
-        id: new Date().toISOString(),
-    };
-    
-    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleId);
-    try {
-        await updateDoc(scheduleDocRef, {
-            [day]: arrayUnion(newLesson)
-        });
-        toast({
-            title: "Ders Eklendi!",
-            description: `"${lessonData.subject}" dersi ${day} gününe eklendi.`
-        });
-    } catch (error) {
-        console.error("Error adding lesson:", error);
-         toast({
-            title: "Hata!",
-            description: "Ders eklenirken bir hata oluştu.",
-            variant: "destructive"
-        });
-    }
-  };
-
-  const deleteLesson = async (day: Day, lessonId: string) => {
-     if (!userId) return;
-     const daySchedule = schedule.find(d => d.day === day);
-     const lessonToDelete = daySchedule?.lessons.find(l => l.id === lessonId);
-     
-     if (!lessonToDelete) return;
-
-     const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleId);
-     try {
-        await updateDoc(scheduleDocRef, {
-            [day]: arrayRemove(lessonToDelete)
-        });
-        toast({
-            title: "Ders Silindi!",
-            description: `"${lessonToDelete.subject}" dersi programdan kaldırıldı.`,
-            variant: 'destructive'
-        });
-     } catch (error) {
-         console.error("Error deleting lesson:", error);
-         toast({
-            title: "Hata!",
-            description: "Ders silinirken bir hata oluştu.",
-            variant: "destructive"
-        });
-     }
-  };
-
-  const setSchedule = async (newSchedule: WeeklyScheduleItem[]) => {
-    if (!userId) return;
-
-    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleId);
-    const scheduleForDb = newSchedule.reduce((acc, dayItem) => {
-        acc[dayItem.day] = dayItem.lessons;
-        return acc;
-    }, {} as { [key in Day]: Lesson[] });
+    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
 
     try {
-        await setDoc(scheduleDocRef, scheduleForDb);
+        await setDoc(scheduleDocRef, {
+            [day]: dayData
+        }, { merge: true }); // Use merge to only update the specific day's data
     } catch (error) {
-        console.error("Error setting new schedule:", error);
-        toast({
+         console.error("Error updating day schedule:", error);
+         toast({
             title: "Hata!",
-            description: "Yeni ders programı kaydedilirken bir hata oluştu.",
+            description: "Program güncellenirken bir hata oluştu.",
             variant: "destructive"
         });
     }
   };
   
-  return { schedule, isLoading, addLesson, deleteLesson, setSchedule };
+  return { schedule, isLoading, updateDaySchedule };
 }

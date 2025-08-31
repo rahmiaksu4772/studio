@@ -3,163 +3,298 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BookOpenCheck, Trash2, Crown } from 'lucide-react';
+import { BookOpenCheck, Trash2, Settings, Plus, Loader2, Save } from 'lucide-react';
 import type { Lesson, Day, WeeklyScheduleItem } from '@/lib/types';
-import { Skeleton } from './ui/skeleton';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
-import { AddLessonForm } from './add-lesson-form';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import getColorFromString from 'string-to-color';
-import { Badge } from './ui/badge';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { addMinutes, format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
-
-type ProcessedSchedule = {
-  times: string[];
-  grid: (Lesson | null)[][];
+const dayAbbreviations: Record<Day, string> = {
+  'Pazartesi': 'PZT',
+  'Salı': 'SAL',
+  'Çarşamba': 'ÇAR',
+  'Perşembe': 'PER',
+  'Cuma': 'CUM',
+  'Cumartesi': 'CMT',
+  'Pazar': 'PAZ'
 };
+
+const settingsSchema = z.object({
+    startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: 'Lütfen "09:00" formatında girin.' }),
+    lessonDuration: z.coerce.number().min(1, 'Ders süresi en az 1 dakika olmalıdır.'),
+    breakDuration: z.coerce.number().min(0, 'Teneffüs süresi 0 veya daha fazla olmalıdır.'),
+});
+
+const lessonSchema = z.object({
+  subject: z.string().min(2, { message: 'Ders adı en az 2 karakter olmalıdır.' }),
+  class: z.string().min(1, { message: 'Sınıf adı en az 1 karakter olmalıdır.' }),
+});
+
+type SettingsFormValues = z.infer<typeof settingsSchema>;
+type LessonFormValues = z.infer<typeof lessonSchema>;
+
+function DayScheduleSettings({ day, onSave, settings }: { day: WeeklyScheduleItem, onSave: (data: SettingsFormValues) => void, settings: SettingsFormValues }) {
+    const [open, setOpen] = React.useState(false);
+    const { register, handleSubmit, formState: { errors } } = useForm<SettingsFormValues>({
+        resolver: zodResolver(settingsSchema),
+        defaultValues: settings
+    });
+
+    const onSubmit = (data: SettingsFormValues) => {
+        onSave(data);
+        setOpen(false);
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="sm"><Settings className="mr-2 h-4 w-4" /> Zamanlamayı Ayarla</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{day.day} Günü Zamanlama Ayarları</DialogTitle>
+                    <DialogDescription>Ders ve teneffüs sürelerini belirleyerek programı otomatik oluşturun.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div>
+                        <Label htmlFor="startTime">Başlangıç Saati</Label>
+                        <Input id="startTime" {...register('startTime')} />
+                        {errors.startTime && <p className="text-sm text-destructive mt-1">{errors.startTime.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="lessonDuration">Ders Süresi (dakika)</Label>
+                        <Input id="lessonDuration" type="number" {...register('lessonDuration')} />
+                        {errors.lessonDuration && <p className="text-sm text-destructive mt-1">{errors.lessonDuration.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="breakDuration">Teneffüs Süresi (dakika)</Label>
+                        <Input id="breakDuration" type="number" {...register('breakDuration')} />
+                         {errors.breakDuration && <p className="text-sm text-destructive mt-1">{errors.breakDuration.message}</p>}
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="ghost">İptal</Button></DialogClose>
+                        <Button type="submit">Kaydet ve Programı Oluştur</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function LessonEditor({ lesson, onSave, triggerButton }: { lesson: Partial<Lesson>, onSave: (data: LessonFormValues) => void, triggerButton: React.ReactNode }) {
+    const [open, setOpen] = React.useState(false);
+    const { register, handleSubmit, formState: { errors } } = useForm<LessonFormValues>({
+        resolver: zodResolver(lessonSchema),
+        defaultValues: { subject: lesson.subject || '', class: lesson.class || '' }
+    });
+
+    const onSubmit = (data: LessonFormValues) => {
+        onSave(data);
+        setOpen(false);
+    }
+
+    return (
+         <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{triggerButton}</DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Ders Bilgilerini Düzenle</DialogTitle>
+                    <DialogDescription>{lesson.time} saatindeki dersin bilgilerini girin.</DialogDescription>
+                </DialogHeader>
+                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div>
+                        <Label htmlFor="subject">Ders Adı</Label>
+                        <Input id="subject" {...register('subject')} placeholder="Örn: Matematik" />
+                        {errors.subject && <p className="text-sm text-destructive mt-1">{errors.subject.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="class">Sınıf</Label>
+                        <Input id="class" {...register('class')} placeholder="Örn: 8/A" />
+                        {errors.class && <p className="text-sm text-destructive mt-1">{errors.class.message}</p>}
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="ghost">İptal</Button></DialogClose>
+                        <Button type="submit">Dersi Kaydet</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 
 export default function DersProgrami() {
   const { user } = useAuth();
-  const { schedule, addLesson, deleteLesson, isLoading } = useWeeklySchedule(user?.uid);
+  const { schedule, updateDaySchedule, isLoading } = useWeeklySchedule(user?.uid);
+  const { toast } = useToast();
 
-  const processedSchedule: ProcessedSchedule = React.useMemo(() => {
-    if (!schedule || schedule.length === 0) {
-      return { times: [], grid: [] };
-    }
+  const handleSaveSettings = (day: Day, data: SettingsFormValues) => {
+      const { startTime, lessonDuration, breakDuration } = data;
+      
+      const newLessons: Lesson[] = [];
+      let currentTime = new Date(`1970-01-01T${startTime}:00`);
 
-    const allTimes = new Set<string>();
-    schedule.forEach(day => {
-      day.lessons.forEach(lesson => {
-        allTimes.add(lesson.time);
-      });
-    });
+      for (let i = 0; i < 8; i++) {
+          const lessonStartTime = new Date(currentTime);
+          const lessonEndTime = addMinutes(lessonStartTime, lessonDuration);
+          
+          const existingLesson = schedule.find(d => d.day === day)?.lessons.find(l => l.lessonNumber === i + 1);
 
-    const sortedTimes = Array.from(allTimes).sort((a, b) => {
-        const timeA = parseInt(a.split(':')[0], 10) * 60 + parseInt(a.split(':')[1], 10);
-        const timeB = parseInt(b.split(':')[0], 10) * 60 + parseInt(b.split(':')[1], 10);
-        return timeA - timeB;
-    });
+          newLessons.push({
+              id: existingLesson?.id || `${day}-${i+1}-${new Date().toISOString()}`,
+              lessonNumber: i + 1,
+              time: `${format(lessonStartTime, 'HH:mm')} - ${format(lessonEndTime, 'HH:mm')}`,
+              subject: existingLesson?.subject || '',
+              class: existingLesson?.class || '',
+          });
 
-    const grid = sortedTimes.map(time => {
-      return dayOrder.map(dayName => {
-        const dayData = schedule.find(d => d.day === dayName);
-        const lesson = dayData?.lessons.find(l => l.time === time);
-        return lesson || null;
-      });
-    });
+          currentTime = addMinutes(lessonEndTime, breakDuration);
+      }
+      
+      updateDaySchedule(day, { ...data, lessons: newLessons });
+      toast({ title: "Program Güncellendi", description: `${day} günü için ders saatleri yeniden oluşturuldu.` });
+  };
 
-    return { times: sortedTimes, grid };
-  }, [schedule]);
+  const handleSaveLesson = (day: Day, lessonNumber: number, data: LessonFormValues) => {
+      const daySchedule = schedule.find(d => d.day === day);
+      if (!daySchedule) return;
+
+      const updatedLessons = daySchedule.lessons.map(l => 
+        l.lessonNumber === lessonNumber ? { ...l, ...data } : l
+      );
+      
+      updateDaySchedule(day, { ...daySchedule, lessons: updatedLessons });
+      toast({ title: "Ders Kaydedildi", description: `"${data.subject}" dersi programa eklendi.` });
+  }
+
+  const handleDeleteLesson = (day: Day, lessonNumber: number) => {
+       const daySchedule = schedule.find(d => d.day === day);
+      if (!daySchedule) return;
+      
+      const lessonToDelete = daySchedule.lessons.find(l => l.lessonNumber === lessonNumber);
+
+      const updatedLessons = daySchedule.lessons.map(l => 
+        l.lessonNumber === lessonNumber ? { ...l, subject: '', class: '' } : l
+      );
+
+      updateDaySchedule(day, { ...daySchedule, lessons: updatedLessons });
+       toast({ title: "Ders Temizlendi", description: `"${lessonToDelete?.subject}" dersi programdan kaldırıldı.`, variant: 'destructive' });
+  }
 
   if (isLoading) {
     return (
-        <Card className="w-full">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                    <BookOpenCheck className="h-5 w-5" />
-                    Haftalık Ders Programı
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                 <Skeleton className="w-full h-[400px]" />
-            </CardContent>
-        </Card>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Haftalık Ders Programı</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <Card className="w-full overflow-hidden">
-        <CardHeader className="flex-col md:flex-row justify-between items-start md:items-center p-4">
-            <div>
-                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                    <BookOpenCheck className="h-5 w-5" />
-                    Haftalık Ders Programı
-                </CardTitle>
-                <CardDescription>Tüm haftalık programınızı tek bir yerden yönetin.</CardDescription>
-            </div>
-            <AddLessonForm day={'Pazartesi'} onAddLesson={addLesson} />
-        </CardHeader>
-        
-        <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
-            <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-1 text-center font-sans min-w-[700px]">
-                {/* Header Row */}
-                <div className="p-2 sticky left-0 bg-card z-10"></div>
-                {dayOrder.map(day => (
-                    <div key={day} className="font-bold bg-primary/80 text-primary-foreground p-2 rounded-t-lg min-w-[100px] md:min-w-[120px] text-sm md:text-base">
-                        {day}
-                    </div>
-                ))}
-
-                {/* Schedule Rows */}
-                {processedSchedule.times.map((time, timeIndex) => (
-                    <React.Fragment key={time}>
-                        <div className="font-semibold p-2 my-1 flex items-center justify-center text-muted-foreground bg-muted/30 rounded-l-lg sticky left-0 bg-card z-10 text-xs md:text-sm">{time}</div>
-                        {processedSchedule.grid[timeIndex].map((lesson, dayIndex) => (
-                            <div 
-                                key={`${time}-${dayIndex}`} 
-                                className="group relative flex flex-col justify-center items-center p-2 rounded-md min-h-[70px] text-xs md:text-sm text-white shadow-inner"
-                                style={{
-                                    backgroundColor: lesson ? getColorFromString(lesson.subject) : '#f1f5f9'
-                                }}
-                            >
-                                {lesson ? (
-                                    <>
-                                        <p className="font-bold drop-shadow-sm">{lesson.subject}</p>
-                                        <p className="opacity-80 drop-shadow-sm">{lesson.class}</p>
-                                        
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className='absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 hover:bg-black/40 text-white hover:text-white'>
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Dersi Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Bu işlem geri alınamaz. "{lesson.subject} - {lesson.time}" dersini kalıcı olarak silecektir.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>İptal</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => deleteLesson(dayOrder[dayIndex], lesson.id)} className='bg-destructive hover:bg-destructive/90'>
-                                                        Evet, Sil
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-
-                                    </>
-                                ) : (
-                                    <div className="w-full h-full border-2 border-dashed border-slate-300 rounded-md"></div>
-                                )}
-                            </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+          <BookOpenCheck className="h-5 w-5" />
+          Haftalık Ders Programı
+        </CardTitle>
+        <CardDescription>
+            Günleri seçin, zamanlamayı ayarlayın ve derslerinizi girin.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="Pazartesi" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            {dayOrder.map((day) => (
+              <TabsTrigger key={day} value={day}>{dayAbbreviations[day]}</TabsTrigger>
+            ))}
+          </TabsList>
+          {dayOrder.map((day) => {
+            const daySchedule = schedule.find(s => s.day === day) || { day, lessons: [], startTime: '09:00', lessonDuration: 40, breakDuration: 10 };
+            return (
+              <TabsContent key={day} value={day} className="space-y-4">
+                <div className="flex justify-between items-center bg-muted p-2 rounded-md">
+                   <h3 className="font-semibold text-lg">{day}</h3>
+                   <DayScheduleSettings 
+                        day={daySchedule} 
+                        onSave={(data) => handleSaveSettings(day, data)} 
+                        settings={{
+                            startTime: daySchedule.startTime,
+                            lessonDuration: daySchedule.lessonDuration,
+                            breakDuration: daySchedule.breakDuration
+                        }}
+                    />
+                </div>
+                 {daySchedule.lessons.length > 0 ? (
+                      <div className="border rounded-md">
+                        <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center p-2 font-medium text-muted-foreground border-b">
+                            <span>#</span>
+                            <span>Ders Adı</span>
+                            <span>Sınıf</span>
+                            <span className="text-center">Zaman</span>
+                            <span className="w-8"></span>
+                        </div>
+                        <ul className="divide-y">
+                        {daySchedule.lessons.sort((a, b) => a.lessonNumber - b.lessonNumber).map((lesson, index) => (
+                           <li key={lesson.id} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center p-2 hover:bg-muted/50">
+                               <span>{lesson.lessonNumber}</span>
+                               <span>{lesson.subject || '-'}</span>
+                               <span>{lesson.class || '-'}</span>
+                               <span className="text-center">{lesson.time}</span>
+                               <div className="flex items-center">
+                                    <LessonEditor
+                                        lesson={lesson}
+                                        onSave={(data) => handleSaveLesson(day, lesson.lessonNumber, data)}
+                                        triggerButton={
+                                            <Button variant={lesson.subject ? "outline" : "default"} size="sm">
+                                                {lesson.subject ? 'Düzenle' : <><Plus className='h-4 w-4 mr-1'/> Ekle</>}
+                                            </Button>
+                                        }
+                                    />
+                                    {lesson.subject && (
+                                         <Button variant="ghost" size="icon" className='h-8 w-8 ml-1' onClick={() => handleDeleteLesson(day, lesson.lessonNumber)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    )}
+                               </div>
+                           </li>
                         ))}
-                    </React.Fragment>
-                ))}
-
-                {processedSchedule.times.length === 0 && (
-                    <div className="col-span-6 text-center p-10 text-muted-foreground">
-                        <p>Henüz ders programı oluşturulmamış.</p>
-                        <p className='text-xs'>Başlamak için "Ders Ekle" butonunu kullanın.</p>
+                        </ul>
+                    </div>
+                ) : (
+                    <div className="text-center p-8 border-2 border-dashed rounded-md text-muted-foreground">
+                        <p>Bu gün için program oluşturulmamış.</p>
+                        <p className="text-sm">Başlamak için "Zamanlamayı Ayarla" butonunu kullanın.</p>
                     </div>
                 )}
-            </div>
-        </CardContent>
+              </TabsContent>
+            )
+          })}
+        </Tabs>
+      </CardContent>
     </Card>
   );
 }
