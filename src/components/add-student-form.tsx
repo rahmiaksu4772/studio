@@ -41,7 +41,7 @@ export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false, 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(dynamicFormSchema),
     defaultValues: {
-      studentNumber: '' as any, // Initialize with empty string to avoid uncontrolled input error
+      studentNumber: undefined,
       firstName: '',
       lastName: '',
     },
@@ -49,7 +49,7 @@ export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false, 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onAddStudent(classId, values);
-    form.reset({ studentNumber: '' as any, firstName: '', lastName: '' });
+    form.reset({ studentNumber: undefined, firstName: '', lastName: '' });
     setOpen(false);
   }
 
@@ -85,7 +85,7 @@ export function AddStudentForm({ onAddStudent, classId, isFirstStudent = false, 
                   <FormItem>
                     <FormLabel>Okul Numarası</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Örn: 123" {...field} />
+                      <Input type="number" placeholder="Örn: 123" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

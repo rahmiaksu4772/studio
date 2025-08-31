@@ -87,7 +87,7 @@ export function EditStudentForm({ student, onUpdateStudent, onClose, isOpen, exi
                 <FormItem>
                   <FormLabel>Okul Numarası</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Örn: 123" {...field} />
+                    <Input type="number" placeholder="Örn: 123" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

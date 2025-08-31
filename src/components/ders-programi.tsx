@@ -12,12 +12,14 @@ import { AddLessonForm } from './add-lesson-form';
 import stringToColor from 'string-to-color';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { cn } from '@/lib/utils';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 
 const calculateEndTime = (startTime: string, duration: number): string => {
-    if (!startTime) return '';
+    if (!startTime || !duration) return '';
     const [hours, minutes] = startTime.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return '';
     const startDate = new Date();
     startDate.setHours(hours, minutes, 0, 0);
     const endDate = new Date(startDate.getTime() + duration * 60000);
@@ -59,10 +61,10 @@ export default function DersProgrami() {
     setLocalSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSettingsBlur = async () => {
-    // Check for actual changes before updating
-    if (JSON.stringify(localSettings) !== JSON.stringify(settings)) {
-        await updateSettings(localSettings);
+  const handleSettingsBlur = async (field: keyof ScheduleSettings) => {
+    const value = localSettings[field];
+    if (value !== settings[field]) {
+        await updateSettings({ [field]: value });
         toast({ title: 'Ayarlar Güncellendi' });
     }
   };
@@ -94,9 +96,9 @@ export default function DersProgrami() {
                     <Input
                         id="lessonDuration"
                         type="number"
-                        value={localSettings.lessonDuration}
+                        value={localSettings.lessonDuration || ''}
                         onChange={(e) => handleSettingsChange('lessonDuration', parseInt(e.target.value) || 0)}
-                        onBlur={handleSettingsBlur}
+                        onBlur={() => handleSettingsBlur('lessonDuration')}
                         className="w-20"
                     />
                 </div>
@@ -119,9 +121,9 @@ export default function DersProgrami() {
                   
                   {/* Rows */}
                   {localSettings.timeSlots.map((time, slotIndex) => (
-                      <React.Fragment key={slotIndex}>
+                      <React.Fragment key={`slot-${slotIndex}`}>
                           {/* Time Slot Cell */}
-                          <div className="h-20 md:h-24 flex flex-col justify-center items-center rounded-lg bg-muted/50 p-1">
+                          <div className="h-20 md:h-24 flex flex-col justify-center items-center rounded-lg bg-muted/50 p-1 text-center">
                                <Input
                                 type="time"
                                 value={time}
@@ -130,8 +132,8 @@ export default function DersProgrami() {
                                     newTimeSlots[slotIndex] = e.target.value;
                                     setLocalSettings(prev => ({...prev, timeSlots: newTimeSlots}));
                                 }}
-                                onBlur={handleSettingsBlur}
-                                className="w-24 text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1"
+                                onBlur={() => handleSettingsBlur('timeSlots')}
+                                className="w-24 text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm"
                               />
                               <div className='text-xs text-muted-foreground'>
                                   {calculateEndTime(time, localSettings.lessonDuration)}
@@ -147,7 +149,10 @@ export default function DersProgrami() {
                                   <div 
                                       key={`${day}-${slotIndex}`}
                                       onClick={() => setEditingLesson({ day, lessonSlot: slotIndex, lesson: lesson || null })}
-                                      className="h-20 md:h-24 flex flex-col justify-center items-center rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent hover:shadow-md border"
+                                      className={cn(
+                                        "h-20 md:h-24 flex flex-col justify-center items-center rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md border",
+                                        lesson ? '' : 'hover:bg-accent'
+                                      )}
                                       style={{ 
                                           backgroundColor: lesson ? `${color}20` : 'transparent', // Semi-transparent background
                                           borderColor: lesson ? `${color}40` : 'hsl(var(--border))',
@@ -178,7 +183,7 @@ export default function DersProgrami() {
               lesson={editingLesson.lesson}
               onSave={handleLessonSave}
               onClear={handleClearLesson}
-              timeSlot={`${localSettings.timeSlots[editingLesson.lessonSlot]} - ${calculateEndTime(localSettings.timeSlots[editingLesson.lessonSlot], localSettings.lessonDuration)}` || ''}
+              timeSlot={`${settings.timeSlots[editingLesson.lessonSlot]} - ${calculateEndTime(settings.timeSlots[editingLesson.lessonSlot], settings.lessonDuration)}` || ''}
           />
       )}
     </>
