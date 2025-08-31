@@ -45,9 +45,17 @@ export function useNotes(userId?: string) {
         toast({ title: 'Hata', description: 'Not eklemek için kullanıcı girişi gereklidir.', variant: 'destructive'});
         return;
     }
+
+    const dataToSave: { [key: string]: any } = { ...noteData };
+
+    // Remove imageUrl if it is null, undefined, or an empty string to prevent Firestore errors
+    if (!dataToSave.imageUrl) {
+        delete dataToSave.imageUrl;
+    }
+
     try {
         const notesCollectionRef = collection(db, `users/${userId}/notes`);
-        await addDoc(notesCollectionRef, noteData);
+        await addDoc(notesCollectionRef, dataToSave);
         toast({
           title: 'Not Eklendi!',
           description: 'Yeni notunuz başarıyla eklendi.',

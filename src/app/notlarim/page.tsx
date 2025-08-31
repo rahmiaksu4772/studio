@@ -106,7 +106,7 @@ function NotlarimPageContent() {
     const newNoteData: Omit<Note, 'id'> = {
       title: newNoteTitle,
       content: newNoteContent,
-      imageUrl: newNoteImage || undefined,
+      imageUrl: newNoteImage,
       color: noteColors[Math.floor(Math.random() * noteColors.length)],
       date: new Date().toISOString() // Store as ISO string for proper ordering in Firestore
     };
