@@ -6,29 +6,35 @@ import { useToast } from './use-toast';
 import type { DailyRecord, Student, ClassInfo } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { 
-    collection, onSnapshot, doc, getDocs, writeBatch, deleteDoc, addDoc, updateDoc, query, where, setDoc
+    collection, onSnapshot, doc, getDocs, writeBatch, deleteDoc, addDoc, updateDoc, query, where, setDoc, collectionGroup
 } from 'firebase/firestore';
 
 
-export function useDailyRecords(userId?: string, classId?: string) {
+export function useDailyRecords(userId?: string) {
   const { toast } = useToast();
   const [records, setRecords] = React.useState<DailyRecord[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   
   React.useEffect(() => {
-    if (!userId || !classId) {
+    if (!userId) {
         setRecords([]);
         setIsLoading(false);
         return;
-    };
+    }
 
     setIsLoading(true);
-    const recordsQuery = query(collection(db, `users/${userId}/classes/${classId}/records`));
+    // This query now fetches all records from all classes for a specific user.
+    const recordsQuery = query(collectionGroup(db, 'records'), where("classId", "!=", ""));
 
     const unsubscribe = onSnapshot(recordsQuery, (querySnapshot) => {
         const recordsData: DailyRecord[] = [];
         querySnapshot.forEach((doc) => {
-            recordsData.push({ id: doc.id, ...doc.data() } as DailyRecord);
+            // We need to ensure the record belongs to the current user.
+            // Firestore's collectionGroup queries don't directly support filtering by parent document path with other filters.
+            // So we manually check if the path includes the user's ID.
+            if(doc.ref.path.startsWith(`users/${userId}/`)){
+                 recordsData.push({ id: doc.id, ...doc.data() } as DailyRecord);
+            }
         });
         setRecords(recordsData);
         setIsLoading(false);
@@ -43,7 +49,7 @@ export function useDailyRecords(userId?: string, classId?: string) {
     });
 
     return () => unsubscribe();
-  }, [userId, classId, toast]);
+  }, [userId, toast]);
 
 
   const bulkUpdateRecords = async (userId: string, classId: string, date: string, updatedDayRecords: DailyRecord[]) => {

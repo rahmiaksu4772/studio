@@ -10,17 +10,21 @@ import { Users, GraduationCap, Edit, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import React from 'react';
 import { useDailyRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
+import { useAuth } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
-export default function AnaSayfaPage() {
-  const { classes, isLoading: isClassesLoading } = useClassesAndStudents();
-  const { records, isLoading: isRecordsLoading } = useDailyRecords();
+
+function AnaSayfaPageContent() {
+  const { user } = useAuth();
+  const { classes, isLoading: isClassesLoading } = useClassesAndStudents(user?.uid);
+  const { records, isLoading: isRecordsLoading } = useDailyRecords(user?.uid);
   
   const [totalClasses, setTotalClasses] = React.useState(0);
   const [totalStudents, setTotalStudents] = React.useState(0);
   const [todaysRecords, setTodaysRecords] = React.useState(0);
 
   React.useEffect(() => {
-    if (!isClassesLoading) {
+    if (!isClassesLoading && classes) {
       setTotalClasses(classes.length);
       const studentCount = classes.reduce((acc, curr) => acc + curr.students.length, 0);
       setTotalStudents(studentCount);
@@ -28,7 +32,7 @@ export default function AnaSayfaPage() {
   }, [classes, isClassesLoading]);
 
   React.useEffect(() => {
-    if (!isRecordsLoading) {
+    if (!isRecordsLoading && records) {
       const today = format(new Date(), 'yyyy-MM-dd');
       const todayRecordsCount = records.filter(r => r.date === today).length;
       setTodaysRecords(todayRecordsCount);
@@ -98,4 +102,12 @@ export default function AnaSayfaPage() {
       </main>
     </AppLayout>
   );
+}
+
+export default function AnaSayfaPage() {
+    return (
+        <AuthGuard>
+            <AnaSayfaPageContent />
+        </AuthGuard>
+    )
 }
