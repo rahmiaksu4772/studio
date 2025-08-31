@@ -132,15 +132,21 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
   };
 
   const handlePasteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setPastedText(e.target.value);
-    if (e.target.value.trim() === '') {
+    const text = e.target.value;
+    setPastedText(text);
+
+    if (text.trim() === '') {
         setImportedStudents([]);
         setSkippedCount(0);
         return;
     }
-    const lines = e.target.value.trim().split('\n');
+    
+    const lines = text.split('\n').filter(line => line.trim() !== ''); // Boş satırları atla
+    
     const studentsFromPaste = lines.map(line => {
-        const parts = line.split(/\s+/); // Split by any whitespace
+        const trimmedLine = line.trim();
+        const parts = trimmedLine.split(/\s+/);
+        
         if (parts.length < 2) return null;
 
         const studentNumber = parseInt(parts[0], 10);
@@ -153,7 +159,7 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
         if (!firstName || !lastName) return null;
 
         return { studentNumber, firstName, lastName };
-    }).filter(Boolean);
+    }).filter((student): student is StudentImportData => student !== null);
 
     processStudents(studentsFromPaste as any[], 'paste');
   }
