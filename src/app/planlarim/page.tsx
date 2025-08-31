@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
 import type { Plan, Lesson, Day, WeeklyScheduleItem, LessonPlanEntry } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, getWeek } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
@@ -34,7 +34,7 @@ const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'
 function PlanlarimPageContent() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { setSchedule } = useWeeklySchedule();
+  const { setSchedule } = useWeeklySchedule(user?.uid);
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
@@ -97,10 +97,9 @@ function PlanlarimPageContent() {
 
         const newSchedule: WeeklyScheduleItem[] = dayOrder.map(day => ({ day, lessons: [] }));
         
-        // Assuming format: Day, Time (HH:mm - HH:mm), Subject, Class
-        // Skip header row by starting from 1
         for(let i = 1; i < json.length; i++) {
             const row = json[i];
+            if(!row) continue;
             const [day, time, subject, className] = row;
             
             const targetDay = newSchedule.find(d => d.day === day);
@@ -165,6 +164,13 @@ function PlanlarimPageContent() {
     return <FileText className="h-10 w-10 text-gray-500" />;
   };
 
+  const getFriendlyFileType = (fileType: string) => {
+    if (fileType.includes('pdf')) return 'PDF Belgesi';
+    if (fileType.includes('word')) return 'Word Belgesi';
+    if (fileType.includes('sheet') || fileType.includes('excel')) return 'Excel Dosyası';
+    return fileType;
+  }
+
   const downloadFile = (dataUrl: string, fileName: string) => {
     const link = document.createElement('a');
     link.href = dataUrl;
@@ -192,7 +198,7 @@ function PlanlarimPageContent() {
   }
 
   const viewFile = async (plan: Plan) => {
-    setViewingPlan(plan); // For both PDF and Excel
+    setViewingPlan(plan);
     setViewingPlanTitle(plan.title);
     
     const blob = dataURIToBlob(plan.fileDataUrl);
@@ -202,18 +208,15 @@ function PlanlarimPageContent() {
     }
 
     if (plan.fileType.includes('pdf')) {
-      // PDF viewing remains the same
       const url = URL.createObjectURL(blob);
       const newWindow = window.open(url);
       if(!newWindow) {
         toast({ title: 'Hata', description: 'PDF yeni sekmede açılamadı. Lütfen pop-up engelleyicinizi kontrol edin.', variant: 'destructive' });
       }
-      // Cleanup
       if(newWindow) {
         newWindow.onload = () => URL.revokeObjectURL(url);
       }
     } else if (plan.fileType.includes('sheet') || plan.fileType.includes('excel')) {
-        // New: Excel viewing logic
         try {
             const data = await blob.arrayBuffer();
             const workbook = XLSX.read(data);
@@ -222,7 +225,6 @@ function PlanlarimPageContent() {
             const json = XLSX.utils.sheet_to_json<any>(worksheet, {
                 header: ['month', 'week', 'hours', 'unit', 'topic', 'objective', 'objectiveExplanation', 'methods', 'assessment', 'specialDays', 'extracurricular']
             });
-            // Assuming first few rows are headers, find the start of actual data
             const startIndex = json.findIndex(row => row.week && (row.week.toString().includes('Hafta') || /\d/.test(row.week.toString())));
             const planEntries = json.slice(startIndex).map((row, index) => ({
                 id: `${plan.id}-${index}`,
@@ -239,7 +241,7 @@ function PlanlarimPageContent() {
 
     } else {
       downloadFile(plan.fileDataUrl, plan.fileName);
-      setViewingPlan(null); // Reset since we are just downloading
+      setViewingPlan(null); 
       setViewingPlanTitle('');
     }
   };
@@ -283,30 +285,32 @@ function PlanlarimPageContent() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {plans.map((plan) => (
               <Card key={plan.id} className="flex flex-col">
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-start justify-between p-4">
                     <div>
-                        <CardTitle className="text-lg">{plan.title}</CardTitle>
+                        <CardTitle className="text-lg mb-1">{plan.title}</CardTitle>
                         <Badge variant={plan.type === 'annual' ? 'default' : 'secondary'}>
                             {plan.type === 'annual' ? 'Yıllık Plan' : 'Haftalık Plan'}
                         </Badge>
                     </div>
                     {getFileIcon(plan.fileType)}
                 </CardHeader>
-                <CardContent className="flex-grow">
+                <CardContent className="flex-grow p-4 pt-0">
                     <p className="text-sm text-muted-foreground">
                         Yüklenme Tarihi: {plan.uploadDate}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                        Dosya Türü: {plan.fileType.split('/')[1] || plan.fileType}
+                    <p className="text-sm text-muted-foreground truncate">
+                        Dosya: {getFriendlyFileType(plan.fileType)}
                     </p>
                 </CardContent>
-                <CardFooter className="flex gap-2">
-                    <Button variant="outline" className="w-full" onClick={() => viewFile(plan)}>
-                        <FileText className="mr-2 h-4 w-4" /> Görüntüle
-                    </Button>
-                    <Button className="w-full" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
-                        <Download className="mr-2 h-4 w-4" /> İndir
-                    </Button>
+                <CardFooter className="flex justify-between items-center p-4 pt-0">
+                    <div className='flex gap-2'>
+                        <Button variant="outline" size="sm" onClick={() => viewFile(plan)}>
+                            <FileText className="mr-2 h-4 w-4" /> Görüntüle
+                        </Button>
+                        <Button size="sm" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
+                            <Download className="mr-2 h-4 w-4" /> İndir
+                        </Button>
+                    </div>
                      <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="icon">
@@ -354,3 +358,4 @@ export default function PlanlarimPage() {
     );
   }
 
+    
