@@ -90,19 +90,19 @@ export default function DersProgrami() {
               <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                   <Calendar className="h-5 w-5 text-primary" /> Haftalık Ders Programı
               </CardTitle>
-              <CardDescription className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 pt-2'>
+              <div className='text-sm text-muted-foreground flex flex-col sm:flex-row items-center gap-2 sm:gap-4 pt-2'>
                 <div className='flex items-center gap-2'>
                     <Label htmlFor="lessonDuration" className='flex-shrink-0'>Ders Süresi (dk):</Label>
                     <Input
                         id="lessonDuration"
                         type="number"
-                        value={localSettings.lessonDuration || ''}
+                        value={localSettings.lessonDuration || 0}
                         onChange={(e) => handleSettingsChange('lessonDuration', parseInt(e.target.value) || 0)}
                         onBlur={() => handleSettingsBlur('lessonDuration')}
                         className="w-20"
                     />
                 </div>
-              </CardDescription>
+              </div>
           </CardHeader>
           <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
               <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-1 md:gap-2 min-w-[700px] md:min-w-full">
