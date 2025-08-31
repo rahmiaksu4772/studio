@@ -143,7 +143,7 @@ function SiniflarimPageContent() {
           <h2 className="text-3xl font-bold tracking-tight">Sınıflarım</h2>
           <AddClassForm onAddClass={handleAddClass} existingClasses={classes} />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {sortedClasses.map((c) => (
             <Card key={c.id}>
               <CardHeader>

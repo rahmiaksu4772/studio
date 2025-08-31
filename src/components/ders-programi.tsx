@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Calendar, Clock } from 'lucide-react';
 import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings } from '@/lib/types';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
@@ -16,6 +16,15 @@ import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+const dayShort: { [key in Day]: string } = {
+    'Pazartesi': 'Pzt',
+    'Salı': 'Sal',
+    'Çarşamba': 'Çar',
+    'Perşembe': 'Per',
+    'Cuma': 'Cum',
+    'Cumartesi': 'Cmt',
+    'Pazar': 'Paz',
+};
 
 const calculateEndTime = (startTime: string, duration: number): string => {
     if (!startTime || !duration) return '';
@@ -58,7 +67,7 @@ export default function DersProgrami() {
      setEditingLesson(null);
   }
 
-  const handleSettingsChange = (field: keyof ScheduleSettings, value: string | number) => {
+  const handleSettingsChange = (field: keyof ScheduleSettings, value: string[] | number) => {
     setLocalSettings(prev => ({ ...prev, [field]: value }));
   };
 
@@ -106,7 +115,7 @@ export default function DersProgrami() {
               </div>
           </CardHeader>
           <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
-              <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-1 md:gap-2 min-w-[700px]">
+              <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 md:gap-2 min-w-[600px]">
                   {/* Time Header */}
                   <div className="text-center font-bold p-2 rounded-t-lg bg-muted flex items-center justify-center gap-2">
                     <Clock className='h-4 w-4'/>
@@ -116,7 +125,7 @@ export default function DersProgrami() {
                   {dayOrder.map(day => (
                       <div key={day} className="text-center font-bold text-card-foreground p-2 rounded-t-lg bg-muted">
                         <span className='hidden md:inline'>{day}</span>
-                        <span className='md:hidden'>{day.substring(0,3)}</span>
+                        <span className='md:hidden'>{dayShort[day]}</span>
                       </div>
                   ))}
                   
@@ -128,6 +137,12 @@ export default function DersProgrami() {
                                <Input
                                 type="time"
                                 value={time}
+                                onKeyDown={(e) => {
+                                   if(e.key === 'Enter') {
+                                     handleSettingsBlur('timeSlots');
+                                     (e.target as HTMLInputElement).blur();
+                                   }
+                                }}
                                 onChange={(e) => {
                                     const newTimeSlots = [...localSettings.timeSlots];
                                     newTimeSlots[slotIndex] = e.target.value;
