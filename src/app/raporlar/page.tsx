@@ -156,14 +156,11 @@ function RaporlarPageContent() {
         return acc;
     }, {} as any);
 
-    const allEvents: { date: string, type: 'status' | 'note', value: string }[] = [];
+    const statusEvents: { date: string; type: 'status'; value: string }[] = [];
+    const noteEvents: { date: string; type: 'note'; value: string }[] = [];
     const scoresByDate: { [date: string]: number } = {};
     const scoreValues: { [key in AttendanceStatus]: number } = {
-        '+': 1,
-        'Y': 0.5,
-        '-': -1,
-        'D': 0,
-        'G': 0,
+        '+': 1, 'Y': 0.5, '-': -1, 'D': 0, 'G': 0,
     };
     
     studentRecords.forEach(record => {
@@ -175,8 +172,10 @@ function RaporlarPageContent() {
                 }
                 const score = scoresByDate[record.date] || 0;
                 scoresByDate[record.date] = score + scoreValues[status];
+                statusEvents.push({ date: record.date, type: 'status', value: String(event.value) });
+            } else if (event.type === 'note') {
+                noteEvents.push({ date: record.date, type: 'note', value: String(event.value) });
             }
-            allEvents.push({ date: record.date, type: event.type, value: String(event.value) });
         });
     });
 
@@ -191,7 +190,7 @@ function RaporlarPageContent() {
         };
     });
 
-    return { summary, events: allEvents, chartData };
+    return { summary, statusEvents, noteEvents, chartData };
   }, [filteredData, selectedReportType, selectedStudentId, dateRange]);
 
 
@@ -313,16 +312,15 @@ function RaporlarPageContent() {
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
 
-        if (individualReportData.events.length > 0) {
+        if (individualReportData.statusEvents.length > 0) {
             (doc as any).autoTable({
                 startY: 65,
-                head: [['Tarih', 'Durum', 'Açıklama']],
-                body: individualReportData.events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => {
+                head: [['Tarih', 'Durum']],
+                body: individualReportData.statusEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => {
                     const statusKey = e.type === 'status' ? e.value : e.type;
                     return [
                         format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr }),
                         statusToTurkish[statusKey] || 'Belirtilmemiş',
-                        e.type === 'note' ? e.value : '-'
                     ];
                 }),
                 theme: 'striped',
@@ -333,10 +331,33 @@ function RaporlarPageContent() {
                     pageFooter(data);
                 }
             });
-        } else {
+        } 
+        
+        if (individualReportData.noteEvents.length > 0) {
+            const lastTable = (doc as any).lastAutoTable;
+            const startY = lastTable ? lastTable.finalY + 10 : 65;
+            (doc as any).autoTable({
+                startY: startY,
+                head: [['Tarih', 'Öğretmen Görüşü']],
+                body: individualReportData.noteEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => [
+                    format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr }),
+                    e.value
+                ]),
+                theme: 'striped',
+                headStyles: { fillColor: [33, 150, 243], textColor: 255, ...tableStyles },
+                styles: tableStyles,
+                didDrawPage: (data: any) => {
+                    if(!lastTable) pageHeader(data);
+                    pageFooter(data);
+                }
+            });
+        }
+        
+        if (individualReportData.statusEvents.length === 0 && individualReportData.noteEvents.length === 0) {
             pageHeader({ settings: { margin: { left: 14 } } });
             pageFooter({ pageNumber: 1, settings: { margin: { right: 14 } } });
         }
+
         doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     }
   };
@@ -373,7 +394,7 @@ function RaporlarPageContent() {
     }
     
     if(selectedReportType === 'bireysel' && individualReportData){
-      const { summary, events, chartData } = individualReportData;
+      const { summary, statusEvents, noteEvents, chartData } = individualReportData;
       const selectedStudent = students.find(s => s.id === selectedStudentId);
 
       return (
@@ -431,34 +452,55 @@ function RaporlarPageContent() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Değerlendirme Geçmişi</CardTitle>
-                        <CardDescription>Seçilen tarih aralığındaki tüm olaylar.</CardDescription>
+                        <CardDescription>Seçilen tarih aralığındaki durum işaretlemeleri.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                            {events.length > 0 ? events.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => {
-                                const statusKey = event.type === 'status' ? event.value : event.type;
-                                const statusOption = statusOptions.find(o => o.value === statusKey);
+                        <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
+                                {statusEvents.length > 0 ? statusEvents.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => {
+                                    const statusKey = event.type === 'status' ? event.value : event.type;
+                                    const statusOption = statusOptions.find(o => o.value === statusKey);
 
-                                return (
-                                <div key={`${event.date}-${index}`} className="flex items-start gap-4">
-                                    <div className="font-semibold text-center w-20 flex-shrink-0">
-                                        <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
-                                        <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
+                                    return (
+                                    <div key={`${event.date}-${index}`} className="flex items-start gap-4">
+                                        <div className="font-semibold text-center w-28 flex-shrink-0">
+                                            <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
+                                            <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
+                                        </div>
+                                        <div className="border-l pl-4 flex-1">
+                                            <p className="font-medium flex items-center gap-2">
+                                            {event.type === 'status' && statusOption?.icon &&
+                                                    React.createElement(statusOption.icon, {
+                                                        className: cn("h-5 w-5", statusOption.color)
+                                                    })
+                                            }
+                                                <span>{statusToTurkish[statusKey] || 'Belirtilmemiş'}</span>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="border-l pl-4 flex-1">
-                                        <p className="font-medium flex items-center gap-2">
-                                        {event.type === 'status' && statusOption?.icon &&
-                                                React.createElement(statusOption.icon, {
-                                                    className: cn("h-5 w-5", statusOption.color)
-                                                })
-                                        }
-                                            <span>{statusToTurkish[statusKey] || 'Belirtilmemiş'}</span>
-                                        </p>
-                                        {event.type === 'note' && <p className="text-sm text-muted-foreground">{event.value}</p>}
+                                )}) : <p className="text-muted-foreground">Bu tarih aralığında durum değerlendirmesi bulunmuyor.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Öğretmen Görüşleri</CardTitle>
+                        <CardDescription>Seçilen tarih aralığında eklenen öğretmen notları.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
+                                {noteEvents.length > 0 ? noteEvents.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => (
+                                    <div key={`${event.date}-${index}`} className="flex items-start gap-4">
+                                        <div className="font-semibold text-center w-28 flex-shrink-0">
+                                            <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
+                                            <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
+                                        </div>
+                                        <div className="border-l pl-4 flex-1">
+                                            <p className="text-sm text-foreground">{event.value}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            )}) : <p>Bu tarih aralığında not bulunmuyor.</p>}
-                    </div>
+                                )) : <p className="text-muted-foreground">Bu tarih aralığında öğretmen görüşü bulunmuyor.</p>}
+                        </div>
                     </CardContent>
                 </Card>
             </CardContent>
@@ -518,7 +560,7 @@ function RaporlarPageContent() {
                                     </TableRow>
                                     <CollapsibleContent asChild>
                                     <TableRow>
-                                        <TableCell colSpan={8}>
+                                        <TableCell colSpan={9}>
                                             <div className='p-4 bg-muted/50 rounded-md'>
                                                 <h4 className='font-semibold mb-2'>Öğretmen Görüşleri</h4>
                                                 <ul className='space-y-2 list-disc list-inside text-sm'>
