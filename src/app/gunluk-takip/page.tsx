@@ -405,9 +405,9 @@ function GunlukTakipPageContent() {
                         return (
                             <div key={student.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-3 border-b last:border-none hover:bg-muted/50 rounded-md">
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
-                                <div>
+                                <div className="flex flex-col min-w-0">
                                     <p className='font-semibold'>{student.firstName} {student.lastName}</p>
-                                    <div className="flex items-center gap-1.5 mt-1 flex-nowrap overflow-x-auto pb-1">
+                                    <div className="flex items-center gap-1.5 mt-1 overflow-x-auto flex-nowrap pb-1">
                                         {statusEvents.map((event) => {
                                             const option = statusOptions.find(o => o.value === event.value);
                                             return(
@@ -531,3 +531,5 @@ export default function GunlukTakipPage() {
       </AuthGuard>
     );
   }
+
+    
