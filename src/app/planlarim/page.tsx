@@ -225,7 +225,7 @@ function PlanlarimPageContent() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {plans.map((plan) => (
               <Card key={plan.id} className="flex flex-col">
                 <CardHeader className="flex-row items-start justify-between p-4">
