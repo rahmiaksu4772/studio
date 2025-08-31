@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import * as XLSX from 'xlsx';
-import { Upload, FileDown, FileText, Loader2, CheckCircle, AlertTriangle, Users } from 'lucide-react';
+import { Upload, FileDown, FileText, Loader2, CheckCircle, AlertTriangle, Users, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,8 +14,10 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
 import type { Student } from '@/lib/types';
+import { Textarea } from './ui/textarea';
 
 type StudentImportData = Omit<Student, 'id' | 'classId'>;
 
@@ -33,12 +35,16 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [importedStudents, setImportedStudents] = React.useState<StudentImportData[]>([]);
   const [skippedCount, setSkippedCount] = React.useState(0);
+  const [pastedText, setPastedText] = React.useState('');
+  const [activeTab, setActiveTab] = React.useState("paste");
+
 
   const resetState = () => {
     setIsLoading(false);
     setFileName(null);
     setImportedStudents([]);
     setSkippedCount(0);
+    setPastedText('');
   };
 
   const handleDownloadTemplate = () => {
@@ -48,6 +54,49 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
     XLSX.utils.book_append_sheet(wb, ws, 'Ogrenci Listesi');
     XLSX.writeFile(wb, 'ogrenci_sablonu.xlsx');
   };
+
+  const processStudents = (students: any[], type: 'file' | 'paste') => {
+      const existingNumbers = new Set(existingStudents.map(s => s.studentNumber));
+      const numbersInSet = new Set<number>();
+      let localSkippedCount = 0;
+      
+      const validStudents = students.filter(row => 
+          row.studentNumber && row.firstName && row.lastName &&
+          typeof row.studentNumber === 'number' &&
+          typeof row.firstName === 'string' &&
+          typeof row.lastName === 'string'
+      ).filter(row => {
+          if (existingNumbers.has(row.studentNumber) || numbersInSet.has(row.studentNumber)) {
+              localSkippedCount++;
+              return false;
+          }
+          numbersInSet.add(row.studentNumber);
+          return true;
+      }).map(row => ({
+          studentNumber: row.studentNumber,
+          firstName: row.firstName,
+          lastName: row.lastName,
+      }));
+
+      setImportedStudents(validStudents);
+      setSkippedCount(localSkippedCount);
+
+      if (validStudents.length === 0 && students.length > 0) {
+        toast({
+            title: 'Veri Hatası',
+            description: type === 'file' 
+                ? 'Dosyadaki veriler şablonla uyumlu değil veya tüm öğrenciler zaten mevcut.'
+                : 'Yapıştırılan metin formatı hatalı veya tüm öğrenciler zaten mevcut.',
+            variant: 'destructive',
+        });
+      } else if (localSkippedCount > 0) {
+           toast({
+              title: 'Mükerrer Kayıtlar Atlandı',
+              description: `${localSkippedCount} öğrenci, numarası zaten mevcut olduğu için atlandı.`,
+              variant: 'default',
+          });
+      }
+  }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -67,46 +116,7 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
         header: ['studentNumber', 'firstName', 'lastName'],
         range: 1, // Skip header row
       }) as any[];
-      
-      const existingNumbers = new Set(existingStudents.map(s => s.studentNumber));
-      const numbersInFile = new Set<number>();
-      let localSkippedCount = 0;
-      
-      const validStudents = json.filter(row => 
-          row.studentNumber && row.firstName && row.lastName &&
-          typeof row.studentNumber === 'number' &&
-          typeof row.firstName === 'string' &&
-          typeof row.lastName === 'string'
-      ).filter(row => {
-          if (existingNumbers.has(row.studentNumber) || numbersInFile.has(row.studentNumber)) {
-              localSkippedCount++;
-              return false;
-          }
-          numbersInFile.add(row.studentNumber);
-          return true;
-      }).map(row => ({
-          studentNumber: row.studentNumber,
-          firstName: row.firstName,
-          lastName: row.lastName,
-      }));
-
-      setImportedStudents(validStudents);
-      setSkippedCount(localSkippedCount);
-      
-      if(validStudents.length === 0 && json.length > 0){
-          toast({
-              title: 'Dosya Hatası',
-              description: 'Dosyadaki veriler şablonla uyumlu değil veya tüm öğrenciler zaten mevcut.',
-              variant: 'destructive',
-          });
-      } else if (localSkippedCount > 0) {
-           toast({
-              title: 'Mükerrer Kayıtlar Atlandı',
-              description: `${localSkippedCount} öğrenci, numarası zaten mevcut olduğu için atlandı.`,
-              variant: 'default',
-          });
-      }
-
+      processStudents(json, 'file');
     } catch (error) {
       console.error('Error parsing file:', error);
       toast({
@@ -117,16 +127,42 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
       resetState();
     } finally {
       setIsLoading(false);
-       // Reset file input to allow re-uploading the same file
       event.target.value = '';
     }
   };
+
+  const handlePasteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPastedText(e.target.value);
+    if (e.target.value.trim() === '') {
+        setImportedStudents([]);
+        setSkippedCount(0);
+        return;
+    }
+    const lines = e.target.value.trim().split('\n');
+    const studentsFromPaste = lines.map(line => {
+        const parts = line.split(/\s+/); // Split by any whitespace
+        if (parts.length < 2) return null;
+
+        const studentNumber = parseInt(parts[0], 10);
+        if (isNaN(studentNumber)) return null;
+        
+        const nameParts = parts.slice(1);
+        const lastName = nameParts.pop() || '';
+        const firstName = nameParts.join(' ');
+        
+        if (!firstName || !lastName) return null;
+
+        return { studentNumber, firstName, lastName };
+    }).filter(Boolean);
+
+    processStudents(studentsFromPaste as any[], 'paste');
+  }
 
   const handleConfirmImport = () => {
     if(importedStudents.length === 0) {
          toast({
             title: 'Aktarılacak Öğrenci Yok',
-            description: 'Lütfen geçerli öğrenci verileri içeren bir dosya seçin.',
+            description: 'Lütfen geçerli öğrenci verileri içeren bir dosya seçin veya metin yapıştırın.',
             variant: 'destructive',
         });
         return;
@@ -160,56 +196,77 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
         <DialogHeader>
           <DialogTitle>Öğrencileri İçe Aktar</DialogTitle>
           <DialogDescription>
-            Öğrencileri Excel veya CSV dosyası kullanarak toplu halde ekleyin. Lütfen sağlanan şablonu kullanın.
+            Öğrencileri Excel dosyası veya E-Okul'dan kopyala-yapıştır ile ekleyin.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <Button variant="outline" onClick={handleDownloadTemplate} className="w-full">
-            <FileDown className="mr-2 h-4 w-4" />
-            Örnek Şablonu İndir (.xlsx)
-          </Button>
 
-          <div className="relative">
-            <Button asChild variant="outline" className="w-full">
-              <label htmlFor="file-upload" className="cursor-pointer">
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                <span>Dosya Seç</span>
-              </label>
-            </Button>
-            <input id="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="paste"><ClipboardPaste className="mr-2 h-4 w-4"/>E-Okul'dan Yapıştır</TabsTrigger>
+                <TabsTrigger value="file"><FileText className="mr-2 h-4 w-4"/>Dosya Yükle</TabsTrigger>
+            </TabsList>
+            <TabsContent value="paste" className="space-y-4 py-4">
+                 <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                        E-Okul'daki öğrenci listesini (Okul No, Adı Soyadı) kopyalayıp aşağıdaki alana yapıştırın.
+                    </p>
+                    <Textarea 
+                        placeholder="574 GÖKTUĞ YILDIZ&#10;590 UMUT KURTULMAZ"
+                        rows={6}
+                        value={pastedText}
+                        onChange={handlePasteChange}
+                    />
+                 </div>
+            </TabsContent>
+            <TabsContent value="file" className="space-y-4 py-4">
+                 <Button variant="outline" onClick={handleDownloadTemplate} className="w-full">
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Örnek Şablonu İndir (.xlsx)
+                </Button>
 
-          {fileName && (
-            <div className="p-3 rounded-md bg-muted text-sm flex items-center justify-between">
-              <div className="flex items-center gap-2 truncate">
-                  <FileText className="h-5 w-5 flex-shrink-0" />
-                  <span className='truncate'>{fileName}</span>
-              </div>
-               { !isLoading && importedStudents.length > 0 && <CheckCircle className='h-5 w-5 text-green-500' /> }
-               { !isLoading && (importedStudents.length === 0 || skippedCount > 0) && <AlertTriangle className='h-5 w-5 text-yellow-500' /> }
-            </div>
-          )}
-
-          {importedStudents.length > 0 && (
-            <div className='space-y-2'>
-                <h4 className='font-medium flex items-center gap-2'><Users className='h-4 w-4'/>Aktarılacak Öğrenciler ({importedStudents.length})</h4>
-                <div className="border rounded-md max-h-40 overflow-y-auto p-2 text-sm bg-background">
-                    <ul className='divide-y'>
-                        {importedStudents.map((s, i) => (
-                           <li key={i} className='p-1.5 flex justify-between'>
-                               <span>{s.firstName} {s.lastName}</span>
-                               <span className='text-muted-foreground'>No: {s.studentNumber}</span>
-                           </li>
-                        ))}
-                    </ul>
+                <div className="relative">
+                    <Button asChild variant="outline" className="w-full">
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                        {isLoading && activeTab === 'file' ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        <span>Dosya Seç</span>
+                    </label>
+                    </Button>
+                    <input id="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
                 </div>
+                 {fileName && (
+                    <div className="p-3 rounded-md bg-muted text-sm flex items-center justify-between">
+                        <div className="flex items-center gap-2 truncate">
+                            <FileText className="h-5 w-5 flex-shrink-0" />
+                            <span className='truncate'>{fileName}</span>
+                        </div>
+                        { !isLoading && importedStudents.length > 0 && <CheckCircle className='h-5 w-5 text-green-500' /> }
+                        { !isLoading && (importedStudents.length === 0 || skippedCount > 0) && <AlertTriangle className='h-5 w-5 text-yellow-500' /> }
+                    </div>
+                )}
+            </TabsContent>
+        </Tabs>
+        
+        {importedStudents.length > 0 && (
+        <div className='space-y-2'>
+            <h4 className='font-medium flex items-center gap-2'><Users className='h-4 w-4'/>Aktarılacak Öğrenciler ({importedStudents.length})</h4>
+            <div className="border rounded-md max-h-32 overflow-y-auto p-2 text-sm bg-background">
+                <ul className='divide-y'>
+                    {importedStudents.map((s, i) => (
+                        <li key={i} className='p-1.5 flex justify-between'>
+                            <span>{s.firstName} {s.lastName}</span>
+                            <span className='text-muted-foreground'>No: {s.studentNumber}</span>
+                        </li>
+                    ))}
+                </ul>
             </div>
-          )}
         </div>
+        )}
+
+
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
             İptal
