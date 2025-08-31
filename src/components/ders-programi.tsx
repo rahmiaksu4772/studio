@@ -14,13 +14,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormMessage,
-  } from '@/components/ui/form';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 const dayShort: { [key in Day]: string } = {
@@ -83,7 +76,7 @@ export default function DersProgrami() {
   const handleSettingsBlur = async (field: keyof ScheduleSettings) => {
     if (!user) return;
     const value = localSettings[field];
-    if (value !== settings[field]) {
+    if (JSON.stringify(value) !== JSON.stringify(settings[field])) {
         await updateSettings({ [field]: value });
         toast({ title: 'Ayarlar Güncellendi' });
     }
@@ -124,12 +117,11 @@ export default function DersProgrami() {
                 </div>
               </div>
           </CardHeader>
-          <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
+          <CardContent className="p-2 md:p-4">
               <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1">
                   {/* Time Header */}
-                  <div className="text-center font-bold p-1 md:p-2 rounded-t-lg bg-muted flex items-center justify-center gap-2">
+                  <div className="text-center font-bold p-1 rounded-t-lg flex items-center justify-center">
                     <Clock className='h-4 w-4'/>
-                    <span className='hidden md:inline'>Saat</span>
                   </div>
                   {/* Day Headers */}
                   {dayOrder.map(day => (
@@ -143,7 +135,7 @@ export default function DersProgrami() {
                   {localSettings.timeSlots.map((time, slotIndex) => (
                       <React.Fragment key={`slot-${slotIndex}`}>
                           {/* Time Slot Cell */}
-                          <div className="h-20 md:h-24 flex flex-col justify-center items-center rounded-lg bg-muted/50 p-1 text-center">
+                          <div className="h-20 md:h-24 flex flex-col justify-center items-center rounded-lg bg-muted/50 p-1 text-center text-xs md:text-sm">
                                <Input
                                 type="time"
                                 value={time}
@@ -159,7 +151,7 @@ export default function DersProgrami() {
                                     handleSettingsChange('timeSlots', newTimeSlots);
                                 }}
                                 onBlur={() => handleSettingsBlur('timeSlots')}
-                                className="w-full text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm h-8"
+                                className="w-full text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm h-8 p-1"
                               />
                               <div className='text-xs text-muted-foreground'>
                                   {calculateEndTime(time, localSettings.lessonDuration)}
