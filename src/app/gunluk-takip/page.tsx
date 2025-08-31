@@ -407,7 +407,7 @@ function GunlukTakipPageContent() {
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
                                 <div>
                                     <p className='font-semibold'>{student.firstName} {student.lastName}</p>
-                                    <div className="flex items-center gap-1.5 mt-1">
+                                    <div className="flex items-center gap-1.5 mt-1 flex-nowrap overflow-x-auto pb-1">
                                         {statusEvents.map((event) => {
                                             const option = statusOptions.find(o => o.value === event.value);
                                             return(
@@ -416,7 +416,7 @@ function GunlukTakipPageContent() {
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
                                                             <TooltipTrigger asChild>
-                                                                <button className={cn("flex items-center justify-center h-6 w-6 rounded-full cursor-pointer", option?.bgColor)}>
+                                                                <button className={cn("flex items-center justify-center h-6 w-6 rounded-full cursor-pointer flex-shrink-0", option?.bgColor)}>
                                                                     {option?.icon && <option.icon className="h-4 w-4" style={{ color: option.color }} />}
                                                                 </button>
                                                             </TooltipTrigger>
