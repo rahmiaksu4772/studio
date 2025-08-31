@@ -182,15 +182,26 @@ export default function DersProgrami() {
                             <TabsContent key={day} value={day}>
                                 <div className='mt-4 space-y-4'>
                                     {schedule.find(d => d.day === day)?.lessons.sort((a, b) => a.time.localeCompare(b.time)).map(lesson => (
-                                       <Card key={lesson.id} className='flex items-center justify-between p-4'>
-                                           <div>
+                                       <Card 
+                                            key={lesson.id} 
+                                            className='flex items-center justify-between p-4'
+                                            style={{
+                                                backgroundColor: getLightBackgroundColor(lesson.subject),
+                                                borderColor: getDarkTextColor(lesson.subject)
+                                            }}
+                                        >
+                                           <div style={{ color: getDarkTextColor(lesson.subject) }}>
                                                <p className='font-bold text-lg'>{lesson.subject}</p>
-                                               <p className='text-muted-foreground'>{lesson.class} - {lesson.time}</p>
+                                               <p className='opacity-80'>{lesson.class} - {lesson.time}</p>
                                            </div>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon"
+                                                        style={{ color: getDarkTextColor(lesson.subject) }}
+                                                    >
+                                                        <Trash2 className="h-5 w-5" />
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
