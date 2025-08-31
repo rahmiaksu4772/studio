@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Calendar, Clock } from 'lucide-react';
 import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings } from '@/lib/types';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
@@ -13,6 +13,7 @@ import stringToColor from 'string-to-color';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
+import { Button } from './ui/button';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 
@@ -96,16 +97,16 @@ export default function DersProgrami() {
                     <Input
                         id="lessonDuration"
                         type="number"
-                        value={localSettings.lessonDuration || 0}
+                        value={localSettings.lessonDuration || 40}
                         onChange={(e) => handleSettingsChange('lessonDuration', parseInt(e.target.value) || 0)}
                         onBlur={() => handleSettingsBlur('lessonDuration')}
-                        className="w-20"
+                        className="w-20 h-8"
                     />
                 </div>
               </div>
           </CardHeader>
           <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
-              <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-1 md:gap-2 min-w-[700px] md:min-w-full">
+              <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-1 md:gap-2 min-w-[700px]">
                   {/* Time Header */}
                   <div className="text-center font-bold p-2 rounded-t-lg bg-muted flex items-center justify-center gap-2">
                     <Clock className='h-4 w-4'/>
@@ -130,10 +131,10 @@ export default function DersProgrami() {
                                 onChange={(e) => {
                                     const newTimeSlots = [...localSettings.timeSlots];
                                     newTimeSlots[slotIndex] = e.target.value;
-                                    setLocalSettings(prev => ({...prev, timeSlots: newTimeSlots}));
+                                    handleSettingsChange('timeSlots', newTimeSlots);
                                 }}
                                 onBlur={() => handleSettingsBlur('timeSlots')}
-                                className="w-24 text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm"
+                                className="w-24 text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm h-8"
                               />
                               <div className='text-xs text-muted-foreground'>
                                   {calculateEndTime(time, localSettings.lessonDuration)}
@@ -154,17 +155,17 @@ export default function DersProgrami() {
                                         lesson ? '' : 'hover:bg-accent'
                                       )}
                                       style={{ 
-                                          backgroundColor: lesson ? `${color}20` : 'transparent', // Semi-transparent background
+                                          backgroundColor: lesson ? `${color}20` : 'transparent', 
                                           borderColor: lesson ? `${color}40` : 'hsl(var(--border))',
                                       }}
                                   >
                                       {lesson ? (
                                           <div className='text-center p-1'>
-                                              <p className="font-bold text-sm md:text-base">{lesson.subject}</p>
+                                              <p className="font-bold text-xs md:text-sm">{lesson.subject}</p>
                                               <p className="text-xs text-muted-foreground">{lesson.class}</p>
                                           </div>
                                       ) : (
-                                          <span className="text-muted-foreground text-xs">Boş</span>
+                                          <span className="text-muted-foreground text-xs">+ Ekle</span>
                                       )}
                                   </div>
                               )

@@ -48,7 +48,7 @@ function AnaSayfaPageContent() {
           <h2 className="text-3xl font-bold tracking-tight">Hoş Geldiniz!</h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Toplam Sınıf</CardTitle>
@@ -76,7 +76,7 @@ function AnaSayfaPageContent() {
                     {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{todaysRecords}</div>}
                 </CardContent>
             </Card>
-             <Card>
+             <Card className="col-span-2 lg:col-span-1">
                 <CardHeader className="pb-2">
                     <CardTitle className='text-base'>Hızlı İşlemler</CardTitle>
                 </CardHeader>
