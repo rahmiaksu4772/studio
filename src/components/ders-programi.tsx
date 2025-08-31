@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Calendar, Clock } from 'lucide-react';
 import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings } from '@/lib/types';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
@@ -14,6 +14,13 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormMessage,
+  } from '@/components/ui/form';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 const dayShort: { [key in Day]: string } = {
@@ -50,6 +57,7 @@ export default function DersProgrami() {
   }, [settings]);
 
   const handleLessonSave = async (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'|'lessonSlot'>) => {
+    if (!user) return;
     const lessonToSave: Lesson = {
         id: editingLesson?.lesson?.id || `${day}-${lessonSlot}-${new Date().getTime()}`,
         lessonSlot: lessonSlot,
@@ -62,6 +70,7 @@ export default function DersProgrami() {
   };
   
   const handleClearLesson = async (day: Day, lessonSlot: number) => {
+     if (!user) return;
      await updateLesson(day, null, lessonSlot);
      toast({ title: "Ders Temizlendi!", variant: 'destructive' });
      setEditingLesson(null);
@@ -72,6 +81,7 @@ export default function DersProgrami() {
   };
 
   const handleSettingsBlur = async (field: keyof ScheduleSettings) => {
+    if (!user) return;
     const value = localSettings[field];
     if (value !== settings[field]) {
         await updateSettings({ [field]: value });
@@ -115,15 +125,15 @@ export default function DersProgrami() {
               </div>
           </CardHeader>
           <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
-              <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 md:gap-2 min-w-[600px]">
+              <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1">
                   {/* Time Header */}
-                  <div className="text-center font-bold p-2 rounded-t-lg bg-muted flex items-center justify-center gap-2">
+                  <div className="text-center font-bold p-1 md:p-2 rounded-t-lg bg-muted flex items-center justify-center gap-2">
                     <Clock className='h-4 w-4'/>
                     <span className='hidden md:inline'>Saat</span>
                   </div>
                   {/* Day Headers */}
                   {dayOrder.map(day => (
-                      <div key={day} className="text-center font-bold text-card-foreground p-2 rounded-t-lg bg-muted">
+                      <div key={day} className="text-center font-bold text-card-foreground p-1 md:p-2 rounded-t-lg bg-muted text-xs md:text-sm">
                         <span className='hidden md:inline'>{day}</span>
                         <span className='md:hidden'>{dayShort[day]}</span>
                       </div>
@@ -149,7 +159,7 @@ export default function DersProgrami() {
                                     handleSettingsChange('timeSlots', newTimeSlots);
                                 }}
                                 onBlur={() => handleSettingsBlur('timeSlots')}
-                                className="w-24 text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm h-8"
+                                className="w-full text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm h-8"
                               />
                               <div className='text-xs text-muted-foreground'>
                                   {calculateEndTime(time, localSettings.lessonDuration)}
@@ -166,7 +176,7 @@ export default function DersProgrami() {
                                       key={`${day}-${slotIndex}`}
                                       onClick={() => setEditingLesson({ day, lessonSlot: slotIndex, lesson: lesson || null })}
                                       className={cn(
-                                        "h-20 md:h-24 flex flex-col justify-center items-center rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md border",
+                                        "h-20 md:h-24 flex flex-col justify-center items-center rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md border p-1 text-center",
                                         lesson ? '' : 'hover:bg-accent'
                                       )}
                                       style={{ 
@@ -175,9 +185,9 @@ export default function DersProgrami() {
                                       }}
                                   >
                                       {lesson ? (
-                                          <div className='text-center p-1'>
-                                              <p className="font-bold text-xs md:text-sm">{lesson.subject}</p>
-                                              <p className="text-xs text-muted-foreground">{lesson.class}</p>
+                                          <div className='text-center'>
+                                              <p className="font-bold text-xs md:text-sm truncate">{lesson.subject}</p>
+                                              <p className="text-xs text-muted-foreground truncate">{lesson.class}</p>
                                           </div>
                                       ) : (
                                           <span className="text-muted-foreground text-xs">+ Ekle</span>
