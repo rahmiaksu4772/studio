@@ -62,7 +62,6 @@ export type Plan = {
 
 export type Lesson = {
   id: string;
-  lessonNumber: number;
   time: string;
   subject: string;
   class: string;
@@ -70,17 +69,7 @@ export type Lesson = {
 
 export type Day = 'Pazartesi' | 'Salı' | 'Çarşamba' | 'Perşembe' | 'Cuma' | 'Cumartesi' | 'Pazar';
 
-export type ScheduleSettings = {
-    schoolStartTime: string;
-    schoolEndTime: string;
-    lessonDuration: number;
-    breakDuration: number;
-    isLunchActive: boolean;
-    lunchStartTime: string;
-    lunchEndTime: string;
-}
-
-export type WeeklyScheduleItem = ScheduleSettings & {
+export type WeeklyScheduleItem = {
   day: Day;
   lessons: Lesson[];
 }

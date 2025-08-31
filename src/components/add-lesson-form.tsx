@@ -26,23 +26,15 @@ import {
   DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Day } from '@/lib/types';
+import { Day, Lesson } from '@/lib/types';
 
 const formSchema = z.object({
-  day: z.enum(['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar']),
   subject: z.string().min(2, { message: 'Ders adı en az 2 karakter olmalıdır.' }),
   class: z.string().min(1, { message: 'Sınıf adı en az 1 karakter olmalıdır.' }),
   time: z
     .string()
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]\s*-\s*([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
-      message: 'Lütfen "09:00 - 09:40" formatında girin.',
+      message: 'Lütfen "09:00-09:40" formatında girin.',
     }),
 });
 
@@ -57,22 +49,17 @@ export function AddLessonForm({ day, onAddLesson }: AddLessonFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      day: day,
       subject: '',
       class: '',
       time: '',
     },
   });
-  
-  React.useEffect(() => {
-    form.setValue('day', day);
-  }, [day, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onAddLesson(values.day, {
+    onAddLesson(day, {
       subject: values.subject,
       class: values.class,
-      time: values.time
+      time: values.time.replace(/\s/g, ''), // remove whitespace
     });
     form.reset();
     setOpen(false);
@@ -90,35 +77,11 @@ export function AddLessonForm({ day, onAddLesson }: AddLessonFormProps) {
         <DialogHeader>
           <DialogTitle>Yeni Ders Ekle</DialogTitle>
           <DialogDescription>
-            Programa eklenecek dersin detaylarını girin.
+            {day} gününe eklenecek dersin detaylarını girin.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="day"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gün</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Gün seçin" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'].map(d => (
-                        <SelectItem key={d} value={d}>
-                          {d}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="subject"
@@ -152,7 +115,7 @@ export function AddLessonForm({ day, onAddLesson }: AddLessonFormProps) {
                 <FormItem>
                   <FormLabel>Ders Saati</FormLabel>
                   <FormControl>
-                    <Input placeholder="Örn: 09:00 - 09:40" {...field} />
+                    <Input placeholder="Örn: 09:00-09:40" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
