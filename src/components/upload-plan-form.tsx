@@ -8,13 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Upload, Plus, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogDescription as DialogDescriptionComponent, // Renamed to avoid conflict
   DialogFooter,
   DialogTrigger,
   DialogClose,
@@ -149,9 +149,9 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Yeni Ders Planı Yükle</DialogTitle>
-          <DialogDescription>
+          <DialogDescriptionComponent>
             Planınız için bir başlık girin, türünü seçin ve dosyasını yükleyin.
-          </DialogDescription>
+          </DialogDescriptionComponent>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
