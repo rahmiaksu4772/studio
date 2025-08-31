@@ -8,8 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import type { LessonPlanEntry } from '@/lib/types';
@@ -108,12 +106,6 @@ export function PlanViewer({ isOpen, onClose, title, entries }: PlanViewerProps)
                         Sonraki Hafta <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </DialogFooter>
-
-                <DialogClose asChild className="absolute right-4 top-4">
-                    <Button variant="ghost" size="icon">
-                        <X className="h-6 w-6" />
-                    </Button>
-                </DialogClose>
             </DialogContent>
         </Dialog>
     );
