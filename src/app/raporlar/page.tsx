@@ -61,11 +61,11 @@ import AuthGuard from '@/components/auth-guard';
 
 
 const statusToTurkish: Record<string, string> = {
-    '+': 'Artı',
-    'Y': 'Yarım',
+    '+': 'Arti',
+    'Y': 'Yarim',
     '-': 'Eksi',
     'D': 'Yok',
-    'G': 'İzinli',
+    'G': 'Izinli',
     'note': 'Not',
 };
 
@@ -79,7 +79,7 @@ type ChartConfig = {
   
 const chartConfig = {
   puan: {
-    label: 'Performans Puanı',
+    label: 'Performans Puani',
     color: 'hsl(var(--primary))',
   },
 } satisfies ChartConfig;
@@ -100,6 +100,15 @@ function RaporlarPageContent() {
       to: new Date(),
   });
   const [isGenerating, setIsGenerating] = React.useState(false);
+
+  const normalizeTurkishChars = (str: string) => {
+    if (!str) return '';
+    const map: { [key: string]: string } = {
+        'ı': 'i', 'İ': 'I', 'ğ': 'g', 'Ğ': 'G', 'ü': 'u', 'Ü': 'U',
+        'ş': 's', 'Ş': 'S', 'ö': 'o', 'Ö': 'O', 'ç': 'c', 'Ç': 'C'
+    };
+    return str.replace(/[ıİğĞüÜşŞöÖçÇ]/g, (char) => map[char]);
+  };
   
   // Set initial class
   React.useEffect(() => {
@@ -231,27 +240,25 @@ function RaporlarPageContent() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
-    
-    // Set Font Family for the entire document
-    doc.setFont('PT Sans', 'normal');
+    doc.setFont('Helvetica', 'normal');
     
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
     const pageHeader = (data: any) => {
-        doc.setFont('PT Sans', 'normal');
+        doc.setFont('Helvetica', 'normal');
         doc.setFontSize(18);
         doc.setTextColor(40);
         if (selectedReportType === 'sinif' && classReportData) {
-            doc.text(`Sınıf Raporu: ${selectedClass?.name}`, data.settings.margin.left, 22);
+            doc.text(normalizeTurkishChars(`Sinif Raporu: ${selectedClass?.name}`), data.settings.margin.left, 22);
         } else if (selectedReportType === 'bireysel' && individualReportData) {
             const selectedStudent = students.find(s => s.id === selectedStudentId);
-            doc.text(`Bireysel Rapor: ${selectedStudent?.firstName} ${selectedStudent?.lastName}`, data.settings.margin.left, 22);
+            doc.text(normalizeTurkishChars(`Bireysel Rapor: ${selectedStudent?.firstName} ${selectedStudent?.lastName}`), data.settings.margin.left, 22);
         }
     };
 
     const pageFooter = (data: any) => {
-        doc.setFont('PT Sans', 'normal');
+        doc.setFont('Helvetica', 'normal');
         const pageCount = doc.getNumberOfPages();
         doc.setFontSize(8);
         doc.setTextColor(150);
@@ -261,7 +268,7 @@ function RaporlarPageContent() {
     };
 
     const tableStyles: any = {
-        font: "PT Sans",
+        font: "Helvetica",
         fontStyle: 'normal',
     };
 
@@ -270,7 +277,7 @@ function RaporlarPageContent() {
         for (const s of classReportData.studentSummaries) {
             body.push([
                 s.studentNumber,
-                `${s.firstName} ${s.lastName}`,
+                normalizeTurkishChars(`${s.firstName} ${s.lastName}`),
                 s.summary['+'],
                 s.summary['Y'],
                 s.summary['-'],
@@ -279,13 +286,13 @@ function RaporlarPageContent() {
                 s.totalScore
             ]);
             if (s.notes.length > 0) {
-                const notesText = s.notes.map(n => `  - ${format(parseISO(n.date), 'dd/MM/yy', { locale: tr })}: ${n.content}`).join('\n');
-                body.push([{ content: `Öğretmen Görüşleri:\n${notesText}`, colSpan: 8, styles: { font: "PT Sans", fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
+                const notesText = s.notes.map(n => `  - ${format(parseISO(n.date), 'dd/MM/yy', { locale: tr })}: ${normalizeTurkishChars(n.content)}`).join('\n');
+                body.push([{ content: normalizeTurkishChars(`Ogretmen Gorusleri:\n${notesText}`), colSpan: 8, styles: { font: "Helvetica", fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
             }
         }
 
         (doc as any).autoTable({
-            head: [['No', 'Adı Soyadı', '+', 'Yarım', '-', 'Yok', 'İzinli', 'Toplam Puan']],
+            head: [[normalizeTurkishChars('No'), normalizeTurkishChars('Adi Soyadi'), '+', normalizeTurkishChars('Yarim'), '-', normalizeTurkishChars('Yok'), normalizeTurkishChars('Izinli'), normalizeTurkishChars('Toplam Puan')]],
             body: body,
             startY: 30,
             theme: 'grid',
@@ -298,36 +305,36 @@ function RaporlarPageContent() {
             }
         });
 
-        doc.save(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        doc.save(normalizeTurkishChars(`sinif_raporu_${selectedClass?.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`));
     } else if (selectedReportType === 'bireysel' && individualReportData) {
         const selectedStudent = students.find(s => s.id === selectedStudentId);
         
-        doc.setFont('PT Sans', 'normal');
+        doc.setFont('Helvetica', 'normal');
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Sınıf: ${selectedClass?.name}`, 14, 32);
-        doc.text(`Rapor Tarih Aralığı: ${dateTitle}`, 14, 38);
+        doc.text(normalizeTurkishChars(`Sinif: ${selectedClass?.name}`), 14, 32);
+        doc.text(normalizeTurkishChars(`Rapor Tarih Araligi: ${dateTitle}`), 14, 38);
         
         const summaryText = Object.entries(individualReportData.summary)
-            .map(([key, value]: [string, any]) => `${value.label}: ${value.count}`)
+            .map(([key, value]: [string, any]) => `${normalizeTurkishChars(value.label)}: ${value.count}`)
             .join(' | ');
         
         doc.setFontSize(12);
         doc.setTextColor(40);
-        doc.text('Genel Durum Özeti', 14, 50);
-        doc.setFont('PT Sans', 'normal');
+        doc.text(normalizeTurkishChars('Genel Durum Ozeti'), 14, 50);
+        doc.setFont('Helvetica', 'normal');
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
 
         if (individualReportData.statusEvents.length > 0) {
             (doc as any).autoTable({
                 startY: 65,
-                head: [['Tarih', 'Durum']],
+                head: [[normalizeTurkishChars('Tarih'), normalizeTurkishChars('Durum')]],
                 body: individualReportData.statusEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => {
                     const statusKey = e.type === 'status' ? e.value : e.type;
                     return [
-                        format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr }),
-                        statusToTurkish[statusKey] || 'Belirtilmemiş',
+                        normalizeTurkishChars(format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr })),
+                        normalizeTurkishChars(statusToTurkish[statusKey] || 'Belirtilmemis'),
                     ];
                 }),
                 theme: 'striped',
@@ -345,10 +352,10 @@ function RaporlarPageContent() {
             const startY = lastTable ? lastTable.finalY + 10 : 65;
             (doc as any).autoTable({
                 startY: startY,
-                head: [['Tarih', 'Öğretmen Görüşü']],
+                head: [[normalizeTurkishChars('Tarih'), normalizeTurkishChars('Ogretmen Gorusleri')]],
                 body: individualReportData.noteEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => [
-                    format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr }),
-                    e.value
+                    normalizeTurkishChars(format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr })),
+                    normalizeTurkishChars(e.value)
                 ]),
                 theme: 'striped',
                 headStyles: { fillColor: [33, 150, 243], textColor: 255, ...tableStyles },
@@ -365,7 +372,7 @@ function RaporlarPageContent() {
             pageFooter({ pageNumber: 1, settings: { margin: { right: 14 } } });
         }
 
-        doc.save(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        doc.save(normalizeTurkishChars(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`));
     }
   };
 
@@ -710,3 +717,4 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
+
