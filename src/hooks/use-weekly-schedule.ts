@@ -3,19 +3,28 @@
 
 import * as React from 'react';
 import { useToast } from './use-toast';
-import type { WeeklyScheduleItem, Day } from '@/lib/types';
+import type { WeeklyScheduleItem, Day, ScheduleSettings } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
+const getDefaultScheduleSettings = (): ScheduleSettings => ({
+    schoolStartTime: '08:30',
+    schoolEndTime: '17:30',
+    lessonDuration: 40,
+    breakDuration: 10,
+    isLunchActive: true,
+    lunchStartTime: '12:30',
+    lunchEndTime: '13:30',
+});
+
 const getDefaultSchedule = (): WeeklyScheduleItem[] => {
+    const defaultSettings = getDefaultScheduleSettings();
     return dayOrder.map(day => ({
         day,
         lessons: [],
-        startTime: '09:00',
-        lessonDuration: 40,
-        breakDuration: 10
+        ...defaultSettings
     }));
 }
 
@@ -23,7 +32,7 @@ export function useWeeklySchedule(userId?: string) {
   const { toast } = useToast();
   const [schedule, setScheduleState] = React.useState<WeeklyScheduleItem[]>(getDefaultSchedule());
   const [isLoading, setIsLoading] = React.useState(true);
-  const scheduleDocId = "main-schedule"; // Using a single document to hold the entire week's schedule object
+  const scheduleDocId = "main-schedule"; 
 
   React.useEffect(() => {
     if (!userId) {
@@ -36,28 +45,29 @@ export function useWeeklySchedule(userId?: string) {
     const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
 
     const unsubscribe = onSnapshot(scheduleDocRef, async (docSnap) => {
+        const defaultSettings = getDefaultScheduleSettings();
         if (docSnap.exists()) {
             const data = docSnap.data();
             const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => {
-                // Merge saved data with defaults to ensure all fields are present
                 const dayData = data[day] || {};
                 return {
                     day: day,
                     lessons: dayData.lessons || [],
-                    startTime: dayData.startTime || '09:00',
-                    lessonDuration: dayData.lessonDuration || 40,
-                    breakDuration: dayData.breakDuration || 10
+                    schoolStartTime: dayData.schoolStartTime || defaultSettings.schoolStartTime,
+                    schoolEndTime: dayData.schoolEndTime || defaultSettings.schoolEndTime,
+                    lessonDuration: dayData.lessonDuration === undefined ? defaultSettings.lessonDuration : dayData.lessonDuration,
+                    breakDuration: dayData.breakDuration === undefined ? defaultSettings.breakDuration : dayData.breakDuration,
+                    isLunchActive: dayData.isLunchActive === undefined ? defaultSettings.isLunchActive : dayData.isLunchActive,
+                    lunchStartTime: dayData.lunchStartTime || defaultSettings.lunchStartTime,
+                    lunchEndTime: dayData.lunchEndTime || defaultSettings.lunchEndTime,
                 };
             });
             setScheduleState(scheduleData);
         } else {
-            // Document doesn't exist, create it with a default structure for the user
              const defaultScheduleData = dayOrder.reduce((acc, day) => {
                 acc[day] = {
                     lessons: [],
-                    startTime: '09:00',
-                    lessonDuration: 40,
-                    breakDuration: 10
+                    ...defaultSettings
                 };
                 return acc;
             }, {} as { [key in Day]: any });
@@ -85,7 +95,7 @@ export function useWeeklySchedule(userId?: string) {
   }, [userId, toast]);
 
 
-  const updateDaySchedule = async (day: Day, dayData: Omit<WeeklyScheduleItem, 'day'>) => {
+  const setScheduleForDay = async (day: Day, dayData: Omit<WeeklyScheduleItem, 'day'>) => {
     if (!userId) return;
 
     const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
@@ -93,7 +103,7 @@ export function useWeeklySchedule(userId?: string) {
     try {
         await setDoc(scheduleDocRef, {
             [day]: dayData
-        }, { merge: true }); // Use merge to only update the specific day's data
+        }, { merge: true });
     } catch (error) {
          console.error("Error updating day schedule:", error);
          toast({
@@ -104,5 +114,5 @@ export function useWeeklySchedule(userId?: string) {
     }
   };
   
-  return { schedule, isLoading, updateDaySchedule };
+  return { schedule, isLoading, setScheduleForDay };
 }
