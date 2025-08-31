@@ -62,27 +62,21 @@ export type Plan = {
 
 export type Lesson = {
   id: string;
-  time: string; // "HH:mm-HH:mm" format
+  lessonSlot: number;
   subject: string;
   class: string;
 }
 
 export type Day = 'Pazartesi' | 'Salı' | 'Çarşamba' | 'Perşembe' | 'Cuma' | 'Cumartesi' | 'Pazar';
 
+// Kept for legacy compatibility, but new schedule logic uses a simpler model
 export type DaySchedule = {
-    schoolStartTime: string; // "HH:mm"
-    schoolEndTime: string;   // "HH:mm"
-    lessonDuration: number; // minutes
-    breakDuration: number;  // minutes
-    lunchStartTime: string; // "HH:mm"
-    lunchEndTime: string;   // "HH:mm"
-    lunchIsActive: boolean;
     lessons: Lesson[];
 }
 
 export type WeeklyScheduleItem = {
   day: Day;
-  schedule: DaySchedule;
+  lessons: Lesson[];
 }
 
 export type LessonPlanEntry = {

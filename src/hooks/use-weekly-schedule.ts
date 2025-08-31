@@ -5,25 +5,14 @@ import * as React from 'react';
 import { useToast } from './use-toast';
 import type { WeeklyScheduleItem, Day, Lesson, DaySchedule } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
-
-const getDefaultDaySchedule = (): DaySchedule => ({
-    schoolStartTime: '08:30',
-    schoolEndTime: '17:30',
-    lessonDuration: 40,
-    breakDuration: 10,
-    lunchStartTime: '12:30',
-    lunchEndTime: '13:30',
-    lunchIsActive: true,
-    lessons: [],
-});
 
 const getDefaultSchedule = (): WeeklyScheduleItem[] => {
     return dayOrder.map(day => ({
         day,
-        schedule: getDefaultDaySchedule(),
+        lessons: [],
     }));
 }
 
@@ -31,7 +20,7 @@ export function useWeeklySchedule(userId?: string) {
   const { toast } = useToast();
   const [schedule, setScheduleState] = React.useState<WeeklyScheduleItem[]>(getDefaultSchedule());
   const [isLoading, setIsLoading] = React.useState(true);
-  const scheduleDocId = "main-schedule-v2"; 
+  const scheduleDocId = "weekly-lessons-schedule"; 
 
   React.useEffect(() => {
     if (!userId) {
@@ -47,18 +36,18 @@ export function useWeeklySchedule(userId?: string) {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const scheduleData: WeeklyScheduleItem[] = dayOrder.map(day => {
-                const dayData = data[day] || getDefaultDaySchedule();
+                const dayLessons: Lesson[] = data[day] || [];
                 return {
                     day: day,
-                    schedule: { ...getDefaultDaySchedule(), ...dayData },
+                    lessons: dayLessons,
                 };
             });
             setScheduleState(scheduleData);
         } else {
              const defaultScheduleData = dayOrder.reduce((acc, day) => {
-                acc[day] = getDefaultDaySchedule();
+                acc[day] = [];
                 return acc;
-            }, {} as { [key in Day]: any });
+            }, {} as { [key in Day]: Lesson[] });
 
              try {
                 await setDoc(scheduleDocRef, defaultScheduleData);
@@ -83,25 +72,48 @@ export function useWeeklySchedule(userId?: string) {
   }, [userId, toast]);
 
 
-  const setDaySchedule = async (day: Day, newSchedule: DaySchedule) => {
+  const updateLesson = async (day: Day, lessonSlot: number, lesson: Lesson | null) => {
     if (!userId) return;
 
     const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
 
     try {
+        const docSnap = await getDoc(scheduleDocRef);
+        const currentData = docSnap.exists() ? docSnap.data() : {};
+        const dayLessons: Lesson[] = currentData[day] || [];
+        
+        let updatedLessons: Lesson[];
+
+        if (lesson) {
+             const lessonWithSlot = { ...lesson, lessonSlot };
+             const existingIndex = dayLessons.findIndex(l => l.lessonSlot === lessonSlot);
+             if (existingIndex > -1) {
+                // Update existing lesson for the slot
+                updatedLessons = [...dayLessons];
+                updatedLessons[existingIndex] = lessonWithSlot;
+             } else {
+                // Add new lesson for the slot
+                updatedLessons = [...dayLessons, lessonWithSlot];
+             }
+        } else {
+            // Remove lesson from the slot
+            updatedLessons = dayLessons.filter(l => l.lessonSlot !== lessonSlot);
+        }
+
         await setDoc(scheduleDocRef, {
-            [day]: newSchedule
-        }, { merge: true });
-        toast({ title: "Başarılı!", description: `${day} günü zamanlaması güncellendi.`});
+            ...currentData,
+            [day]: updatedLessons
+        });
+        // No toast here, will be handled in the component for better user feedback
     } catch (error) {
-         console.error("Error updating day schedule:", error);
+         console.error("Error updating lesson:", error);
          toast({
             title: "Hata!",
-            description: "Program güncellenirken bir hata oluştu.",
+            description: "Ders güncellenirken bir hata oluştu.",
             variant: "destructive"
         });
     }
   };
   
-  return { schedule, isLoading, setDaySchedule };
+  return { schedule, isLoading, updateLesson };
 }

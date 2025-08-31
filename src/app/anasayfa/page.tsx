@@ -43,52 +43,52 @@ function AnaSayfaPageContent() {
 
   return (
     <AppLayout>
-      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+       <main className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
         <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Hoş Geldiniz!</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-white">Hoş Geldiniz!</h2>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Toplam Sınıf</CardTitle>
-                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium text-gray-300">Toplam Sınıf</CardTitle>
+                    <GraduationCap className="h-4 w-4 text-gray-300" />
                 </CardHeader>
                 <CardContent>
                     {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{totalClasses}</div>}
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Toplam Öğrenci</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium text-gray-300">Toplam Öğrenci</CardTitle>
+                    <Users className="h-4 w-4 text-gray-300" />
                 </CardHeader>
                 <CardContent>
                      {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{totalStudents}</div>}
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Bugünkü Kayıtlar</CardTitle>
-                    <Edit className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium text-gray-300">Bugünkü Kayıtlar</CardTitle>
+                    <Edit className="h-4 w-4 text-gray-300" />
                 </CardHeader>
                 <CardContent>
                     {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{todaysRecords}</div>}
                 </CardContent>
             </Card>
-             <Card>
+             <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
                 <CardHeader className="pb-2">
-                    <CardTitle className='text-base'>Hızlı İşlemler</CardTitle>
+                    <CardTitle className='text-base text-gray-300'>Hızlı İşlemler</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2">
                    <Link href="/gunluk-takip">
-                     <Button variant="outline" className="w-full justify-start">
+                     <Button variant="outline" className="w-full justify-start bg-transparent hover:bg-white/20 text-white">
                         <ArrowRight className="h-4 w-4 mr-2" />
                         Bugünkü Takibi Yap
                      </Button>
                    </Link>
                    <Link href="/raporlar">
-                     <Button variant="outline" className="w-full justify-start">
+                     <Button variant="outline" className="w-full justify-start bg-transparent hover:bg-white/20 text-white">
                         <ArrowRight className="h-4 w-4 mr-2" />
                         Raporları Görüntüle
                      </Button>

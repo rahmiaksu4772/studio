@@ -25,6 +25,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Day, Lesson } from '@/lib/types';
+import { Trash2 } from 'lucide-react';
 
 const formSchema = z.object({
   subject: z.string().min(2, { message: 'Ders adı en az 2 karakter olmalıdır.' }),
@@ -35,31 +36,30 @@ type AddLessonFormProps = {
   isOpen: boolean;
   onClose: () => void;
   day: Day;
-  lesson: Lesson | Omit<Lesson, 'id'>;
-  onSave: (day: Day, lessonData: Omit<Lesson, 'id'>) => void;
+  lessonSlot: number;
+  lesson: Lesson | null;
+  onSave: (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'>) => void;
+  onClear: (day: Day, lessonSlot: number) => void;
 };
 
-export function AddLessonForm({ isOpen, onClose, day, lesson, onSave }: AddLessonFormProps) {
+export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave, onClear }: AddLessonFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      subject: lesson.subject || '',
-      class: lesson.class || '',
+      subject: lesson?.subject || '',
+      class: lesson?.class || '',
     },
   });
   
   React.useEffect(() => {
     form.reset({
-      subject: lesson.subject || '',
-      class: lesson.class || '',
+      subject: lesson?.subject || '',
+      class: lesson?.class || '',
     })
   }, [lesson, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(day, {
-      ...values,
-      time: lesson.time,
-    });
+    onSave(day, lessonSlot, values);
     onClose();
   }
 
@@ -67,9 +67,9 @@ export function AddLessonForm({ isOpen, onClose, day, lesson, onSave }: AddLesso
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{lesson.subject ? 'Dersi Düzenle' : 'Yeni Ders Ekle'}</DialogTitle>
+          <DialogTitle>{lesson?.subject ? 'Dersi Düzenle' : 'Yeni Ders Ekle'}</DialogTitle>
           <DialogDescription>
-            {day} günü için {lesson.time} saatindeki dersin detaylarını girin.
+            {day} günü, {lessonSlot + 1}. ders saati için bilgileri girin.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -100,11 +100,20 @@ export function AddLessonForm({ isOpen, onClose, day, lesson, onSave }: AddLesso
                 </FormItem>
               )}
             />
-            <DialogFooter>
-                <DialogClose asChild>
-                    <Button type="button" variant="secondary">İptal</Button>
-                </DialogClose>
-                <Button type="submit">Dersi Kaydet</Button>
+            <DialogFooter className='justify-between'>
+                <div>
+                {lesson && (
+                    <Button type="button" variant="destructive" onClick={() => onClear(day, lessonSlot)}>
+                        <Trash2 className='mr-2 h-4 w-4' /> Dersi Temizle
+                    </Button>
+                )}
+                </div>
+                <div className='flex gap-2'>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">İptal</Button>
+                    </DialogClose>
+                    <Button type="submit">Dersi Kaydet</Button>
+                </div>
             </DialogFooter>
           </form>
         </Form>
