@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, GraduationCap, Edit, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import React from 'react';
-import { useDailyRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
+import { useAllRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
 
@@ -17,7 +17,7 @@ import AuthGuard from '@/components/auth-guard';
 function AnaSayfaPageContent() {
   const { user } = useAuth();
   const { classes, isLoading: isClassesLoading } = useClassesAndStudents(user?.uid);
-  const { records, isLoading: isRecordsLoading } = useDailyRecords(user?.uid);
+  const { records, isLoading: isRecordsLoading } = useAllRecords(user?.uid);
   
   const [totalClasses, setTotalClasses] = React.useState(0);
   const [totalStudents, setTotalStudents] = React.useState(0);

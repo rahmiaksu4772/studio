@@ -10,32 +10,24 @@ import {
 } from 'firebase/firestore';
 
 
-export function useDailyRecords(userId?: string) {
+// This hook is for fetching records for a SPECIFIC class, used in GunlukTakipPage
+export function useDailyRecords(userId?: string, classId?: string) {
   const { toast } = useToast();
   const [records, setRecords] = React.useState<DailyRecord[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  
+
   React.useEffect(() => {
-    if (!userId) {
+    if (!userId || !classId) {
         setRecords([]);
         setIsLoading(false);
         return;
     }
 
     setIsLoading(true);
-    // This query now fetches all records from all classes for a specific user.
-    const recordsQuery = query(collectionGroup(db, 'records'), where("classId", "!=", ""));
-
-    const unsubscribe = onSnapshot(recordsQuery, (querySnapshot) => {
-        const recordsData: DailyRecord[] = [];
-        querySnapshot.forEach((doc) => {
-            // We need to ensure the record belongs to the current user.
-            // Firestore's collectionGroup queries don't directly support filtering by parent document path with other filters.
-            // So we manually check if the path includes the user's ID.
-            if(doc.ref.path.startsWith(`users/${userId}/`)){
-                 recordsData.push({ id: doc.id, ...doc.data() } as DailyRecord);
-            }
-        });
+    const recordsCollectionRef = collection(db, `users/${userId}/classes/${classId}/records`);
+    
+    const unsubscribe = onSnapshot(recordsCollectionRef, (snapshot) => {
+        const recordsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyRecord));
         setRecords(recordsData);
         setIsLoading(false);
     }, (error) => {
@@ -49,8 +41,7 @@ export function useDailyRecords(userId?: string) {
     });
 
     return () => unsubscribe();
-  }, [userId, toast]);
-
+  }, [userId, classId, toast]);
 
   const bulkUpdateRecords = async (userId: string, classId: string, date: string, updatedDayRecords: DailyRecord[]) => {
     const batch = writeBatch(db);
@@ -75,6 +66,47 @@ export function useDailyRecords(userId?: string) {
   };
 
   return { records, isLoading, bulkUpdateRecords };
+}
+
+// This hook is for fetching ALL records for a user across ALL classes, used in AnaSayfa
+export function useAllRecords(userId?: string) {
+    const { toast } = useToast();
+    const [records, setRecords] = React.useState<DailyRecord[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        if (!userId) {
+            setRecords([]);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        const recordsQuery = query(collectionGroup(db, 'records'));
+
+        const unsubscribe = onSnapshot(recordsQuery, (querySnapshot) => {
+            const recordsData: DailyRecord[] = [];
+            querySnapshot.forEach((doc) => {
+                if(doc.ref.path.startsWith(`users/${userId}/`)){
+                     recordsData.push({ id: doc.id, ...doc.data() } as DailyRecord);
+                }
+            });
+            setRecords(recordsData);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching all records:", error);
+            toast({
+                title: "Tüm Kayıtlar Yüklenemedi",
+                description: "Tüm sınıfların kayıtları yüklenirken bir sorun oluştu.",
+                variant: "destructive"
+            });
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [userId, toast]);
+    
+    return { records, isLoading };
 }
 
 
