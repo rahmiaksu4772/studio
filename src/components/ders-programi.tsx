@@ -164,6 +164,6 @@ export default function DersProgrami() {
                 )}
             </div>
         </CardContent>
-    </Card>>
+    </Card>
   );
 }
