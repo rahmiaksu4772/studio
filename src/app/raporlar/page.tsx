@@ -69,6 +69,14 @@ const statusToTurkish: Record<string, string> = {
     'note': 'Not',
 };
 
+type ChartConfig = {
+    [key: string]: {
+      label: string;
+      color: string;
+      icon?: React.ComponentType;
+    };
+  };
+  
 const chartConfig = {
   puan: {
     label: 'Performans Puanı',
@@ -119,15 +127,12 @@ function RaporlarPageContent() {
     setFilteredData([]);
 
     try {
-        // Fetch all records for the class
         const q = query(collection(db, `users/${user.uid}/classes/${selectedClassId}/records`));
         const querySnapshot = await getDocs(q);
         const allRecords = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as DailyRecord);
         
-        // Filter by date range on the client side
         const recordsInRange = allRecords.filter(record => {
-            const [year, month, day] = record.date.split('-').map(Number);
-            const recordDate = new Date(year, month - 1, day);
+            const recordDate = parseISO(record.date);
             return isWithinInterval(recordDate, { start: dateRange.from!, end: dateRange.to! });
         });
 
@@ -171,7 +176,7 @@ function RaporlarPageContent() {
                 const score = scoresByDate[record.date] || 0;
                 scoresByDate[record.date] = score + scoreValues[status];
             }
-            allEvents.push({ date: record.date, ...event });
+            allEvents.push({ date: record.date, type: event.type, value: String(event.value) });
         });
     });
 
@@ -211,7 +216,7 @@ function RaporlarPageContent() {
         });
       });
       
-      const totalScore = summary['+'] * 10 + summary['Y'] * 5 + summary['-'] * -5;
+      const totalScore = summary['+'] * 1 + summary['Y'] * 0.5 + summary['-'] * -1;
       
       return {
         ...student,
@@ -270,7 +275,7 @@ function RaporlarPageContent() {
                 s.totalScore
             ]);
             if (s.notes.length > 0) {
-                const notesText = s.notes.map(n => `  - ${format(new Date(n.date.replace(/-/g, '/')), 'dd/MM/yy', { locale: tr })}: ${n.content}`).join('\n');
+                const notesText = s.notes.map(n => `  - ${format(parseISO(n.date), 'dd/MM/yy', { locale: tr })}: ${n.content}`).join('\n');
                 body.push([{ content: `Öğretmen Görüşleri:\n${notesText}`, colSpan: 8, styles: { fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
             }
         }
@@ -315,7 +320,7 @@ function RaporlarPageContent() {
                 body: individualReportData.events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => {
                     const statusKey = e.type === 'status' ? e.value : e.type;
                     return [
-                        format(new Date(e.date.replace(/-/g, '/')), 'd MMM yyyy, cccc', { locale: tr }),
+                        format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr }),
                         statusToTurkish[statusKey] || 'Belirtilmemiş',
                         e.type === 'note' ? e.value : '-'
                     ];
@@ -430,15 +435,15 @@ function RaporlarPageContent() {
                     </CardHeader>
                     <CardContent>
                     <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                            {events.length > 0 ? events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((event, index) => {
+                            {events.length > 0 ? events.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => {
                                 const statusKey = event.type === 'status' ? event.value : event.type;
                                 const statusOption = statusOptions.find(o => o.value === statusKey);
 
                                 return (
                                 <div key={`${event.date}-${index}`} className="flex items-start gap-4">
                                     <div className="font-semibold text-center w-20 flex-shrink-0">
-                                        <p>{format(new Date(event.date.replace(/-/g, '/')), 'dd MMMM', { locale: tr })}</p>
-                                        <p className="text-xs text-muted-foreground">{format(new Date(event.date.replace(/-/g, '/')), 'cccc', { locale: tr })}</p>
+                                        <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
+                                        <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
                                     </div>
                                     <div className="border-l pl-4 flex-1">
                                         <p className="font-medium flex items-center gap-2">
@@ -449,7 +454,7 @@ function RaporlarPageContent() {
                                         }
                                             <span>{statusToTurkish[statusKey] || 'Belirtilmemiş'}</span>
                                         </p>
-                                        {event.type === 'note' && <p className="text-sm text-muted-foreground">{event.value || "Ek bir not girilmemiş."}</p>}
+                                        {event.type === 'note' && <p className="text-sm text-muted-foreground">{event.value}</p>}
                                     </div>
                                 </div>
                             )}) : <p>Bu tarih aralığında not bulunmuyor.</p>}
@@ -519,7 +524,7 @@ function RaporlarPageContent() {
                                                 <ul className='space-y-2 list-disc list-inside text-sm'>
                                                 {student.notes.map((note, idx) => (
                                                     <li key={idx}>
-                                                        <span className='font-semibold'>{format(new Date(note.date.replace(/-/g, '/')), 'dd MMM yyyy', {locale: tr})}:</span> {note.content}
+                                                        <span className='font-semibold'>{format(parseISO(note.date), 'dd MMM yyyy', {locale: tr})}:</span> {note.content}
                                                     </li>
                                                 ))}
                                                 </ul>
