@@ -264,7 +264,7 @@ function PlanlarimPageContent() {
 
   return (
     <AppLayout>
-      <main className="flex-1 space-y-4 p-8 pt-6 relative">
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6 relative">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Planlarım</h2>
           <UploadPlanForm onAddPlan={handleAddPlan} />
@@ -282,56 +282,58 @@ function PlanlarimPageContent() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {plans.map((plan) => (
               <Card key={plan.id} className="flex flex-col">
-                <CardHeader className="flex flex-row items-start justify-between p-4">
+                <CardHeader className="flex-row items-start justify-between p-4">
                     <div>
-                        <CardTitle className="text-lg mb-1">{plan.title}</CardTitle>
-                        <Badge variant={plan.type === 'annual' ? 'default' : 'secondary'}>
+                        <CardTitle className="text-base mb-1 leading-tight">{plan.title}</CardTitle>
+                        <Badge variant={plan.type === 'annual' ? 'default' : 'secondary'} className="mt-1">
                             {plan.type === 'annual' ? 'Yıllık Plan' : 'Haftalık Plan'}
                         </Badge>
                     </div>
                     {getFileIcon(plan.fileType)}
                 </CardHeader>
-                <CardContent className="flex-grow p-4 pt-0">
-                    <p className="text-sm text-muted-foreground">
-                        Yüklenme Tarihi: {plan.uploadDate}
+                <CardContent className="flex-grow p-4 pt-0 text-xs text-muted-foreground space-y-1">
+                    <p>
+                        Yüklenme: {plan.uploadDate}
                     </p>
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="truncate">
                         Dosya: {getFriendlyFileType(plan.fileType)}
                     </p>
                 </CardContent>
-                <CardFooter className="flex justify-between items-center p-4 pt-0">
-                    <div className='flex gap-2'>
-                        <Button variant="outline" size="sm" onClick={() => viewFile(plan)}>
-                            <FileText className="mr-2 h-4 w-4" /> Görüntüle
-                        </Button>
-                        <Button size="sm" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
-                            <Download className="mr-2 h-4 w-4" /> İndir
-                        </Button>
+                <CardFooter className="p-2 border-t mt-auto">
+                    <div className='flex justify-between w-full items-center'>
+                        <div className='flex gap-2'>
+                            <Button variant="outline" size="sm" onClick={() => viewFile(plan)}>
+                                <FileText /> Görüntüle
+                            </Button>
+                            <Button size="sm" onClick={() => downloadFile(plan.fileDataUrl, plan.fileName)}>
+                                <Download /> İndir
+                            </Button>
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                    <Trash2 />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Bu işlem geri alınamaz. "{plan.title}" adlı planı kalıcı olarak silecektir.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeletePlan(plan.id)} className="bg-destructive hover:bg-destructive/90">
+                                    Sil
+                                </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
-                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Bu işlem geri alınamaz. "{plan.title}" adlı planı kalıcı olarak silecektir.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>İptal</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeletePlan(plan.id)} className="bg-destructive hover:bg-destructive/90">
-                            Sil
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                 </CardFooter>
               </Card>
             ))}
