@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Plan } from '@/lib/types';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_FILE_TYPES_DOC = [
     'application/pdf', 
     'application/msword', 
@@ -59,7 +59,7 @@ const formSchema = z.object({
     if(!data.file || data.file.length === 0) return true;
     return data.file[0].size <= MAX_FILE_SIZE;
 }, {
-    message: `Maksimum dosya boyutu 5MB'dir.`,
+    message: `Maksimum dosya boyutu 10MB'dir.`,
     path: ['file'],
 });
 
