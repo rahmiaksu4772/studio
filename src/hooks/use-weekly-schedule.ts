@@ -12,13 +12,13 @@ const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'
 
 export function useWeeklySchedule(userId?: string) {
   const { toast } = useToast();
-  const [schedule, setSchedule] = React.useState<WeeklyScheduleItem[]>([]);
+  const [schedule, setScheduleState] = React.useState<WeeklyScheduleItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const scheduleId = "main-schedule"; // This is now a sub-document ID under the user
 
   React.useEffect(() => {
     if (!userId) {
-        setSchedule(dayOrder.map(day => ({ day, lessons: [] })));
+        setScheduleState(dayOrder.map(day => ({ day, lessons: [] })));
         setIsLoading(false);
         return;
     }
@@ -33,13 +33,13 @@ export function useWeeklySchedule(userId?: string) {
                 day,
                 lessons: data[day] || []
             }));
-            setSchedule(scheduleData);
+            setScheduleState(scheduleData);
         } else {
             // Document doesn't exist, create it with a default structure for the user
              const defaultSchedule = dayOrder.reduce((acc, day) => ({ ...acc, [day]: [] }), {});
              try {
                 await setDoc(scheduleDocRef, defaultSchedule);
-                setSchedule(dayOrder.map(day => ({ day, lessons: [] })));
+                setScheduleState(dayOrder.map(day => ({ day, lessons: [] })));
              } catch (error) {
                 console.error("Failed to create default schedule for user", error);
              }
@@ -112,6 +112,27 @@ export function useWeeklySchedule(userId?: string) {
         });
      }
   };
+
+  const setSchedule = async (newSchedule: WeeklyScheduleItem[]) => {
+    if (!userId) return;
+
+    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleId);
+    const scheduleForDb = newSchedule.reduce((acc, dayItem) => {
+        acc[dayItem.day] = dayItem.lessons;
+        return acc;
+    }, {} as { [key in Day]: Lesson[] });
+
+    try {
+        await setDoc(scheduleDocRef, scheduleForDb);
+    } catch (error) {
+        console.error("Error setting new schedule:", error);
+        toast({
+            title: "Hata!",
+            description: "Yeni ders programı kaydedilirken bir hata oluştu.",
+            variant: "destructive"
+        });
+    }
+  };
   
-  return { schedule, isLoading, addLesson, deleteLesson };
+  return { schedule, isLoading, addLesson, deleteLesson, setSchedule };
 }

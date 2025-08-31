@@ -20,15 +20,20 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Plan } from '@/lib/types';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_FILE_TYPES = [
+const ACCEPTED_FILE_TYPES_DOC = [
     'application/pdf', 
     'application/msword', 
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+];
+const ACCEPTED_FILE_TYPES_SCHEDULE = [
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 ];
@@ -36,21 +41,32 @@ const ACCEPTED_FILE_TYPES = [
 const formSchema = z.object({
   title: z.string().min(3, { message: 'Plan başlığı en az 3 karakter olmalıdır.' }),
   type: z.enum(['annual', 'weekly'], { required_error: 'Lütfen bir plan türü seçin.' }),
+  importToSchedule: z.boolean().default(false),
   file: z
     .custom<FileList>()
-    .refine((files) => files?.length > 0, 'Lütfen bir dosya seçin.')
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Maksimum dosya boyutu 5MB'dir.`)
-    .refine(
-      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      'Sadece .pdf, .doc, .docx, .xls, .xlsx formatları desteklenmektedir.'
-    ),
+    .refine((files) => files?.length > 0, 'Lütfen bir dosya seçin.'),
+}).refine((data) => {
+    if(!data.file || data.file.length === 0) return false;
+    const fileType = data.file[0].type;
+    const acceptedTypes = data.importToSchedule ? ACCEPTED_FILE_TYPES_SCHEDULE : ACCEPTED_FILE_TYPES_DOC;
+    return acceptedTypes.includes(fileType);
+}, {
+    message: 'Seçilen dosya türü bu işlem için uygun değil. Program aktarımı için sadece Excel (.xls, .xlsx) dosyaları kullanılabilir.',
+    path: ['file'],
+}).refine((data) => {
+    if(!data.file || data.file.length === 0) return false;
+    return data.file[0].size <= MAX_FILE_SIZE;
+}, {
+    message: `Maksimum dosya boyutu 5MB'dir.`,
+    path: ['file'],
 });
+
 
 type FormValues = z.infer<typeof formSchema>;
 
 
 type UploadPlanFormProps = {
-  onAddPlan: (plan: Omit<Plan, 'id' | 'uploadDate'>) => void;
+  onAddPlan: (plan: Omit<Plan, 'id' | 'uploadDate'>, importToSchedule: boolean, file?: File) => void;
   isFirstPlan?: boolean;
 };
 
@@ -64,6 +80,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
     defaultValues: {
       title: '',
       type: 'annual',
+      importToSchedule: false,
       file: undefined,
     },
   });
@@ -83,7 +100,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
         fileName: file.name
       };
       
-      onAddPlan(planToAdd);
+      onAddPlan(planToAdd, values.importToSchedule, file);
 
       form.reset();
       setOpen(false);
@@ -209,6 +226,28 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                   </FormItem>
                 )}
                 />
+            <FormField
+              control={form.control}
+              name="importToSchedule"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Ders Programını Takvime Aktar
+                    </FormLabel>
+                    <FormDescription>
+                      Bu bir Excel ders programıysa seçin. Seçtiğinizde, içeriği haftalık ders programınıza aktarılacaktır.
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="secondary" disabled={isSubmitting}>

@@ -15,21 +15,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { UploadPlanForm } from '@/components/upload-plan-form';
 import { Badge } from '@/components/ui/badge';
-import type { Plan } from '@/lib/types';
+import type { Plan, Lesson, Day, WeeklyScheduleItem } from '@/lib/types';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
+import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
+import * as XLSX from 'xlsx';
 
 const PLANS_STORAGE_KEY_PREFIX = 'lesson-plans_';
+const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 function PlanlarimPageContent() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { setSchedule } = useWeeklySchedule();
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [viewingPlan, setViewingPlan] = React.useState<Plan | null>(null);
@@ -80,8 +83,51 @@ function PlanlarimPageContent() {
     }
   }, [plans, toast, getStorageKey, isLoading]);
 
+  const processAndImportSchedule = async (file: File) => {
+    try {
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
 
-  const handleAddPlan = (planData: Omit<Plan, 'id' | 'uploadDate'>) => {
+        const newSchedule: WeeklyScheduleItem[] = dayOrder.map(day => ({ day, lessons: [] }));
+        
+        // Assuming format: Day, Time (HH:mm - HH:mm), Subject, Class
+        // Skip header row by starting from 1
+        for(let i = 1; i < json.length; i++) {
+            const row = json[i];
+            const [day, time, subject, className] = row;
+            
+            const targetDay = newSchedule.find(d => d.day === day);
+            if (targetDay && time && subject && className) {
+                targetDay.lessons.push({
+                    id: new Date().toISOString() + Math.random(),
+                    time,
+                    subject,
+                    class: className
+                });
+            }
+        }
+        
+        await setSchedule(newSchedule);
+
+        toast({
+            title: 'Program Aktarıldı!',
+            description: 'Ders programınız başarıyla takvime aktarıldı.',
+        });
+
+    } catch (error) {
+        console.error("Error processing schedule file:", error);
+        toast({
+            title: "Program Aktarılamadı",
+            description: "Excel dosyası işlenirken bir hata oluştu.",
+            variant: "destructive"
+        });
+    }
+  };
+
+  const handleAddPlan = (planData: Omit<Plan, 'id' | 'uploadDate'>, importToSchedule: boolean, file?: File) => {
     const newPlan: Plan = {
       ...planData,
       id: new Date().toISOString(),
@@ -92,6 +138,10 @@ function PlanlarimPageContent() {
       title: 'Plan Başarıyla Yüklendi!',
       description: `"${newPlan.title}" adlı planınız eklendi.`,
     });
+    
+    if (importToSchedule && file) {
+      processAndImportSchedule(file);
+    }
   };
 
   const handleDeletePlan = async (idToDelete: string) => {
