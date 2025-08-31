@@ -28,6 +28,8 @@ import { addMinutes, format, differenceInMinutes, parse } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Switch } from './ui/switch';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 const dayAbbreviations: Record<Day, string> = {
@@ -107,77 +109,93 @@ function DayScheduleSettings({ day, onSave, settings }: { day: WeeklyScheduleIte
                     <DialogTitle>{day.day} Günü Zamanlama Ayarları</DialogTitle>
                     <DialogDescription>Ders ve teneffüs sürelerini belirleyerek programı otomatik oluşturun.</DialogDescription>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                         <FormField control={form.control} name="schoolStartTime" render={({ field }) => (
-                            <div className='space-y-1'>
-                                <Label htmlFor="schoolStartTime">Okul Başlangıç Saati</Label>
-                                <Input id="schoolStartTime" type="time" {...field} />
-                                {form.formState.errors.schoolStartTime && <p className="text-sm text-destructive mt-1">{form.formState.errors.schoolStartTime.message}</p>}
-                            </div>
-                         )} />
-                          <FormField control={form.control} name="schoolEndTime" render={({ field }) => (
-                            <div className='space-y-1'>
-                                <Label htmlFor="schoolEndTime">Okul Bitiş Saati</Label>
-                                <Input id="schoolEndTime" type="time" {...field} />
-                                {form.formState.errors.schoolEndTime && <p className="text-sm text-destructive mt-1">{form.formState.errors.schoolEndTime.message}</p>}
-                            </div>
-                         )} />
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="lessonDuration" render={({ field }) => (
-                            <div className='space-y-1'>
-                                <Label htmlFor="lessonDuration">Ders Süresi (dk)</Label>
-                                <Input id="lessonDuration" type="number" {...field} />
-                                 {form.formState.errors.lessonDuration && <p className="text-sm text-destructive mt-1">{form.formState.errors.lessonDuration.message}</p>}
-                            </div>
-                        )} />
-                        <FormField control={form.control} name="breakDuration" render={({ field }) => (
-                            <div className='space-y-1'>
-                                <Label htmlFor="breakDuration">Teneffüs Süresi (dk)</Label>
-                                <Input id="breakDuration" type="number" {...field} />
-                                {form.formState.errors.breakDuration && <p className="text-sm text-destructive mt-1">{form.formState.errors.breakDuration.message}</p>}
-                            </div>
-                        )} />
-                    </div>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="schoolStartTime" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Okul Başlangıç Saati</FormLabel>
+                                    <FormControl>
+                                        <Input type="time" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="schoolEndTime" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Okul Bitiş Saati</FormLabel>
+                                    <FormControl>
+                                        <Input type="time" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="lessonDuration" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Ders Süresi (dk)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="breakDuration" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Teneffüs Süresi (dk)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
 
-                    <div className="space-y-2 p-4 border rounded-md">
-                         <FormField control={form.control} name="isLunchActive" render={({ field }) => (
-                             <div className="flex items-center justify-between">
-                                <Label htmlFor="isLunchActive" className="font-semibold">Öğle Tatili Aktif</Label>
-                                <Switch id="isLunchActive" checked={field.value} onCheckedChange={field.onChange} />
-                             </div>
-                         )} />
-                        {form.watch('isLunchActive') && (
-                            <div className="grid grid-cols-2 gap-4 pt-2">
-                                <FormField control={form.control} name="lunchStartTime" render={({ field }) => (
-                                    <div className='space-y-1'>
-                                        <Label htmlFor="lunchStartTime">Öğle Tatili Başlangıç</Label>
-                                        <Input id="lunchStartTime" type="time" {...field} />
-                                        {form.formState.errors.lunchStartTime && <p className="text-sm text-destructive mt-1">{form.formState.errors.lunchStartTime.message}</p>}
+                        <div className="space-y-2 p-4 border rounded-md">
+                            <FormField control={form.control} name="isLunchActive" render={({ field }) => (
+                                <FormItem className="flex items-center justify-between">
+                                    <FormLabel className="font-semibold">Öğle Tatili Aktif</FormLabel>
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
+                            {form.watch('isLunchActive') && (
+                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                    <FormField control={form.control} name="lunchStartTime" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Öğle Tatili Başlangıç</FormLabel>
+                                            <FormControl>
+                                                <Input type="time" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="lunchEndTime" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Öğle Tatili Bitiş</FormLabel>
+                                            <FormControl>
+                                                <Input type="time" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <div className='space-y-1 col-span-2'>
+                                        <Label>Öğle Tatili Süresi (dk)</Label>
+                                        <Input value={lunchDuration} disabled className="bg-muted" />
+                                        <p className="text-xs text-muted-foreground">Otomatik hesaplanır</p>
                                     </div>
-                                )} />
-                                <FormField control={form.control} name="lunchEndTime" render={({ field }) => (
-                                    <div className='space-y-1'>
-                                        <Label htmlFor="lunchEndTime">Öğle Tatili Bitiş</Label>
-                                        <Input id="lunchEndTime" type="time" {...field} />
-                                        {form.formState.errors.lunchEndTime && <p className="text-sm text-destructive mt-1">{form.formState.errors.lunchEndTime.message}</p>}
-                                    </div>
-                                )} />
-                                 <div className='space-y-1 col-span-2'>
-                                    <Label>Öğle Tatili Süresi (dk)</Label>
-                                    <Input value={lunchDuration} disabled className="bg-muted" />
-                                    <p className="text-xs text-muted-foreground">Otomatik hesaplanır</p>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
 
-                    <DialogFooter>
-                        <DialogClose asChild><Button variant="ghost">İptal</Button></DialogClose>
-                        <Button type="submit">Kaydet ve Programı Oluştur</Button>
-                    </DialogFooter>
-                </form>
+                        <DialogFooter>
+                            <DialogClose asChild><Button variant="ghost">İptal</Button></DialogClose>
+                            <Button type="submit">Kaydet ve Programı Oluştur</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     )
@@ -401,3 +419,4 @@ export default function DersProgrami() {
     </Card>
   );
 }
+
