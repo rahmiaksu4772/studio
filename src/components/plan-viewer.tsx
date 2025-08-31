@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import type { LessonPlanEntry } from '@/lib/types';
