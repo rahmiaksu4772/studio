@@ -99,69 +99,71 @@ export default function DersProgrami() {
         </CardHeader>
         
         <CardContent className="p-2 md:p-4">
-            <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-1 text-center font-sans">
-                {/* Header Row */}
-                <div className="p-2 sticky left-0 bg-background z-10"></div>
-                {dayOrder.map(day => (
-                    <div key={day} className="font-bold bg-primary/80 text-primary-foreground p-2 rounded-t-lg min-w-[100px] md:min-w-[120px] text-sm md:text-base">
-                        {day.substring(0,3).toLocaleUpperCase('tr-TR')}
-                    </div>
-                ))}
+            <div className="overflow-x-auto no-scrollbar">
+                <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-1 text-center font-sans min-w-[700px]">
+                    {/* Header Row */}
+                    <div className="p-2 sticky left-0 bg-card z-10"></div>
+                    {dayOrder.map(day => (
+                        <div key={day} className="font-bold bg-primary/80 text-primary-foreground p-2 rounded-t-lg min-w-[100px] md:min-w-[120px] text-sm md:text-base">
+                            {day.substring(0,3).toLocaleUpperCase('tr-TR')}
+                        </div>
+                    ))}
 
-                {/* Schedule Rows */}
-                {processedSchedule.times.map((time, timeIndex) => (
-                    <React.Fragment key={time}>
-                        <div className="font-semibold p-2 my-1 flex items-center justify-center text-muted-foreground bg-muted/30 rounded-l-lg sticky left-0 z-10 text-xs md:text-sm">{time}</div>
-                        {processedSchedule.grid[timeIndex].map((lesson, dayIndex) => (
-                            <div 
-                                key={`${time}-${dayIndex}`} 
-                                className="group relative flex flex-col justify-center items-center p-2 rounded-md min-h-[70px] text-xs md:text-sm text-white shadow-inner"
-                                style={{
-                                    backgroundColor: lesson ? getColorFromString(lesson.subject) : '#f1f5f9'
-                                }}
-                            >
-                                {lesson ? (
-                                    <>
-                                        <p className="font-bold drop-shadow-sm">{lesson.subject}</p>
-                                        <p className="opacity-80 drop-shadow-sm">{lesson.class}</p>
-                                        
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className='absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 hover:bg-black/40 text-white hover:text-white'>
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Dersi Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Bu işlem geri alınamaz. "{lesson.subject} - {lesson.time}" dersini kalıcı olarak silecektir.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>İptal</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => deleteLesson(dayOrder[dayIndex], lesson.id)} className='bg-destructive hover:bg-destructive/90'>
-                                                        Evet, Sil
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                    {/* Schedule Rows */}
+                    {processedSchedule.times.map((time, timeIndex) => (
+                        <React.Fragment key={time}>
+                            <div className="font-semibold p-2 my-1 flex items-center justify-center text-muted-foreground bg-muted/30 rounded-l-lg sticky left-0 bg-card z-10 text-xs md:text-sm">{time}</div>
+                            {processedSchedule.grid[timeIndex].map((lesson, dayIndex) => (
+                                <div 
+                                    key={`${time}-${dayIndex}`} 
+                                    className="group relative flex flex-col justify-center items-center p-2 rounded-md min-h-[70px] text-xs md:text-sm text-white shadow-inner"
+                                    style={{
+                                        backgroundColor: lesson ? getColorFromString(lesson.subject) : '#f1f5f9'
+                                    }}
+                                >
+                                    {lesson ? (
+                                        <>
+                                            <p className="font-bold drop-shadow-sm">{lesson.subject}</p>
+                                            <p className="opacity-80 drop-shadow-sm">{lesson.class}</p>
+                                            
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className='absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 hover:bg-black/40 text-white hover:text-white'>
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Dersi Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Bu işlem geri alınamaz. "{lesson.subject} - {lesson.time}" dersini kalıcı olarak silecektir.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => deleteLesson(dayOrder[dayIndex], lesson.id)} className='bg-destructive hover:bg-destructive/90'>
+                                                            Evet, Sil
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
 
-                                    </>
-                                ) : (
-                                    <div className="w-full h-full border-2 border-dashed border-slate-300 rounded-md"></div>
-                                )}
-                            </div>
-                        ))}
-                    </React.Fragment>
-                ))}
+                                        </>
+                                    ) : (
+                                        <div className="w-full h-full border-2 border-dashed border-slate-300 rounded-md"></div>
+                                    )}
+                                </div>
+                            ))}
+                        </React.Fragment>
+                    ))}
 
-                {processedSchedule.times.length === 0 && (
-                    <div className="col-span-6 text-center p-10 text-muted-foreground">
-                        <p>Henüz ders programı oluşturulmamış.</p>
-                        <p className='text-xs'>Başlamak için "Ders Ekle" butonunu kullanın.</p>
-                    </div>
-                )}
+                    {processedSchedule.times.length === 0 && (
+                        <div className="col-span-6 text-center p-10 text-muted-foreground">
+                            <p>Henüz ders programı oluşturulmamış.</p>
+                            <p className='text-xs'>Başlamak için "Ders Ekle" butonunu kullanın.</p>
+                        </div>
+                    )}
+                </div>
             </div>
         </CardContent>
     </Card>
