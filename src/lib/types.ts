@@ -45,7 +45,7 @@ export type Note = {
   id: string;
   title: string;
   content: string;
-  date: string;
+  date: string; // Should be ISO string for proper date handling
   color: string;
   imageUrl?: string;
 };

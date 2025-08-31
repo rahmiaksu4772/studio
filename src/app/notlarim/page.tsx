@@ -35,6 +35,7 @@ import type { Note } from '@/lib/types';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
+import { useNotes } from '@/hooks/use-notes';
 
 const noteColors = [
   'bg-yellow-50 border-yellow-200',
@@ -44,16 +45,14 @@ const noteColors = [
   'bg-purple-50 border-purple-200',
 ];
 
-const NOTES_STORAGE_KEY_PREFIX = 'personal-notes_';
-
 function NotlarimPageContent() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [notes, setNotes] = React.useState<Note[]>([]);
+  const { notes, isLoading, addNote, deleteNote } = useNotes(user?.uid);
+  
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
   const [newNoteContent, setNewNoteContent] = React.useState('');
   const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
   const [isRecording, setIsRecording] = React.useState(false);
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
@@ -62,52 +61,7 @@ function NotlarimPageContent() {
   const recognitionRef = React.useRef<any>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
-
-  const getStorageKey = React.useCallback(() => {
-    if (!user) return null;
-    return `${NOTES_STORAGE_KEY_PREFIX}${user.uid}`;
-  }, [user]);
   
-  React.useEffect(() => {
-    const storageKey = getStorageKey();
-    if (!storageKey) {
-        setIsLoading(false);
-        return;
-    };
-
-    setIsLoading(true);
-    try {
-      const savedNotes = localStorage.getItem(storageKey);
-      if (savedNotes) {
-        setNotes(JSON.parse(savedNotes));
-      }
-    } catch (error) {
-        console.error("Failed to load notes from localStorage", error);
-        toast({
-            title: "Notlar Yüklenemedi",
-            description: "Notlarınız yüklenirken bir sorun oluştu.",
-            variant: "destructive"
-        })
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast, getStorageKey]);
-  
-  React.useEffect(() => {
-    const storageKey = getStorageKey();
-    if (!storageKey || isLoading) return;
-    try {
-        localStorage.setItem(storageKey, JSON.stringify(notes));
-    } catch(error) {
-        console.error("Failed to save notes to localStorage", error);
-         toast({
-            title: "Notlar Kaydedilemedi",
-            description: "Değişiklikleriniz kaydedilirken bir sorun oluştu.",
-            variant: "destructive"
-        })
-    }
-  }, [notes, toast, getStorageKey, isLoading]);
-
   React.useEffect(() => {
     const getCameraPermission = async () => {
       try {
@@ -133,7 +87,7 @@ function NotlarimPageContent() {
     }
   }, [isCameraOpen]);
 
-  const handleAddNote = (e: React.FormEvent) => {
+  const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newNoteContent.trim() === '' && !newNoteImage) {
       toast({
@@ -149,32 +103,23 @@ function NotlarimPageContent() {
         setIsRecording(false);
     }
 
-    const newNote: Note = {
-      id: new Date().toISOString(),
+    const newNoteData: Omit<Note, 'id'> = {
       title: newNoteTitle,
       content: newNoteContent,
       imageUrl: newNoteImage || undefined,
       color: noteColors[Math.floor(Math.random() * noteColors.length)],
-      date: format(new Date(), 'dd.MM.yyyy')
+      date: new Date().toISOString() // Store as ISO string for proper ordering in Firestore
     };
+    
+    await addNote(newNoteData);
 
-    setNotes([newNote, ...notes]);
     setNewNoteTitle('');
     setNewNoteContent('');
     setNewNoteImage(null);
-    toast({
-      title: 'Not Eklendi!',
-      description: 'Yeni notunuz başarıyla eklendi.',
-    });
   };
 
-  const handleDeleteNote = (id: string) => {
-    setNotes(notes.filter((note) => note.id !== id));
-    toast({
-        title: 'Not Silindi',
-        description: 'Notunuz başarıyla silindi.',
-        variant: 'destructive',
-    })
+  const handleDeleteNote = async (id: string) => {
+    await deleteNote(id);
   };
   
   const handleCapture = () => {
@@ -383,7 +328,7 @@ function NotlarimPageContent() {
                   {note.content}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">
-                  <span>{note.date}</span>
+                  <span>{format(new Date(note.date), 'dd.MM.yyyy')}</span>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon">
