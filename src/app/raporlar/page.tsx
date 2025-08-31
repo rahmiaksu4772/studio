@@ -9,6 +9,7 @@ import {
   List,
   Loader2,
   FileSearch,
+  ChevronDown,
 } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,11 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+  } from "@/components/ui/collapsible"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, isWithinInterval } from 'date-fns';
@@ -193,11 +199,15 @@ function RaporlarPageContent() {
       const summary: Record<AttendanceStatus, number> = {
         '+': 0, 'Y': 0, '-': 0, 'D': 0, 'G': 0
       };
+      const notes: {date: string, content: string}[] = [];
       
       studentRecords.forEach(record => {
         record.events.forEach(event => {
             if (event.type === 'status' && summary[event.value as AttendanceStatus] !== undefined) {
                 summary[event.value as AttendanceStatus]++;
+            }
+            if (event.type === 'note' && typeof event.value === 'string' && event.value.trim() !== '') {
+                notes.push({ date: record.date, content: event.value });
             }
         });
       });
@@ -207,7 +217,8 @@ function RaporlarPageContent() {
       return {
         ...student,
         summary,
-        totalScore
+        totalScore,
+        notes,
       };
     }).sort((a, b) => a.studentNumber - b.studentNumber);
     
@@ -259,20 +270,27 @@ function RaporlarPageContent() {
     };
 
     if (selectedReportType === 'sinif' && classReportData) {
-        const tableData = classReportData.studentSummaries.map(s => [
-            s.studentNumber,
-            `${s.firstName} ${s.lastName}`,
-            s.summary['+'],
-            s.summary['Y'],
-            s.summary['-'],
-            s.summary['D'],
-            s.summary['G'],
-            s.totalScore
-        ]);
+        const body = [];
+        for (const s of classReportData.studentSummaries) {
+            body.push([
+                s.studentNumber,
+                `${s.firstName} ${s.lastName}`,
+                s.summary['+'],
+                s.summary['Y'],
+                s.summary['-'],
+                s.summary['D'],
+                s.summary['G'],
+                s.totalScore
+            ]);
+            if (s.notes.length > 0) {
+                const notesText = s.notes.map(n => `  - ${format(new Date(n.date.replace(/-/g, '/')), 'dd/MM/yy', { locale: tr })}: ${n.content}`).join('\n');
+                body.push([{ content: `Öğretmen Görüşleri:\n${notesText}`, colSpan: 8, styles: { fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
+            }
+        }
 
         (doc as any).autoTable({
             head: [['No', 'Adı Soyadı', '+', 'Yarım', '-', 'Yok', 'İzinli', 'Toplam Puan']],
-            body: tableData,
+            body: body,
             startY: 30,
             theme: 'grid',
             headStyles: { fillColor: [33, 150, 243], textColor: 255, ...tableStyles },
@@ -467,32 +485,61 @@ function RaporlarPageContent() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[80px]">No</TableHead>
-                                    <TableHead>Adı Soyadı</TableHead>
-                                    {statusOptions.map(opt => (
-                                        <TableHead key={opt.value} className="text-center">{opt.label}</TableHead>
-                                    ))}
-                                    <TableHead className="text-right">Toplam Puan</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {classReportData.studentSummaries.map(student => (
-                                    <TableRow key={student.id}>
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[50px]">No</TableHead>
+                        <TableHead>Adı Soyadı</TableHead>
+                        {statusOptions.map(opt => (
+                            <TableHead key={opt.value} className="text-center">{opt.label}</TableHead>
+                        ))}
+                        <TableHead className="text-right w-[120px]">Toplam Puan</TableHead>
+                        <TableHead className="w-[50px] text-center">Notlar</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {classReportData.studentSummaries.map(student => (
+                            <Collapsible asChild key={student.id}>
+                                <>
+                                    <TableRow>
                                         <TableCell className="font-medium">{student.studentNumber}</TableCell>
                                         <TableCell>{student.firstName} {student.lastName}</TableCell>
                                         {statusOptions.map(opt => (
                                             <TableCell key={opt.value} className="text-center">{student.summary[opt.value as AttendanceStatus]}</TableCell>
                                         ))}
                                         <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
+                                        <TableCell className="text-center">
+                                            <CollapsibleTrigger asChild>
+                                                {student.notes.length > 0 && (
+                                                    <Button variant="ghost" size="sm">
+                                                        <ChevronDown className="h-4 w-4" />
+                                                        <span className='ml-1'>{student.notes.length}</span>
+                                                    </Button>
+                                                )}
+                                            </CollapsibleTrigger>
+                                        </TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                    <CollapsibleContent asChild>
+                                    <TableRow>
+                                        <TableCell colSpan={8}>
+                                            <div className='p-4 bg-muted/50 rounded-md'>
+                                                <h4 className='font-semibold mb-2'>Öğretmen Görüşleri</h4>
+                                                <ul className='space-y-2 list-disc list-inside text-sm'>
+                                                {student.notes.map((note, idx) => (
+                                                    <li key={idx}>
+                                                        <span className='font-semibold'>{format(new Date(note.date.replace(/-/g, '/')), 'dd MMM yyyy', {locale: tr})}:</span> {note.content}
+                                                    </li>
+                                                ))}
+                                                </ul>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    </CollapsibleContent>
+                                </>
+                            </Collapsible>
+                        ))}
+                    </TableBody>
+                </Table>
                 </CardContent>
             </Card>
         )
@@ -617,3 +664,4 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
+
