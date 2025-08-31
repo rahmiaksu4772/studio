@@ -51,7 +51,6 @@ import { tr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import '@/lib/Roboto-Regular-normal.js';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
 import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
 import { useClassesAndStudents } from '@/hooks/use-daily-records';
@@ -174,7 +173,7 @@ function RaporlarPageContent() {
                 const score = scoresByDate[record.date] || 0;
                 scoresByDate[record.date] = score + scoreValues[status];
                 statusEvents.push({ date: record.date, type: 'status', value: String(event.value) });
-            } else if (event.type === 'note') {
+            } else if (event.type === 'note' && event.value) {
                 noteEvents.push({ date: record.date, type: 'note', value: String(event.value) });
             }
         });
@@ -232,13 +231,15 @@ function RaporlarPageContent() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
-    doc.setFont('Roboto', 'normal');
+    
+    // Set Font Family for the entire document
+    doc.setFont('PT Sans', 'normal');
     
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
     const pageHeader = (data: any) => {
-        doc.setFont('Roboto', 'normal');
+        doc.setFont('PT Sans', 'normal');
         doc.setFontSize(18);
         doc.setTextColor(40);
         if (selectedReportType === 'sinif' && classReportData) {
@@ -250,7 +251,7 @@ function RaporlarPageContent() {
     };
 
     const pageFooter = (data: any) => {
-        doc.setFont('Roboto', 'normal');
+        doc.setFont('PT Sans', 'normal');
         const pageCount = doc.getNumberOfPages();
         doc.setFontSize(8);
         doc.setTextColor(150);
@@ -260,7 +261,7 @@ function RaporlarPageContent() {
     };
 
     const tableStyles: any = {
-        font: "Roboto",
+        font: "PT Sans",
         fontStyle: 'normal',
     };
 
@@ -279,7 +280,7 @@ function RaporlarPageContent() {
             ]);
             if (s.notes.length > 0) {
                 const notesText = s.notes.map(n => `  - ${format(parseISO(n.date), 'dd/MM/yy', { locale: tr })}: ${n.content}`).join('\n');
-                body.push([{ content: `Öğretmen Görüşleri:\n${notesText}`, colSpan: 8, styles: { font: "Roboto", fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
+                body.push([{ content: `Öğretmen Görüşleri:\n${notesText}`, colSpan: 8, styles: { font: "PT Sans", fontStyle: 'italic', textColor: 60, fontSize: 9 } }]);
             }
         }
 
@@ -301,7 +302,7 @@ function RaporlarPageContent() {
     } else if (selectedReportType === 'bireysel' && individualReportData) {
         const selectedStudent = students.find(s => s.id === selectedStudentId);
         
-        doc.setFont('Roboto', 'normal');
+        doc.setFont('PT Sans', 'normal');
         doc.setFontSize(11);
         doc.setTextColor(100);
         doc.text(`Sınıf: ${selectedClass?.name}`, 14, 32);
@@ -314,6 +315,7 @@ function RaporlarPageContent() {
         doc.setFontSize(12);
         doc.setTextColor(40);
         doc.text('Genel Durum Özeti', 14, 50);
+        doc.setFont('PT Sans', 'normal');
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
 
