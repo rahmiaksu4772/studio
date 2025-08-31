@@ -407,7 +407,7 @@ function GunlukTakipPageContent() {
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
                                 <div className="flex flex-col min-w-0">
                                     <p className='font-semibold'>{student.firstName} {student.lastName}</p>
-                                    <div className="flex items-center gap-1.5 mt-1 overflow-x-auto flex-nowrap pb-1">
+                                    <div className="flex items-center gap-1.5 mt-1 overflow-x-auto flex-nowrap pb-1 no-scrollbar">
                                         {statusEvents.map((event) => {
                                             const option = statusOptions.find(o => o.value === event.value);
                                             return(
