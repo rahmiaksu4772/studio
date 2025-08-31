@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Upload, Plus, Folder, Loader2 } from 'lucide-react';
+import { Upload, Plus, Folder, Loader2, FileText, Sheet, File as WordIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Plan } from '@/lib/types';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const ACCEPTED_FILE_TYPES_DOC = [
     'application/pdf', 
     'application/msword', 
@@ -59,7 +59,7 @@ const formSchema = z.object({
     if(!data.file || data.file.length === 0) return true;
     return data.file[0].size <= MAX_FILE_SIZE;
 }, {
-    message: `Maksimum dosya boyutu 10MB'dir.`,
+    message: `Maksimum dosya boyutu 1MB'dir.`,
     path: ['file'],
 });
 
@@ -139,6 +139,16 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
   );
 
   const selectedFile = form.watch('file');
+  const importToSchedule = form.watch('importToSchedule');
+
+  const getFileIcon = () => {
+    if (!selectedFile || selectedFile.length === 0) return <Folder className="mr-2 h-4 w-4" />;
+    const fileType = selectedFile[0].type;
+    if (fileType.includes('pdf')) return <FileText className="mr-2 h-4 w-4 text-red-500" />;
+    if (fileType.includes('word')) return <WordIcon className="mr-2 h-4 w-4 text-blue-500" />;
+    if (fileType.includes('sheet') || fileType.includes('excel')) return <Sheet className="mr-2 h-4 w-4 text-green-500" />;
+    return <Folder className="mr-2 h-4 w-4" />;
+  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
@@ -212,7 +222,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                           htmlFor="file-upload" 
                           className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                         >
-                          <Folder className="mr-2 h-4 w-4" />
+                          {getFileIcon()}
                           <span>{selectedFile?.[0]?.name ?? 'Dosya Seç'}</span>
                         </label>
                         <Input
@@ -236,7 +246,20 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                   <FormControl>
                     <Checkbox
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        if (checked && selectedFile && selectedFile.length > 0) {
+                            const fileType = selectedFile[0].type;
+                            if (!ACCEPTED_FILE_TYPES_SCHEDULE.includes(fileType)) {
+                                form.resetField('file');
+                                toast({
+                                    title: "Dosya kaldırıldı",
+                                    description: "Seçilen dosya türü bu işlem için uygun değil. Lütfen bir Excel dosyası seçin.",
+                                    variant: "destructive"
+                                });
+                            }
+                        }
+                      }}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -244,7 +267,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                       Ders Programını Takvime Aktar
                     </FormLabel>
                     <FormDescription>
-                      Bu bir Excel ders programıysa seçin. Seçtiğinizde, içeriği haftalık ders programınıza aktarılacaktır.
+                      Sadece Excel dosyaları (.xls, .xlsx) programa aktarılabilir.
                     </FormDescription>
                   </div>
                 </FormItem>
