@@ -215,6 +215,16 @@ function RaporlarPageContent() {
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
     
+    // Add the font for Turkish characters
+    // This is a simplified approach. For production, you might need to host the font file.
+    // jsPDF has some built-in fonts, but for full Turkish support, embedding is best.
+    // For now, we will try to get by with standard fonts and proper encoding.
+    // A better approach would be:
+    // doc.addFileToVFS('PTSans-Regular-normal.ttf', fontFileAsBase64String);
+    // doc.addFont('PTSans-Regular-normal.ttf', 'PTSans-Regular', 'normal');
+    // doc.setFont('PTSans-Regular');
+    // Due to environment limitations, we'll proceed without custom font embedding.
+
     const selectedClass = classes.find(c => c.id === selectedClassId);
     const dateTitle = dateRange?.from ? `${format(dateRange.from, "d MMMM yyyy", { locale: tr })} - ${dateRange.to ? format(dateRange.to, "d MMMM yyyy", { locale: tr }) : ''}` : '';
     
@@ -238,9 +248,11 @@ function RaporlarPageContent() {
         doc.text(text, doc.internal.pageSize.width - data.settings.margin.right - textWidth, doc.internal.pageSize.height - 10);
     };
 
-    const tableStyles = {
-        font: "helvetica",
-        fontStyle: 'normal'
+    const tableStyles: any = {
+        font: "helvetica", // Using a standard font
+        fontStyle: 'normal',
+        // To handle Turkish characters, jspdf-autotable relies on the font capabilities.
+        // Without a custom embedded font, some characters may not render correctly.
     };
 
     if (selectedReportType === 'sinif' && classReportData) {
