@@ -14,7 +14,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription as DialogDescriptionComponent, // Renamed to avoid conflict
+  DialogDescription as DialogDescriptionComponent,
   DialogFooter,
   DialogTrigger,
   DialogClose,
@@ -46,12 +46,12 @@ const formSchema = z.object({
     .custom<FileList>()
     .refine((files) => files?.length > 0, 'Lütfen bir dosya seçin.'),
 }).refine((data) => {
-    if(!data.file || data.file.length === 0) return false;
+    if (!data.file || data.file.length === 0) return false;
     const fileType = data.file[0].type;
     const acceptedTypes = data.importToSchedule ? ACCEPTED_FILE_TYPES_SCHEDULE : ACCEPTED_FILE_TYPES_DOC;
     return acceptedTypes.includes(fileType);
 }, {
-    message: 'Seçilen dosya türü bu işlem için uygun değil. Program aktarımı için sadece Excel (.xls, .xlsx) dosyaları kullanılabilir.',
+    message: 'Geçersiz dosya türü. PDF, Word veya Excel dosyası yükleyebilirsiniz. Program aktarımı için sadece Excel dosyaları desteklenir.',
     path: ['file'],
 }).refine((data) => {
     if(!data.file || data.file.length === 0) return false;
@@ -208,7 +208,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                       <div>
                         <label 
                           htmlFor="file-upload" 
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                          className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                         >
                           <Folder className="mr-2 h-4 w-4" />
                           <span>{selectedFile?.[0]?.name ?? 'Dosya Seç'}</span>
