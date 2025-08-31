@@ -224,7 +224,7 @@ function NotlarimPageContent() {
 
   return (
     <AppLayout>
-      <main className="flex-1 space-y-4 p-8 pt-6">
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Notlarım</h2>
         </div>
@@ -366,7 +366,7 @@ function NotlarimPageContent() {
       </main>
       
       <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Kameradan Fotoğraf Ekle</DialogTitle>
             <DialogDescription>
@@ -382,9 +382,9 @@ function NotlarimPageContent() {
                   </AlertDescription>
                 </Alert>
             )}
-            <div className="bg-black rounded-md overflow-hidden">
+            <div className="bg-black rounded-md overflow-hidden aspect-video flex items-center justify-center">
               {capturedImage ? (
-                <img src={capturedImage} alt="Yakalanan Görüntü"/>
+                <img src={capturedImage} alt="Yakalanan Görüntü" className="w-full h-auto"/>
               ) : (
                  <video ref={videoRef} className="w-full h-auto" autoPlay muted playsInline />
               )}
