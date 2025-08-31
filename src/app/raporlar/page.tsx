@@ -555,7 +555,7 @@ function RaporlarPageContent() {
                     </TableHeader>
                     <TableBody>
                         {classReportData.studentSummaries.map(student => (
-                            <Collapsible asChild key={student.id}>
+                            <Collapsible key={student.id} asChild>
                                 <>
                                     <TableRow>
                                         <TableCell className="font-medium">{student.studentNumber}</TableCell>
@@ -566,12 +566,12 @@ function RaporlarPageContent() {
                                         <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
                                         <TableCell className="text-center">
                                             <CollapsibleTrigger asChild>
-                                                {student.notes.length > 0 && (
+                                                {student.notes.length > 0 ? (
                                                     <Button variant="ghost" size="sm">
                                                         <ChevronDown className="h-4 w-4" />
                                                         <span className='ml-1'>{student.notes.length}</span>
                                                     </Button>
-                                                )}
+                                                ) : null}
                                             </CollapsibleTrigger>
                                         </TableCell>
                                     </TableRow>
@@ -720,3 +720,4 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
+
