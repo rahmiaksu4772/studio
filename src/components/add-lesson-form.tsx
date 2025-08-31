@@ -5,7 +5,6 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,7 +22,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
 import { Day, Lesson } from '@/lib/types';
@@ -31,53 +29,47 @@ import { Day, Lesson } from '@/lib/types';
 const formSchema = z.object({
   subject: z.string().min(2, { message: 'Ders adı en az 2 karakter olmalıdır.' }),
   class: z.string().min(1, { message: 'Sınıf adı en az 1 karakter olmalıdır.' }),
-  time: z
-    .string()
-    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]\s*-\s*([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
-      message: 'Lütfen "09:00-09:40" formatında girin.',
-    }),
 });
 
 type AddLessonFormProps = {
+  isOpen: boolean;
+  onClose: () => void;
   day: Day;
-  onAddLesson: (day: Day, lessonData: Omit<Lesson, 'id'>) => void;
+  lesson: Lesson | Omit<Lesson, 'id'>;
+  onSave: (day: Day, lessonData: Omit<Lesson, 'id'>) => void;
 };
 
-export function AddLessonForm({ day, onAddLesson }: AddLessonFormProps) {
-  const [open, setOpen] = React.useState(false);
-
+export function AddLessonForm({ isOpen, onClose, day, lesson, onSave }: AddLessonFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      subject: '',
-      class: '',
-      time: '',
+      subject: lesson.subject || '',
+      class: lesson.class || '',
     },
   });
+  
+  React.useEffect(() => {
+    form.reset({
+      subject: lesson.subject || '',
+      class: lesson.class || '',
+    })
+  }, [lesson, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onAddLesson(day, {
-      subject: values.subject,
-      class: values.class,
-      time: values.time.replace(/\s/g, ''), // remove whitespace
+    onSave(day, {
+      ...values,
+      time: lesson.time,
     });
-    form.reset();
-    setOpen(false);
+    onClose();
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Plus className="mr-2 h-4 w-4" />
-          Ders Ekle
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Yeni Ders Ekle</DialogTitle>
+          <DialogTitle>{lesson.subject ? 'Dersi Düzenle' : 'Yeni Ders Ekle'}</DialogTitle>
           <DialogDescription>
-            {day} gününe eklenecek dersin detaylarını girin.
+            {day} günü için {lesson.time} saatindeki dersin detaylarını girin.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -108,24 +100,11 @@ export function AddLessonForm({ day, onAddLesson }: AddLessonFormProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ders Saati</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Örn: 09:00-09:40" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <DialogFooter>
                 <DialogClose asChild>
                     <Button type="button" variant="secondary">İptal</Button>
                 </DialogClose>
-                <Button type="submit">Dersi Ekle</Button>
+                <Button type="submit">Dersi Kaydet</Button>
             </DialogFooter>
           </form>
         </Form>

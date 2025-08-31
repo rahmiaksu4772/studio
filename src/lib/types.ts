@@ -62,16 +62,27 @@ export type Plan = {
 
 export type Lesson = {
   id: string;
-  time: string;
+  time: string; // "HH:mm-HH:mm" format
   subject: string;
   class: string;
 }
 
 export type Day = 'Pazartesi' | 'Salı' | 'Çarşamba' | 'Perşembe' | 'Cuma' | 'Cumartesi' | 'Pazar';
 
+export type DaySchedule = {
+    schoolStartTime: string; // "HH:mm"
+    schoolEndTime: string;   // "HH:mm"
+    lessonDuration: number; // minutes
+    breakDuration: number;  // minutes
+    lunchStartTime: string; // "HH:mm"
+    lunchEndTime: string;   // "HH:mm"
+    lunchIsActive: boolean;
+    lessons: Lesson[];
+}
+
 export type WeeklyScheduleItem = {
   day: Day;
-  lessons: Lesson[];
+  schedule: DaySchedule;
 }
 
 export type LessonPlanEntry = {
