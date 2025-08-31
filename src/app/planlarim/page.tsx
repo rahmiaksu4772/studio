@@ -154,13 +154,11 @@ function PlanlarimPageContent() {
 
     if (plan.fileType.includes('pdf')) {
       const url = URL.createObjectURL(blob);
-      const newWindow = window.open(url);
+      const newWindow = window.open(url, '_blank');
       if(!newWindow) {
         toast({ title: 'Hata', description: 'PDF yeni sekmede açılamadı. Lütfen pop-up engelleyicinizi kontrol edin.', variant: 'destructive' });
       }
-      if(newWindow) {
-        newWindow.onload = () => URL.revokeObjectURL(url);
-      }
+      // No need for onload revoke for _blank for better browser support
     } else if (plan.fileType.includes('sheet') || plan.fileType.includes('excel')) {
         try {
             const data = await blob.arrayBuffer();
@@ -171,7 +169,7 @@ function PlanlarimPageContent() {
                 header: ['month', 'week', 'hours', 'unit', 'topic', 'objective', 'objectiveExplanation', 'methods', 'assessment', 'specialDays', 'extracurricular']
             });
             const startIndex = json.findIndex(row => row.week && (row.week.toString().includes('Hafta') || /\d/.test(row.week.toString())));
-            const planEntries = json.slice(startIndex).map((row, index) => ({
+            const planEntries = json.slice(startIndex >= 0 ? startIndex : 0).map((row, index) => ({
                 id: `${plan.id}-${index}`,
                 ...row
             } as LessonPlanEntry));
