@@ -196,17 +196,15 @@ function NotlarimPageContent() {
       setIsRecording(false);
     };
 
-    let final_transcript = newNoteContent;
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim_transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          final_transcript += event.results[i][0].transcript + '. ';
-        } else {
-          interim_transcript += event.results[i][0].transcript;
+        const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('');
+
+        if (event.results[event.results.length - 1].isFinal) {
+             setNewNoteContent(prevContent => prevContent.trim() ? `${prevContent.trim()} ${transcript.trim()}` : transcript.trim());
         }
-      }
-      setNewNoteContent(final_transcript + interim_transcript);
     };
     
     recognition.start();
