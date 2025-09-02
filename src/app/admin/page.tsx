@@ -124,8 +124,8 @@ function AdminPage() {
                 <CardTitle>Kullanıcı Listesi</CardTitle>
                 <CardDescription>{usersData.length} öğretmen sisteme kayıtlı.</CardDescription>
             </CardHeader>
-            <CardContent className="p-4 overflow-x-auto">
-                <Table className="min-w-[800px]">
+            <CardContent>
+                <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead className="pl-6">Ad Soyad</TableHead>
