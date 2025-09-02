@@ -17,6 +17,8 @@ import {
     getDocs,
     writeBatch,
     increment,
+    deleteDoc,
+    collectionGroup,
 } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { ForumPost, ForumReply, ForumComment, ForumAuthor } from '@/lib/types';
@@ -60,7 +62,12 @@ export function useForumPost(postId: string) {
     const [replies, setReplies] = React.useState<ForumReply[]>([]);
     const [comments, setComments] = React.useState<Record<string, ForumComment[]>>({});
     const [isLoading, setIsLoading] = React.useState(true);
-  
+    const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+
+    const forceRefresh = React.useCallback(() => {
+        setRefreshTrigger(v => v + 1);
+    }, []);
+
     React.useEffect(() => {
       if (!postId) {
           setIsLoading(false);
@@ -107,9 +114,19 @@ export function useForumPost(postId: string) {
         unsubscribePost();
         unsubscribeReplies();
       };
-    }, [postId, toast]);
+    }, [postId, toast, refreshTrigger]);
   
-    return { post, replies, comments, isLoading };
+    return { post, replies, comments, isLoading, forceRefresh };
+}
+
+async function deleteSubcollection(collectionPath: string) {
+    const batch = writeBatch(db);
+    const q = query(collection(db, collectionPath));
+    const snapshot = await getDocs(q);
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
 }
 
 
@@ -124,6 +141,32 @@ export const addPost = async (postData: Omit<ForumPost, 'id' | 'date'>) => {
     } catch (error) {
       console.error("Error adding post:", error);
       return false;
+    }
+};
+
+export const deletePost = async (postId: string) => {
+    try {
+        const batch = writeBatch(db);
+        const postRef = doc(db, 'forum', postId);
+
+        // Delete all replies and their sub-collections (comments)
+        const repliesRef = collection(db, `forum/${postId}/replies`);
+        const repliesSnapshot = await getDocs(repliesRef);
+        for(const replyDoc of repliesSnapshot.docs) {
+            // Delete comments subcollection for each reply
+            await deleteSubcollection(`forum/${postId}/replies/${replyDoc.id}/comments`);
+            // Delete the reply itself
+            batch.delete(replyDoc.ref);
+        }
+
+        // Delete the main post
+        batch.delete(postRef);
+
+        await batch.commit();
+        return true;
+    } catch (error) {
+        console.error("Error deleting post and its subcollections: ", error);
+        return false;
     }
 };
 
@@ -142,6 +185,17 @@ export const addReply = async (postId: string, replyData: Omit<ForumReply, 'id' 
         return false;
     }
 };
+
+export const deleteReply = async (postId: string, replyId: string) => {
+    try {
+        await deleteSubcollection(`forum/${postId}/replies/${replyId}/comments`);
+        await deleteDoc(doc(db, `forum/${postId}/replies`, replyId));
+        return true;
+    } catch (error) {
+        console.error("Error deleting reply: ", error);
+        return false;
+    }
+}
 
 // Function to add a comment to a reply using a subcollection
 export const addCommentToReply = async (postId: string, replyId: string, author: ForumAuthor, content: string) => {
@@ -171,6 +225,28 @@ export const addCommentToReply = async (postId: string, replyId: string, author:
         return false;
     }
 };
+
+export const deleteComment = async (postId: string, replyId: string, commentId: string) => {
+    try {
+        const batch = writeBatch(db);
+        
+        // Reference to the comment to be deleted
+        const commentRef = doc(db, `forum/${postId}/replies/${replyId}/comments`, commentId);
+        batch.delete(commentRef);
+        
+        // Reference to the parent reply to decrement commentCount
+        const replyRef = doc(db, `forum/${postId}/replies`, replyId);
+        batch.update(replyRef, {
+            commentCount: increment(-1)
+        });
+
+        await batch.commit();
+        return true;
+    } catch (error) {
+        console.error("Error deleting comment:", error);
+        return false;
+    }
+}
 
 
 // Function to upvote/downvote a reply

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import AppLayout from '@/components/app-layout';
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
@@ -11,23 +11,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronLeft, User, Calendar, ThumbsUp, Send, Loader2, MessageSquare } from 'lucide-react';
+import { ChevronLeft, User, Calendar, ThumbsUp, Send, Loader2, MessageSquare, Trash2 } from 'lucide-react';
 import type { ForumPost, ForumReply, ForumAuthor, ForumComment } from '@/lib/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useForumPost, addReply, toggleUpvote, addCommentToReply } from '@/hooks/use-forum';
+import { useForumPost, addReply, toggleUpvote, addCommentToReply, deletePost, deleteReply, deleteComment } from '@/hooks/use-forum';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-function ReplyCard({ reply, comments, user, post, profile }: { reply: ForumReply, comments: ForumComment[], user: any, post: ForumPost, profile: any }) {
+function ReplyCard({ reply, comments, user, post, profile, onCommentDeleted }: { reply: ForumReply, comments: ForumComment[], user: any, post: ForumPost, profile: any, onCommentDeleted: () => void }) {
     const { toast } = useToast();
     const [commentContent, setCommentContent] = React.useState('');
     const [isSubmittingComment, setIsSubmittingComment] = React.useState(false);
-
+    
     const handleUpvote = async (replyId: string) => {
         if (!user || !post) return;
         await toggleUpvote(post.id, replyId, user.uid);
@@ -53,7 +54,30 @@ function ReplyCard({ reply, comments, user, post, profile }: { reply: ForumReply
         }
         setIsSubmittingComment(false);
     };
+    
+    const handleDeleteReply = async () => {
+        if(!post) return;
+        const success = await deleteReply(post.id, reply.id);
+        if (success) {
+            toast({ title: 'Cevap Silindi', variant: 'destructive'});
+        } else {
+            toast({ title: 'Hata', description: 'Cevap silinemedi.', variant: 'destructive' });
+        }
+    }
 
+    const handleDeleteComment = async (commentId: string) => {
+        if(!post) return;
+        const success = await deleteComment(post.id, reply.id, commentId);
+        if (success) {
+            onCommentDeleted();
+            toast({ title: 'Yorum Silindi', variant: 'destructive'});
+        } else {
+            toast({ title: 'Hata', description: 'Yorum silinemedi.', variant: 'destructive' });
+        }
+    }
+    
+    const canDeleteReply = profile?.role === 'admin' || reply.author.uid === user?.uid;
+    
     return (
         <Card key={reply.id} className="bg-muted/50">
             <CardContent className="p-4">
@@ -65,7 +89,28 @@ function ReplyCard({ reply, comments, user, post, profile }: { reply: ForumReply
                     <div className='flex-1'>
                         <div className="flex items-center justify-between">
                             <p className="font-semibold">{reply.author.name}</p>
-                            <p className="text-xs text-muted-foreground">{format(new Date(reply.date), 'dd.MM.yyyy HH:mm', { locale: tr })}</p>
+                            <div className='flex items-center gap-1'>
+                                <p className="text-xs text-muted-foreground">{format(new Date(reply.date), 'dd.MM.yyyy HH:mm', { locale: tr })}</p>
+                                {canDeleteReply && (
+                                     <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant='ghost' size='icon' className='h-6 w-6 text-muted-foreground hover:text-destructive'>
+                                                <Trash2 className='h-4 w-4'/>
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Cevabı Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
+                                                <AlertDialogDescription>Bu işlem geri alınamaz. Bu cevap ve altındaki tüm yorumlar kalıcı olarak silinecektir.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDeleteReply} className="bg-destructive hover:bg-destructive/90">Evet, Sil</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
+                            </div>
                         </div>
                         <p className="text-sm mt-2">{reply.content}</p>
                         <Collapsible>
@@ -89,18 +134,41 @@ function ReplyCard({ reply, comments, user, post, profile }: { reply: ForumReply
                             </div>
                             <CollapsibleContent className="space-y-4 pt-4">
                                 <div className="space-y-3">
-                                    {comments?.map(comment => (
-                                        <div key={comment.id} className="flex items-start gap-2 text-sm">
+                                    {comments?.map(comment => {
+                                        const canDeleteComment = profile?.role === 'admin' || comment.author.uid === user?.uid;
+                                        return (
+                                        <div key={comment.id} className="group flex items-start gap-2 text-sm">
                                             <Avatar className='h-7 w-7'>
                                                 <AvatarImage src={comment.author.avatarUrl} data-ai-hint="teacher portrait" />
                                                 <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
-                                            <div className="bg-background rounded-lg px-3 py-2 flex-1">
-                                                <span className="font-semibold">{comment.author.name}</span>
-                                                <p className="text-muted-foreground">{comment.content}</p>
+                                            <div className="bg-background rounded-lg px-3 py-2 flex-1 flex justify-between items-start">
+                                                <div>
+                                                    <span className="font-semibold">{comment.author.name}</span>
+                                                    <p className="text-muted-foreground">{comment.content}</p>
+                                                </div>
+                                                 {canDeleteComment && (
+                                                     <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant='ghost' size='icon' className='h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive'>
+                                                                <Trash2 className='h-3 w-3'/>
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Yorumu Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
+                                                                <AlertDialogDescription>Bu işlem geri alınamaz. Yorum kalıcı olarak silinecektir.</AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDeleteComment(comment.id)} className="bg-destructive hover:bg-destructive/90">Evet, Sil</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                )}
                                             </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                                 <form onSubmit={handleCommentSubmit} className="flex items-center gap-2">
                                     <Input
@@ -124,10 +192,11 @@ function ReplyCard({ reply, comments, user, post, profile }: { reply: ForumReply
 
 function PostDetailPageContent() {
   const params = useParams();
+  const router = useRouter();
   const postId = params.id as string;
   const { user } = useAuth();
   const { profile } = useUserProfile(user?.uid);
-  const { post, replies, comments, isLoading } = useForumPost(postId);
+  const { post, replies, comments, isLoading, forceRefresh } = useForumPost(postId);
   const { toast } = useToast();
   
   const [replyContent, setReplyContent] = React.useState('');
@@ -152,6 +221,17 @@ function PostDetailPageContent() {
         toast({ title: 'Hata', description: 'Cevabınız gönderilemedi.', variant: 'destructive' });
     }
     setIsSubmitting(false);
+  }
+  
+  const handleDeletePost = async () => {
+    if (!post) return;
+    const success = await deletePost(post.id);
+    if(success) {
+        toast({title: 'Gönderi Silindi', description: 'Gönderi ve tüm içeriği başarıyla silindi.', variant: 'destructive'});
+        router.push('/forum');
+    } else {
+        toast({title: 'Hata', description: 'Gönderi silinirken bir hata oluştu.', variant: 'destructive'});
+    }
   }
 
   if (isLoading) {
@@ -182,11 +262,30 @@ function PostDetailPageContent() {
   return (
     <AppLayout>
       <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-         <div>
+         <div className='flex justify-between items-center'>
             <Link href="/forum" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Tüm Sorulara Geri Dön
             </Link>
+            {profile?.role === 'admin' && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant='destructive'>
+                            <Trash2 className='mr-2 h-4 w-4'/> Gönderiyi Sil
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Bu Gönderiyi Silmek İstediğinize Emin misiniz?</AlertDialogTitle>
+                            <AlertDialogDescription>Bu işlem geri alınamaz. Bu gönderi, tüm cevapları ve yorumları ile birlikte kalıcı olarak silinecektir.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeletePost} className="bg-destructive hover:bg-destructive/90">Evet, Kalıcı Olarak Sil</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
         </div>
 
         <Card>
@@ -214,7 +313,7 @@ function PostDetailPageContent() {
         <h3 className="text-2xl font-bold pt-4">{replies.length} Cevap</h3>
         <div className="space-y-4">
             {replies.sort((a,b) => b.upvotedBy.length - a.upvotedBy.length).map(reply => (
-               <ReplyCard key={reply.id} reply={reply} comments={comments[reply.id] || []} user={user} post={post} profile={profile} />
+               <ReplyCard key={reply.id} reply={reply} comments={comments[reply.id] || []} user={user} post={post} profile={profile} onCommentDeleted={forceRefresh} />
             ))}
         </div>
         
