@@ -1,4 +1,3 @@
-
 import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, FileCheck } from "lucide-react";
 
 export type Student = {
@@ -58,6 +57,7 @@ export type Plan = {
     uploadDate: string; // ISO string for ordering
     fileType: string;
     fileName: string;
+    className?: string; // Optional field to link plan to a class
 };
 
 export type Lesson = {

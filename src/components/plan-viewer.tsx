@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -22,14 +21,15 @@ type PlanViewerProps = {
   onClose: () => void;
   title: string;
   entries: LessonPlanEntry[];
+  startWeek?: number;
 };
 
-export function PlanViewer({ isOpen, onClose, title, entries }: PlanViewerProps) {
+export function PlanViewer({ isOpen, onClose, title, entries, startWeek }: PlanViewerProps) {
     const [currentWeekIndex, setCurrentWeekIndex] = React.useState(0);
 
     React.useEffect(() => {
         if (isOpen && entries.length > 0) {
-            const currentWeekNumber = getWeek(new Date(), { weekStartsOn: 1 });
+            const currentWeekNumber = startWeek || getWeek(new Date(), { weekStartsOn: 1 });
             const foundIndex = entries.findIndex(entry => {
                 if (!entry.week) return false;
                 const weekNumberMatch = entry.week.match(/\d+/);
@@ -37,7 +37,7 @@ export function PlanViewer({ isOpen, onClose, title, entries }: PlanViewerProps)
             });
             setCurrentWeekIndex(foundIndex !== -1 ? foundIndex : 0);
         }
-    }, [isOpen, entries]);
+    }, [isOpen, entries, startWeek]);
 
     if (!isOpen || !entries.length) return null;
 

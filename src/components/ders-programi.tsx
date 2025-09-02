@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Calendar, Clock, Settings, Plus } from 'lucide-react';
-import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Loader2, Calendar, Settings } from 'lucide-react';
+import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings, Plan, LessonPlanEntry } from '@/lib/types';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,16 +14,21 @@ import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
+import { Plus } from 'lucide-react';
+import { usePlans } from '@/hooks/use-plans';
+import { PlanViewer } from './plan-viewer';
+import * as XLSX from 'xlsx';
+import { getWeek } from 'date-fns';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 const dayShort: { [key in Day]: string } = {
-    'Pazartesi': 'P',
-    'Salı': 'S',
-    'Çarşamba': 'Ç',
-    'Perşembe': 'P',
-    'Cuma': 'C',
-    'Cumartesi': 'C',
-    'Pazar': 'P',
+    'Pazartesi': 'Pzt',
+    'Salı': 'Sal',
+    'Çarşamba': 'Çar',
+    'Perşembe': 'Per',
+    'Cuma': 'Cum',
+    'Cumartesi': 'Cmt',
+    'Pazar': 'Paz',
 };
 
 const calculateEndTime = (startTime: string, duration: number): string => {
@@ -36,27 +41,99 @@ const calculateEndTime = (startTime: string, duration: number): string => {
     return `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
 };
 
-
 export default function DersProgrami() {
   const { user } = useAuth();
   const { schedule, isLoading, updateLesson, updateSettings, settings } = useWeeklySchedule(user?.uid);
+  const { plans, isLoading: isLoadingPlans } = usePlans(user?.uid);
   const { toast } = useToast();
   
   const [editingLesson, setEditingLesson] = React.useState<{ day: Day, lessonSlot: number, lesson: Lesson | null } | null>(null);
   const [localSettings, setLocalSettings] = React.useState<ScheduleSettings>(settings);
   const [selectedDay, setSelectedDay] = React.useState<Day>('Pazartesi');
 
+  const [viewingPlanContent, setViewingPlanContent] = React.useState<LessonPlanEntry[] | null>(null);
+  const [viewingPlanTitle, setViewingPlanTitle] = React.useState<string>('');
+  const [currentWeekNumber, setCurrentWeekNumber] = React.useState<number>(getWeek(new Date()));
+
   React.useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
   
-  // Set selected day to today if it's a weekday
   React.useEffect(() => {
-    const todayIndex = new Date().getDay() - 1; // Monday = 0, ..., Friday = 4
+    const todayIndex = new Date().getDay() - 1; 
     if (todayIndex >= 0 && todayIndex < 5) {
         setSelectedDay(dayOrder[todayIndex]);
     }
   }, []);
+
+  const handleLessonClick = (day: Day, lessonSlot: number, lesson: Lesson | null) => {
+    if (lesson) {
+        const relatedPlan = plans.find(p => p.title.includes(lesson.class) && p.type === 'annual');
+        if (relatedPlan) {
+            viewFile(relatedPlan);
+            return;
+        }
+    }
+    setEditingLesson({ day, lessonSlot, lesson });
+  };
+  
+    const dataURIToBlob = (dataURI: string): Blob | null => {
+        try {
+            const splitDataURI = dataURI.split(',');
+            const byteString = splitDataURI[0].indexOf('base64') >= 0 ? atob(splitDataURI[1]) : decodeURI(splitDataURI[1]);
+            const mimeString = splitDataURI[0].split(':')[1].split(';')[0];
+
+            const ia = new Uint8Array(byteString.length);
+            for (let i = 0; i < byteString.length; i++)
+                ia[i] = byteString.charCodeAt(i);
+
+            return new Blob([ia], { type: mimeString });
+        } catch (error) {
+            console.error("Error converting Data URI to Blob:", error);
+            return null;
+        }
+    }
+
+  const viewFile = async (plan: Plan) => {
+    setViewingPlanTitle(plan.title);
+    
+    const blob = dataURIToBlob(plan.fileDataUrl);
+    if (!blob) {
+        toast({ title: 'Hata', description: 'Dosya verisi okunamadı.', variant: 'destructive' });
+        return;
+    }
+
+    if (plan.fileType.includes('sheet') || plan.fileType.includes('excel')) {
+        try {
+            const data = await blob.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json<any>(worksheet, {
+                header: ['month', 'week', 'hours', 'unit', 'topic', 'objective', 'objectiveExplanation', 'methods', 'assessment', 'specialDays', 'extracurricular']
+            });
+            const startIndex = json.findIndex(row => row.week && (row.week.toString().includes('Hafta') || /\d/.test(row.week.toString())));
+            const planEntries = json.slice(startIndex >= 0 ? startIndex : 0).map((row, index) => ({
+                id: `${plan.id}-${index}`,
+                ...row
+            } as LessonPlanEntry));
+
+            setViewingPlanContent(planEntries);
+        } catch(e) {
+             console.error("Error parsing excel file: ", e);
+             toast({ title: 'Hata', description: 'Excel dosyası işlenirken bir hata oluştu.', variant: 'destructive' });
+             setViewingPlanTitle('');
+        }
+    } else {
+      // For other file types like PDF/Word, just show a message or download. For now, modal won't open.
+      toast({ title: 'Plan Görüntülenemiyor', description: 'Bu plan türü için uygulama içi görüntüleyici mevcut değil. Planlarim sayfasından indirebilirsiniz.' });
+    }
+  };
+
+  const closeViewer = () => {
+    setViewingPlanContent(null);
+    setViewingPlanTitle('');
+  }
 
   const handleLessonSave = async (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'|'lessonSlot'>) => {
     if (!user) return;
@@ -125,7 +202,7 @@ export default function DersProgrami() {
       return schedule.find(d => d.day === selectedDay);
   }, [schedule, selectedDay]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingPlans) {
     return (
       <Card className="w-full">
         <CardHeader><CardTitle>Haftalık Ders Programı</CardTitle></CardHeader>
@@ -145,7 +222,7 @@ export default function DersProgrami() {
               </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-             <div className='flex items-center justify-center gap-2 md:gap-4 mb-4'>
+             <div className='flex items-center justify-center gap-1 md:gap-2 mb-4'>
                 {dayOrder.map(day => {
                     const color = stringToColor(day);
                     return (
@@ -153,14 +230,15 @@ export default function DersProgrami() {
                             key={day}
                             onClick={() => setSelectedDay(day)}
                             className={cn(
-                                'flex-1 md:flex-none md:w-12 h-12 rounded-full text-lg font-bold transition-all duration-300 flex items-center justify-center',
+                                'flex-1 md:flex-none md:w-auto md:px-4 h-12 rounded-full text-sm md:text-base font-bold transition-all duration-300 flex items-center justify-center',
                                 selectedDay === day 
                                     ? 'text-white shadow-lg' 
                                     : 'text-muted-foreground bg-muted hover:bg-muted/80'
                             )}
                             style={{ backgroundColor: selectedDay === day ? color : undefined }}
                         >
-                            {dayShort[day]}
+                            <span className='hidden md:inline'>{day}</span>
+                            <span className='md:hidden'>{dayShort[day]}</span>
                         </button>
                     )
                 })}
@@ -183,7 +261,7 @@ export default function DersProgrami() {
                         return(
                             <button
                                 key={`slot-${slotIndex}`}
-                                onClick={() => setEditingLesson({ day: selectedDay, lessonSlot: slotIndex, lesson: lesson || null })}
+                                onClick={() => handleLessonClick(selectedDay, slotIndex, lesson || null)}
                                 className={cn(
                                     'w-full p-3 rounded-lg flex items-center gap-4 transition-all duration-200 border text-left',
                                     lesson ? 'shadow-sm' : 'bg-muted/50 hover:bg-muted'
@@ -222,8 +300,11 @@ export default function DersProgrami() {
                     <Settings className='h-4 w-4'/>
                     Program Ayarları
                 </CardTitle>
+                <CardDescription>
+                    Ders sürelerini ve başlangıç saatlerini buradan düzenleyebilirsiniz.
+                </CardDescription>
             </CardHeader>
-            <CardContent className='space-y-4'>
+            <CardContent className='grid sm:grid-cols-2 gap-6'>
                  <div className='space-y-2'>
                     <Label htmlFor="lessonDuration" className='flex-shrink-0'>Ders Süresi (Dakika)</Label>
                     <Input
@@ -237,7 +318,7 @@ export default function DersProgrami() {
                 </div>
                 <div className='space-y-2'>
                     <Label>Ders Saatleri</Label>
-                    <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'>
+                    <div className='grid grid-cols-2 sm:grid-cols-3 gap-2'>
                     {localSettings.timeSlots.map((time, index) => (
                         <Input
                             key={index}
@@ -249,7 +330,7 @@ export default function DersProgrami() {
                         />
                     ))}
                      <Button variant='outline' onClick={handleAddNewTimeSlot} className='flex items-center gap-2'>
-                        <Plus className='h-4 w-4'/> Yeni Saat Ekle
+                        <Plus className='h-4 w-4'/> Yeni
                     </Button>
                     </div>
                 </div>
@@ -268,6 +349,13 @@ export default function DersProgrami() {
               timeSlot={`${settings.timeSlots[editingLesson.lessonSlot]} - ${calculateEndTime(settings.timeSlots[editingLesson.lessonSlot], settings.lessonDuration)}` || ''}
           />
       )}
+       <PlanViewer 
+            isOpen={!!viewingPlanContent}
+            onClose={closeViewer}
+            title={viewingPlanTitle}
+            entries={viewingPlanContent || []}
+            startWeek={currentWeekNumber}
+        />
     </div>
   );
 }
