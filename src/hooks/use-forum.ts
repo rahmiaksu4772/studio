@@ -9,16 +9,18 @@ import {
     orderBy, 
     onSnapshot, 
     addDoc, 
-    serverTimestamp,
     doc,
     updateDoc,
     arrayUnion,
     arrayRemove,
     getDoc,
+    getDocs,
+    writeBatch,
+    increment,
 } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { ForumPost, ForumReply, ForumComment } from '@/lib/types';
-import { useAuth } from './use-auth';
+import type { ForumPost, ForumReply, ForumComment, ForumAuthor } from '@/lib/types';
+
 
 // Hook to fetch all forum posts
 export function useForum() {
@@ -51,11 +53,12 @@ export function useForum() {
 }
 
 
-// Hook to fetch a single post and its replies
+// Hook to fetch a single post, its replies, and all comments for those replies
 export function useForumPost(postId: string) {
     const { toast } = useToast();
     const [post, setPost] = React.useState<ForumPost | null>(null);
     const [replies, setReplies] = React.useState<ForumReply[]>([]);
+    const [comments, setComments] = React.useState<Record<string, ForumComment[]>>({});
     const [isLoading, setIsLoading] = React.useState(true);
   
     React.useEffect(() => {
@@ -73,16 +76,26 @@ export function useForumPost(postId: string) {
           } else {
               setPost(null);
           }
-          // Post loading is done, but replies might still be loading
       }, (error) => {
           console.error(`Error fetching post ${postId}:`, error);
           toast({ title: "Hata", description: "Gönderi yüklenemedi.", variant: "destructive" });
       });
 
       const repliesQuery = query(collection(db, `forum/${postId}/replies`), orderBy('date', 'asc'));
-      const unsubscribeReplies = onSnapshot(repliesQuery, (snapshot) => {
+      const unsubscribeReplies = onSnapshot(repliesQuery, async (snapshot) => {
         const repliesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ForumReply));
         setReplies(repliesData);
+
+        // Fetch comments for all replies
+        const allComments: Record<string, ForumComment[]> = {};
+        const commentPromises = repliesData.map(reply => {
+            const commentsQuery = query(collection(db, `forum/${postId}/replies/${reply.id}/comments`), orderBy('date', 'asc'));
+            return getDocs(commentsQuery).then(commentsSnapshot => {
+                allComments[reply.id] = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ForumComment));
+            });
+        });
+        await Promise.all(commentPromises);
+        setComments(allComments);
         setIsLoading(false); // All data is loaded
       }, (error) => {
         console.error(`Error fetching replies for post ${postId}:`, error);
@@ -96,8 +109,9 @@ export function useForumPost(postId: string) {
       };
     }, [postId, toast]);
   
-    return { post, replies, isLoading };
+    return { post, replies, comments, isLoading };
 }
+
 
 // Function to add a new post
 export const addPost = async (postData: Omit<ForumPost, 'id' | 'date'>) => {
@@ -114,13 +128,13 @@ export const addPost = async (postData: Omit<ForumPost, 'id' | 'date'>) => {
 };
 
 // Function to add a reply
-export const addReply = async (postId: string, replyData: Omit<ForumReply, 'id' | 'date' | 'upvotedBy' | 'comments'>) => {
+export const addReply = async (postId: string, replyData: Omit<ForumReply, 'id' | 'date' | 'upvotedBy' | 'commentCount'>) => {
     try {
         await addDoc(collection(db, `forum/${postId}/replies`), {
             ...replyData,
             date: new Date().toISOString(),
             upvotedBy: [],
-            comments: [],
+            commentCount: 0,
         });
         return true;
     } catch (error) {
@@ -129,18 +143,28 @@ export const addReply = async (postId: string, replyData: Omit<ForumReply, 'id' 
     }
 };
 
-// Function to add a comment to a reply
-export const addCommentToReply = async (postId: string, replyId: string, commentData: Omit<ForumComment, 'id' | 'date'>) => {
+// Function to add a comment to a reply using a subcollection
+export const addCommentToReply = async (postId: string, replyId: string, author: ForumAuthor, content: string) => {
     const replyRef = doc(db, `forum/${postId}/replies`, replyId);
+    const commentsColRef = collection(replyRef, 'comments');
     try {
-        const newComment: ForumComment = {
-            id: new Date().getTime().toString(), // Simple unique ID
-            ...commentData,
+        const newComment: Omit<ForumComment, 'id'> = {
+            author,
+            content,
             date: new Date().toISOString(),
         };
-        await updateDoc(replyRef, {
-            comments: arrayUnion(newComment)
+        const batch = writeBatch(db);
+        
+        // Add the new comment document
+        const newCommentRef = doc(commentsColRef);
+        batch.set(newCommentRef, newComment);
+
+        // Increment the comment count on the parent reply
+        batch.update(replyRef, {
+            commentCount: increment(1)
         });
+
+        await batch.commit();
         return true;
     } catch (error) {
         console.error("Error adding comment to reply:", error);

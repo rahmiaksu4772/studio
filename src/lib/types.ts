@@ -114,7 +114,7 @@ export type ForumComment = {
     author: ForumAuthor;
     date: string; // ISO String
     content: string;
-}
+};
 
 export type ForumReply = {
     id: string;
@@ -122,7 +122,7 @@ export type ForumReply = {
     date: string; // ISO String
     content: string;
     upvotedBy: string[]; // Array of user UIDs
-    comments: ForumComment[];
+    commentCount: number;
 };
 
 export type ForumPost = {

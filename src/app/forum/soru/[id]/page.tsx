@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 
-function ReplyCard({ reply, user, post, profile }: { reply: ForumReply, user: any, post: ForumPost, profile: any }) {
+function ReplyCard({ reply, comments, user, post, profile }: { reply: ForumReply, comments: ForumComment[], user: any, post: ForumPost, profile: any }) {
     const { toast } = useToast();
     const [commentContent, setCommentContent] = React.useState('');
     const [isSubmittingComment, setIsSubmittingComment] = React.useState(false);
@@ -44,7 +44,7 @@ function ReplyCard({ reply, user, post, profile }: { reply: ForumReply, user: an
             avatarUrl: profile.avatarUrl,
         };
 
-        const success = await addCommentToReply(post.id, reply.id, { author, content: commentContent });
+        const success = await addCommentToReply(post.id, reply.id, author, commentContent);
         if (success) {
             setCommentContent('');
             toast({ title: 'Yorumunuz gönderildi!' });
@@ -83,13 +83,13 @@ function ReplyCard({ reply, user, post, profile }: { reply: ForumReply, user: an
                                 <CollapsibleTrigger asChild>
                                     <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground">
                                         <MessageSquare className="h-4 w-4" />
-                                        <span>{reply.comments?.length > 0 ? reply.comments.length : ''}</span>
+                                        <span>{reply.commentCount > 0 ? reply.commentCount : ''}</span>
                                     </Button>
                                 </CollapsibleTrigger>
                             </div>
                             <CollapsibleContent className="space-y-4 pt-4">
                                 <div className="space-y-3">
-                                    {reply.comments?.map(comment => (
+                                    {comments?.map(comment => (
                                         <div key={comment.id} className="flex items-start gap-2 text-sm">
                                             <Avatar className='h-7 w-7'>
                                                 <AvatarImage src={comment.author.avatarUrl} data-ai-hint="teacher portrait" />
@@ -127,7 +127,7 @@ function PostDetailPageContent() {
   const postId = params.id as string;
   const { user } = useAuth();
   const { profile } = useUserProfile(user?.uid);
-  const { post, replies, isLoading } = useForumPost(postId);
+  const { post, replies, comments, isLoading } = useForumPost(postId);
   const { toast } = useToast();
   
   const [replyContent, setReplyContent] = React.useState('');
@@ -214,7 +214,7 @@ function PostDetailPageContent() {
         <h3 className="text-2xl font-bold pt-4">{replies.length} Cevap</h3>
         <div className="space-y-4">
             {replies.sort((a,b) => b.upvotedBy.length - a.upvotedBy.length).map(reply => (
-               <ReplyCard key={reply.id} reply={reply} user={user} post={post} profile={profile} />
+               <ReplyCard key={reply.id} reply={reply} comments={comments[reply.id] || []} user={user} post={post} profile={profile} />
             ))}
         </div>
         
