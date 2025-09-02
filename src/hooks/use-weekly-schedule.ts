@@ -143,6 +143,26 @@ export function useWeeklySchedule(userId?: string) {
         });
     }
   };
+
+  const setSchedule = async (newSchedule: WeeklyScheduleItem[]) => {
+    if (!userId) return;
+    const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
+    try {
+        const scheduleDataForDb = newSchedule.reduce((acc, daySchedule) => {
+            acc[daySchedule.day] = daySchedule.lessons;
+            return acc;
+        }, {} as { [key: string]: Lesson[] });
+        
+        await updateDoc(scheduleDocRef, scheduleDataForDb);
+    } catch (error) {
+        console.error("Error setting new schedule:", error);
+        toast({
+            title: "Hata!",
+            description: "Ders programı aktarılırken bir hata oluştu.",
+            variant: "destructive"
+        });
+    }
+  };
   
-  return { schedule, settings, isLoading, updateLesson, updateSettings };
+  return { schedule, settings, isLoading, updateLesson, updateSettings, setSchedule };
 }
