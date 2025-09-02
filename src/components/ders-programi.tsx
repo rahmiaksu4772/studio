@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Calendar, Settings } from 'lucide-react';
+import { Loader2, Calendar, Settings, BookOpen } from 'lucide-react';
 import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings, Plan, LessonPlanEntry } from '@/lib/types';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
 import { useAuth } from '@/hooks/use-auth';
@@ -67,13 +67,6 @@ export default function DersProgrami() {
   }, []);
 
   const handleLessonClick = (day: Day, lessonSlot: number, lesson: Lesson | null) => {
-    if (lesson?.grade) {
-        const relatedPlan = plans.find(p => p.grade === lesson.grade && p.type === 'annual');
-        if (relatedPlan) {
-            viewFile(relatedPlan);
-            return;
-        }
-    }
     setEditingLesson({ day, lessonSlot, lesson });
   };
   
@@ -201,6 +194,11 @@ export default function DersProgrami() {
   const selectedDaySchedule = React.useMemo(() => {
       return schedule.find(d => d.day === selectedDay);
   }, [schedule, selectedDay]);
+
+  const findRelatedPlan = (lesson: Lesson | null) => {
+    if (!lesson?.grade) return null;
+    return plans.find(p => p.grade === lesson.grade && p.type === 'annual') || null;
+  }
 
   if (isLoading || isLoadingPlans) {
     return (
@@ -347,6 +345,8 @@ export default function DersProgrami() {
               onSave={handleLessonSave}
               onClear={handleClearLesson}
               timeSlot={`${settings.timeSlots[editingLesson.lessonSlot]} - ${calculateEndTime(settings.timeSlots[editingLesson.lessonSlot], settings.lessonDuration)}` || ''}
+              relatedPlan={findRelatedPlan(editingLesson.lesson)}
+              onViewPlan={viewFile}
           />
       )}
        <PlanViewer 

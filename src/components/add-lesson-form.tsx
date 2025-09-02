@@ -42,8 +42,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from '@/components/ui/alert-dialog';
-import { Day, Lesson } from '@/lib/types';
-import { Trash2 } from 'lucide-react';
+import { Day, Lesson, Plan } from '@/lib/types';
+import { BookOpen, Trash2 } from 'lucide-react';
 
 const gradeLevels = ["1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf", "5. Sınıf", "6. Sınıf", "7. Sınıf", "8. Sınıf", "9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf", "Okul Öncesi"];
 
@@ -62,9 +62,11 @@ type AddLessonFormProps = {
   onSave: (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'|'lessonSlot'>) => void;
   onClear: (day: Day, lessonSlot: number) => void;
   timeSlot: string;
+  relatedPlan: Plan | null;
+  onViewPlan: (plan: Plan) => void;
 };
 
-export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave, onClear, timeSlot }: AddLessonFormProps) {
+export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave, onClear, timeSlot, relatedPlan, onViewPlan }: AddLessonFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -153,7 +155,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
              </FormDescription>
 
             <DialogFooter className='sm:justify-between pt-4 gap-2'>
-                <div>
+                <div className='flex gap-2'>
                 {lesson && (
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -176,6 +178,11 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                )}
+                {relatedPlan && (
+                    <Button type='button' variant='outline' onClick={() => onViewPlan(relatedPlan)}>
+                        <BookOpen className='mr-2 h-4 w-4' /> Yıllık Planı Gör
+                    </Button>
                 )}
                 </div>
                 <div className='flex gap-2'>
