@@ -109,12 +109,20 @@ export type ForumAuthor = {
     avatarUrl?: string;
 }
 
+export type ForumComment = {
+    id: string;
+    author: ForumAuthor;
+    date: string; // ISO String
+    content: string;
+}
+
 export type ForumReply = {
     id: string;
     author: ForumAuthor;
     date: string; // ISO String
     content: string;
     upvotedBy: string[]; // Array of user UIDs
+    comments: ForumComment[];
 };
 
 export type ForumPost = {

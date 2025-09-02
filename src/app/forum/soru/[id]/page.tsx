@@ -11,15 +11,116 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronLeft, User, Calendar, ThumbsUp, Send, Loader2 } from 'lucide-react';
-import type { ForumPost, ForumReply, ForumAuthor } from '@/lib/types';
+import { ChevronLeft, User, Calendar, ThumbsUp, Send, Loader2, MessageSquare } from 'lucide-react';
+import type { ForumPost, ForumReply, ForumAuthor, ForumComment } from '@/lib/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useForumPost, addReply, toggleUpvote } from '@/hooks/use-forum';
+import { useForumPost, addReply, toggleUpvote, addCommentToReply } from '@/hooks/use-forum';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Input } from '@/components/ui/input';
+
+function ReplyCard({ reply, user, post, profile }: { reply: ForumReply, user: any, post: ForumPost, profile: any }) {
+    const { toast } = useToast();
+    const [commentContent, setCommentContent] = React.useState('');
+    const [isSubmittingComment, setIsSubmittingComment] = React.useState(false);
+
+    const handleUpvote = async (replyId: string) => {
+        if (!user || !post) return;
+        await toggleUpvote(post.id, replyId, user.uid);
+    };
+
+    const handleCommentSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!commentContent.trim() || !user || !profile || !post) return;
+
+        setIsSubmittingComment(true);
+        const author: ForumAuthor = {
+            uid: user.uid,
+            name: profile.fullName,
+            avatarUrl: profile.avatarUrl,
+        };
+
+        const success = await addCommentToReply(post.id, reply.id, { author, content: commentContent });
+        if (success) {
+            setCommentContent('');
+            toast({ title: 'Yorumunuz gönderildi!' });
+        } else {
+            toast({ title: 'Hata', description: 'Yorumunuz gönderilemedi.', variant: 'destructive' });
+        }
+        setIsSubmittingComment(false);
+    };
+
+    return (
+        <Card key={reply.id} className="bg-muted/50">
+            <CardContent className="p-4">
+                <div className="flex gap-4">
+                    <Avatar className='hidden sm:block mt-1'>
+                        <AvatarImage src={reply.author.avatarUrl} data-ai-hint="teacher portrait" />
+                        <AvatarFallback>{reply.author.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className='flex-1'>
+                        <div className="flex items-center justify-between">
+                            <p className="font-semibold">{reply.author.name}</p>
+                            <p className="text-xs text-muted-foreground">{format(new Date(reply.date), 'dd.MM.yyyy HH:mm', { locale: tr })}</p>
+                        </div>
+                        <p className="text-sm mt-2">{reply.content}</p>
+                        <Collapsible>
+                            <div className='mt-3 flex items-center gap-2'>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={cn("flex items-center gap-2 text-muted-foreground", reply.upvotedBy.includes(user?.uid || '') && "text-primary")}
+                                    onClick={() => handleUpvote(reply.id)}
+                                    disabled={!user}
+                                >
+                                    <ThumbsUp className="h-4 w-4" />
+                                    <span>{reply.upvotedBy.length > 0 ? reply.upvotedBy.length : ''}</span>
+                                </Button>
+                                <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground">
+                                        <MessageSquare className="h-4 w-4" />
+                                        <span>{reply.comments?.length > 0 ? reply.comments.length : ''}</span>
+                                    </Button>
+                                </CollapsibleTrigger>
+                            </div>
+                            <CollapsibleContent className="space-y-4 pt-4">
+                                <div className="space-y-3">
+                                    {reply.comments?.map(comment => (
+                                        <div key={comment.id} className="flex items-start gap-2 text-sm">
+                                            <Avatar className='h-7 w-7'>
+                                                <AvatarImage src={comment.author.avatarUrl} data-ai-hint="teacher portrait" />
+                                                <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="bg-background rounded-lg px-3 py-2 flex-1">
+                                                <span className="font-semibold">{comment.author.name}</span>
+                                                <p className="text-muted-foreground">{comment.content}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <form onSubmit={handleCommentSubmit} className="flex items-center gap-2">
+                                    <Input
+                                        placeholder="Yorum yaz..."
+                                        value={commentContent}
+                                        onChange={(e) => setCommentContent(e.target.value)}
+                                        disabled={isSubmittingComment}
+                                    />
+                                    <Button type="submit" size="icon" disabled={!commentContent.trim() || isSubmittingComment}>
+                                        {isSubmittingComment ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
+                                    </Button>
+                                </form>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 function PostDetailPageContent() {
   const params = useParams();
@@ -52,11 +153,6 @@ function PostDetailPageContent() {
     }
     setIsSubmitting(false);
   }
-
-  const handleUpvote = async (replyId: string) => {
-    if (!user || !post) return;
-    await toggleUpvote(post.id, replyId, user.uid);
-  };
 
   if (isLoading) {
     return (
@@ -118,33 +214,7 @@ function PostDetailPageContent() {
         <h3 className="text-2xl font-bold pt-4">{replies.length} Cevap</h3>
         <div className="space-y-4">
             {replies.sort((a,b) => b.upvotedBy.length - a.upvotedBy.length).map(reply => (
-                <Card key={reply.id} className="bg-muted/50">
-                    <CardContent className="p-4 flex gap-4">
-                        <Avatar className='hidden sm:block mt-1'>
-                            <AvatarImage src={reply.author.avatarUrl} data-ai-hint="teacher portrait" />
-                            <AvatarFallback>{reply.author.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className='flex-1'>
-                            <div className="flex items-center justify-between">
-                                <p className="font-semibold">{reply.author.name}</p>
-                                <p className="text-xs text-muted-foreground">{format(new Date(reply.date), 'dd.MM.yyyy HH:mm', { locale: tr })}</p>
-                            </div>
-                            <p className="text-sm mt-2">{reply.content}</p>
-                            <div className='mt-3'>
-                                <Button 
-                                    variant={reply.upvotedBy.includes(user?.uid || '') ? "default" : "outline"} 
-                                    size="sm" 
-                                    className="flex items-center gap-2"
-                                    onClick={() => handleUpvote(reply.id)}
-                                    disabled={!user}
-                                >
-                                    <ThumbsUp className="h-4 w-4" />
-                                    <span>{reply.upvotedBy.length}</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+               <ReplyCard key={reply.id} reply={reply} user={user} post={post} profile={profile} />
             ))}
         </div>
         

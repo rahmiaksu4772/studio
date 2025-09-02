@@ -17,7 +17,7 @@ import {
     getDoc,
 } from 'firebase/firestore';
 import { useToast } from './use-toast';
-import type { ForumPost, ForumReply } from '@/lib/types';
+import type { ForumPost, ForumReply, ForumComment } from '@/lib/types';
 import { useAuth } from './use-auth';
 
 // Hook to fetch all forum posts
@@ -114,12 +114,13 @@ export const addPost = async (postData: Omit<ForumPost, 'id' | 'date'>) => {
 };
 
 // Function to add a reply
-export const addReply = async (postId: string, replyData: Omit<ForumReply, 'id' | 'date' | 'upvotedBy'>) => {
+export const addReply = async (postId: string, replyData: Omit<ForumReply, 'id' | 'date' | 'upvotedBy' | 'comments'>) => {
     try {
         await addDoc(collection(db, `forum/${postId}/replies`), {
             ...replyData,
             date: new Date().toISOString(),
             upvotedBy: [],
+            comments: [],
         });
         return true;
     } catch (error) {
@@ -127,6 +128,26 @@ export const addReply = async (postId: string, replyData: Omit<ForumReply, 'id' 
         return false;
     }
 };
+
+// Function to add a comment to a reply
+export const addCommentToReply = async (postId: string, replyId: string, commentData: Omit<ForumComment, 'id' | 'date'>) => {
+    const replyRef = doc(db, `forum/${postId}/replies`, replyId);
+    try {
+        const newComment: ForumComment = {
+            id: new Date().getTime().toString(), // Simple unique ID
+            ...commentData,
+            date: new Date().toISOString(),
+        };
+        await updateDoc(replyRef, {
+            comments: arrayUnion(newComment)
+        });
+        return true;
+    } catch (error) {
+        console.error("Error adding comment to reply:", error);
+        return false;
+    }
+};
+
 
 // Function to upvote/downvote a reply
 export const toggleUpvote = async (postId: string, replyId: string, userId: string) => {
