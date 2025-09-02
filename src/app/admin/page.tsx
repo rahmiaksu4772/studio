@@ -124,79 +124,81 @@ function AdminPage() {
                 <CardTitle>Kullanıcı Listesi</CardTitle>
                 <CardDescription>{usersData.length} öğretmen sisteme kayıtlı.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="pl-6">Ad Soyad</TableHead>
-                            <TableHead>E-posta</TableHead>
-                            <TableHead className='text-center'>Rol</TableHead>
-                            <TableHead className='text-center'>Sınıf Sayısı</TableHead>
-                            <TableHead className='text-center'>Öğrenci Sayısı</TableHead>
-                            <TableHead className='text-right pr-6'>İşlemler</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {usersData.map(userData => {
-                            const totalStudents = userData.classes.reduce((sum, cls) => sum + cls.students.length, 0);
-                            return (
-                                <TableRow key={userData.id}>
-                                    <TableCell className="font-medium flex items-center gap-2 pl-6">
-                                        <User className='h-4 w-4 text-muted-foreground'/>
-                                        {userData.fullName}
-                                    </TableCell>
-                                    <TableCell>{userData.email}</TableCell>
-                                    <TableCell className='text-center'>
-                                        <Badge variant={userData.role === 'admin' ? 'destructive' : 'secondary'}>
-                                            {userData.role}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <div className='flex items-center justify-center gap-2'>
-                                        <GraduationCap className='h-4 w-4 text-muted-foreground'/>
-                                        {userData.classes.length}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <div className='flex items-center justify-center gap-2'>
-                                            <Users className='h-4 w-4 text-muted-foreground'/>
-                                            {totalStudents}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6">
-                                    <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={userData.id === user?.uid}>
-                                                <span className="sr-only">Menüyü aç</span>
-                                                <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                {userData.role === 'teacher' ? (
-                                                    <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
-                                                        <UserCog className="mr-2 h-4 w-4" />
-                                                        Admin Yap
+            <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                    <Table className="min-w-[800px]">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="pl-6">Ad Soyad</TableHead>
+                                <TableHead>E-posta</TableHead>
+                                <TableHead className='text-center'>Rol</TableHead>
+                                <TableHead className='text-center'>Sınıf Sayısı</TableHead>
+                                <TableHead className='text-center'>Öğrenci Sayısı</TableHead>
+                                <TableHead className='text-right pr-6'>İşlemler</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {usersData.map(userData => {
+                                const totalStudents = userData.classes.reduce((sum, cls) => sum + cls.students.length, 0);
+                                return (
+                                    <TableRow key={userData.id}>
+                                        <TableCell className="font-medium flex items-center gap-2 pl-6">
+                                            <User className='h-4 w-4 text-muted-foreground'/>
+                                            {userData.fullName}
+                                        </TableCell>
+                                        <TableCell>{userData.email}</TableCell>
+                                        <TableCell className='text-center'>
+                                            <Badge variant={userData.role === 'admin' ? 'destructive' : 'secondary'}>
+                                                {userData.role}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <div className='flex items-center justify-center gap-2'>
+                                            <GraduationCap className='h-4 w-4 text-muted-foreground'/>
+                                            {userData.classes.length}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            <div className='flex items-center justify-center gap-2'>
+                                                <Users className='h-4 w-4 text-muted-foreground'/>
+                                                {totalStudents}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6">
+                                        <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={userData.id === user?.uid}>
+                                                    <span className="sr-only">Menüyü aç</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    {userData.role === 'teacher' ? (
+                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
+                                                            <UserCog className="mr-2 h-4 w-4" />
+                                                            Admin Yap
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
+                                                            <User className="mr-2 h-4 w-4" />
+                                                            Öğretmen Yap
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuItem className='text-destructive' onClick={() => openDeleteConfirm(userData)}>
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Kullanıcıyı Sil
                                                     </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
-                                                        <User className="mr-2 h-4 w-4" />
-                                                        Öğretmen Yap
-                                                    </DropdownMenuItem>
-                                                )}
-                                                <DropdownMenuItem className='text-destructive' onClick={() => openDeleteConfirm(userData)}>
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Kullanıcıyı Sil
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
       </main>
