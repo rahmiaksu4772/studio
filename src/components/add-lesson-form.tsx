@@ -31,6 +31,17 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from '@/components/ui/alert-dialog';
 import { Day, Lesson } from '@/lib/types';
 import { Trash2 } from 'lucide-react';
 
@@ -144,9 +155,27 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
             <DialogFooter className='sm:justify-between pt-4 gap-2'>
                 <div>
                 {lesson && (
-                    <Button type="button" variant="destructive" onClick={() => { onClear(day, lessonSlot); onClose(); }}>
-                        <Trash2 className='mr-2 h-4 w-4' /> Dersi Temizle
-                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button type="button" variant="destructive">
+                                <Trash2 className='mr-2 h-4 w-4' /> Dersi Temizle
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Bu işlem geri alınamaz. Bu ders programdan kalıcı olarak kaldırılacaktır.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => { onClear(day, lessonSlot); onClose(); }} className='bg-destructive hover:bg-destructive/90'>
+                                    Evet, Sil
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 )}
                 </div>
                 <div className='flex gap-2'>
