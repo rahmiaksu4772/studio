@@ -1,9 +1,8 @@
-
 'use client';
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Calendar, Clock } from 'lucide-react';
+import { Loader2, Calendar, Clock, Settings, Plus } from 'lucide-react';
 import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings } from '@/lib/types';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
 import { useAuth } from '@/hooks/use-auth';
@@ -14,16 +13,17 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import { Separator } from './ui/separator';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 const dayShort: { [key in Day]: string } = {
-    'Pazartesi': 'Pzt',
-    'Salı': 'Sal',
-    'Çarşamba': 'Çar',
-    'Perşembe': 'Per',
-    'Cuma': 'Cum',
-    'Cumartesi': 'Cmt',
-    'Pazar': 'Paz',
+    'Pazartesi': 'P',
+    'Salı': 'S',
+    'Çarşamba': 'Ç',
+    'Perşembe': 'P',
+    'Cuma': 'C',
+    'Cumartesi': 'C',
+    'Pazar': 'P',
 };
 
 const calculateEndTime = (startTime: string, duration: number): string => {
@@ -44,10 +44,19 @@ export default function DersProgrami() {
   
   const [editingLesson, setEditingLesson] = React.useState<{ day: Day, lessonSlot: number, lesson: Lesson | null } | null>(null);
   const [localSettings, setLocalSettings] = React.useState<ScheduleSettings>(settings);
+  const [selectedDay, setSelectedDay] = React.useState<Day>('Pazartesi');
 
   React.useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+  
+  // Set selected day to today if it's a weekday
+  React.useEffect(() => {
+    const todayIndex = new Date().getDay() - 1; // Monday = 0, ..., Friday = 4
+    if (todayIndex >= 0 && todayIndex < 5) {
+        setSelectedDay(dayOrder[todayIndex]);
+    }
+  }, []);
 
   const handleLessonSave = async (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'|'lessonSlot'>) => {
     if (!user) return;
@@ -70,15 +79,39 @@ export default function DersProgrami() {
      setEditingLesson(null);
   }
 
-  const handleSettingsChange = (field: keyof ScheduleSettings, value: string[] | number) => {
-    setLocalSettings(prev => ({ ...prev, [field]: value }));
+  const handleSettingsChange = (field: keyof ScheduleSettings, value: string[] | number | string, index?: number) => {
+    setLocalSettings(prev => {
+        if (field === 'timeSlots' && Array.isArray(value) && index !== undefined) {
+            const newTimeSlots = [...prev.timeSlots];
+            newTimeSlots[index] = String(value);
+            return {...prev, timeSlots: newTimeSlots};
+        }
+        if(field === 'timeSlots' && typeof value === 'string' && index !== undefined){
+             const newTimeSlots = [...prev.timeSlots];
+            newTimeSlots[index] = value;
+            return {...prev, timeSlots: newTimeSlots};
+        }
+        return { ...prev, [field]: value };
+    });
   };
+  
+  const handleTimeSlotChange = (index: number, value: string) => {
+      const newTimeSlots = [...localSettings.timeSlots];
+      newTimeSlots[index] = value;
+      setLocalSettings(prev => ({ ...prev, timeSlots: newTimeSlots }));
+  };
+  
+  const handleAddNewTimeSlot = () => {
+       const newTimeSlots = [...localSettings.timeSlots, '16:00'];
+       handleSettingsBlur('timeSlots', newTimeSlots);
+  }
 
-  const handleSettingsBlur = async (field: keyof ScheduleSettings) => {
+  const handleSettingsBlur = async (field: keyof ScheduleSettings, value?: any) => {
     if (!user) return;
-    const value = localSettings[field];
-    if (JSON.stringify(value) !== JSON.stringify(settings[field])) {
-        await updateSettings({ [field]: value });
+    const valueToUpdate = value ?? localSettings[field];
+
+    if (JSON.stringify(valueToUpdate) !== JSON.stringify(settings[field])) {
+        await updateSettings({ [field]: valueToUpdate });
         toast({ title: 'Ayarlar Güncellendi' });
     }
   };
@@ -87,6 +120,10 @@ export default function DersProgrami() {
     const daySchedule = schedule.find(d => d.day === day);
     return daySchedule?.lessons.find(l => l.lessonSlot === slot);
   }
+  
+  const selectedDaySchedule = React.useMemo(() => {
+      return schedule.find(d => d.day === selectedDay);
+  }, [schedule, selectedDay]);
 
   if (isLoading) {
     return (
@@ -98,102 +135,127 @@ export default function DersProgrami() {
   }
 
   return (
-    <>
+    <div className='space-y-4'>
       <Card className="w-full overflow-hidden shadow-lg bg-card/80 backdrop-blur-lg">
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                  <Calendar className="h-5 w-5 text-primary" /> Haftalık Ders Programı
+          <CardHeader className='pb-4'>
+              <CardTitle className="flex items-center justify-between text-lg md:text-xl">
+                 <div className='flex items-center gap-2'>
+                    <Calendar className="h-5 w-5 text-primary" /> Haftalık Ders Programı
+                 </div>
               </CardTitle>
-              <div className='text-sm text-muted-foreground flex items-center gap-2 sm:gap-4 pt-2'>
-                <div className='flex items-center gap-2'>
-                    <Label htmlFor="lessonDuration" className='flex-shrink-0'>Ders Süresi (dk):</Label>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+             <div className='flex items-center justify-center gap-2 md:gap-4 mb-4'>
+                {dayOrder.map(day => {
+                    const color = stringToColor(day);
+                    return (
+                        <button
+                            key={day}
+                            onClick={() => setSelectedDay(day)}
+                            className={cn(
+                                'flex-1 md:flex-none md:w-12 h-12 rounded-full text-lg font-bold transition-all duration-300 flex items-center justify-center',
+                                selectedDay === day 
+                                    ? 'text-white shadow-lg' 
+                                    : 'text-muted-foreground bg-muted hover:bg-muted/80'
+                            )}
+                            style={{ backgroundColor: selectedDay === day ? color : undefined }}
+                        >
+                            {dayShort[day]}
+                        </button>
+                    )
+                })}
+             </div>
+             
+             <Separator/>
+
+            <div className='mt-4'>
+                <div 
+                    className='p-2 rounded-lg font-bold text-center text-lg text-white mb-4'
+                    style={{ backgroundColor: stringToColor(selectedDay) }}
+                >
+                    {selectedDay}
+                </div>
+                <div className='space-y-2'>
+                    {localSettings.timeSlots.map((time, slotIndex) => {
+                        const lesson = getLessonForSlot(selectedDay, slotIndex);
+                        const lessonColor = lesson ? stringToColor(lesson.subject) : null;
+                        
+                        return(
+                            <button
+                                key={`slot-${slotIndex}`}
+                                onClick={() => setEditingLesson({ day: selectedDay, lessonSlot: slotIndex, lesson: lesson || null })}
+                                className={cn(
+                                    'w-full p-3 rounded-lg flex items-center gap-4 transition-all duration-200 border text-left',
+                                    lesson ? 'shadow-sm' : 'bg-muted/50 hover:bg-muted'
+                                )}
+                                style={{
+                                    backgroundColor: lesson ? `${lessonColor}20` : undefined,
+                                    borderColor: lesson ? `${lessonColor}40` : undefined
+                                }}
+                            >
+                                <div className='flex flex-col items-center justify-center w-20'>
+                                    <p className='font-semibold text-sm'>{time}</p>
+                                    <p className='text-xs text-muted-foreground'>{calculateEndTime(time, settings.lessonDuration)}</p>
+                                </div>
+                                <div className='border-l h-8' style={{borderColor: lesson ? `${lessonColor}40` : undefined}}></div>
+                                <div className='flex-1'>
+                                    {lesson ? (
+                                        <>
+                                            <p className='font-bold text-sm'>{lesson.subject}</p>
+                                            <p className='text-xs text-muted-foreground'>{lesson.class}</p>
+                                        </>
+                                    ) : (
+                                         <p className='text-sm text-muted-foreground'>Ders eklemek için tıklayın...</p>
+                                    )}
+                                </div>
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+          </CardContent>
+      </Card>
+      
+       <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                    <Settings className='h-4 w-4'/>
+                    Program Ayarları
+                </CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+                 <div className='space-y-2'>
+                    <Label htmlFor="lessonDuration" className='flex-shrink-0'>Ders Süresi (Dakika)</Label>
                     <Input
                         id="lessonDuration"
                         type="number"
                         value={localSettings.lessonDuration || 40}
                         onChange={(e) => handleSettingsChange('lessonDuration', parseInt(e.target.value) || 0)}
                         onBlur={() => handleSettingsBlur('lessonDuration')}
-                        className="w-20 h-8"
+                        className="w-full"
                     />
                 </div>
-              </div>
-          </CardHeader>
-          <CardContent className="p-2 md:p-4 overflow-x-auto no-scrollbar">
-              <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 min-w-[600px]">
-                  {/* Time Header */}
-                  <div className="text-center font-bold p-1 rounded-t-lg flex items-center justify-center">
-                    <Clock className='h-4 w-4'/>
-                  </div>
-                  {/* Day Headers */}
-                  {dayOrder.map(day => (
-                      <div key={day} className="text-center font-bold text-card-foreground p-1 md:p-2 rounded-t-lg bg-muted text-xs md:text-sm">
-                        <span className='hidden md:inline'>{day}</span>
-                        <span className='md:hidden'>{dayShort[day]}</span>
-                      </div>
-                  ))}
-                  
-                  {/* Rows */}
-                  {localSettings.timeSlots.map((time, slotIndex) => (
-                      <React.Fragment key={`slot-${slotIndex}`}>
-                          {/* Time Slot Cell */}
-                          <div className="h-20 md:h-24 flex flex-col justify-center items-center rounded-lg bg-muted/50 p-1 text-center text-xs md:text-sm">
-                               <Input
-                                type="time"
-                                value={time}
-                                onKeyDown={(e) => {
-                                   if(e.key === 'Enter') {
-                                     handleSettingsBlur('timeSlots');
-                                     (e.target as HTMLInputElement).blur();
-                                   }
-                                }}
-                                onChange={(e) => {
-                                    const newTimeSlots = [...localSettings.timeSlots];
-                                    newTimeSlots[slotIndex] = e.target.value;
-                                    handleSettingsChange('timeSlots', newTimeSlots);
-                                }}
-                                onBlur={() => handleSettingsBlur('timeSlots')}
-                                className="w-full text-center bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring mb-1 text-xs md:text-sm h-8 p-1"
-                              />
-                              <div className='text-xs text-muted-foreground'>
-                                  {calculateEndTime(time, localSettings.lessonDuration)}
-                              </div>
-                          </div>
+                <div className='space-y-2'>
+                    <Label>Ders Saatleri</Label>
+                    <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'>
+                    {localSettings.timeSlots.map((time, index) => (
+                        <Input
+                            key={index}
+                            type="time"
+                            value={time}
+                            onChange={(e) => handleTimeSlotChange(index, e.target.value)}
+                            onBlur={() => handleSettingsBlur('timeSlots')}
+                            className="w-full"
+                        />
+                    ))}
+                     <Button variant='outline' onClick={handleAddNewTimeSlot} className='flex items-center gap-2'>
+                        <Plus className='h-4 w-4'/> Yeni Saat Ekle
+                    </Button>
+                    </div>
+                </div>
+            </CardContent>
+       </Card>
 
-                          {/* Lesson Cells */}
-                          {dayOrder.map(day => {
-                              const lesson = getLessonForSlot(day, slotIndex);
-                              const color = lesson ? stringToColor(lesson.subject) : '#808080';
-                              
-                              return (
-                                  <button
-                                      key={`${day}-${slotIndex}`}
-                                      type="button"
-                                      onClick={() => setEditingLesson({ day, lessonSlot: slotIndex, lesson: lesson || null })}
-                                      className={cn(
-                                        "h-20 md:h-24 flex flex-col justify-center items-center rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md border p-1 text-center",
-                                        lesson ? '' : 'hover:bg-accent'
-                                      )}
-                                      style={{ 
-                                          backgroundColor: lesson ? `${color}20` : 'transparent', 
-                                          borderColor: lesson ? `${color}40` : 'hsl(var(--border))',
-                                      }}
-                                  >
-                                      {lesson ? (
-                                          <div className='text-center'>
-                                              <p className="font-bold text-xs md:text-sm truncate">{lesson.subject}</p>
-                                              <p className="text-xs text-muted-foreground truncate">{lesson.class}</p>
-                                          </div>
-                                      ) : (
-                                          <span className="text-muted-foreground text-xs">+ Ekle</span>
-                                      )}
-                                  </button>
-                              )
-                          })}
-                      </React.Fragment>
-                  ))}
-              </div>
-          </CardContent>
-      </Card>
       {editingLesson && (
           <AddLessonForm
               isOpen={!!editingLesson}
@@ -206,6 +268,6 @@ export default function DersProgrami() {
               timeSlot={`${settings.timeSlots[editingLesson.lessonSlot]} - ${calculateEndTime(settings.timeSlots[editingLesson.lessonSlot], settings.lessonDuration)}` || ''}
           />
       )}
-    </>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -60,7 +59,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
   }, [lesson, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(day, lessonSlot, { ...values, time: timeSlot });
+    onSave(day, lessonSlot, { ...values, time: timeSlot.split(' - ')[0] });
     onClose();
   }
 
@@ -101,7 +100,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                 </FormItem>
               )}
             />
-            <DialogFooter className='justify-between pt-4'>
+            <DialogFooter className='sm:justify-between pt-4 gap-2'>
                 <div>
                 {lesson && (
                     <Button type="button" variant="destructive" onClick={() => { onClear(day, lessonSlot); onClose(); }}>
