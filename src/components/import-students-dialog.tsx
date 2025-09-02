@@ -214,10 +214,10 @@ export function ImportStudentsDialog({ onImport, classId, isFirstImport = false,
             <TabsContent value="paste" className="space-y-4 py-4">
                  <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                        E-Okul'daki öğrenci listesini (Okul No, Adı Soyadı) kopyalayıp aşağıdaki alana yapıştırın.
+                      E-Okul'dan kopyaladığınız öğrenci listesini her satıra bir öğrenci gelecek şekilde yapıştırın. Format: 'Okul Numarası Adı Soyadı'
                     </p>
                     <Textarea 
-                        placeholder="574 GÖKTUĞ YILDIZ&#10;590 UMUT KURTULMAZ"
+                        placeholder={'123 Ali Yılmaz\n456 Ayşe Kaya\n789 Mehmet Demir'}
                         rows={6}
                         value={pastedText}
                         onChange={handlePasteChange}
