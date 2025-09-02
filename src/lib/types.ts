@@ -103,12 +103,18 @@ export type LessonPlanEntry = {
 };
 
 // Forum Types
+export type ForumAuthor = {
+    uid: string;
+    name: string;
+    avatarUrl?: string;
+}
+
 export type ForumReply = {
     id: string;
-    author: string;
+    author: ForumAuthor;
     date: string; // ISO String
     content: string;
-    upvotes: number;
+    upvotedBy: string[]; // Array of user UIDs
 };
 
 export type ForumPost = {
@@ -116,7 +122,7 @@ export type ForumPost = {
     title: string;
     description: string;
     category: string;
-    author: string;
+    author: ForumAuthor;
     date: string; // ISO String
-    replies: ForumReply[];
+    replies?: ForumReply[]; // Subcollection, might not be loaded directly
 };

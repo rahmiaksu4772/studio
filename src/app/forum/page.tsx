@@ -16,53 +16,26 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, MessageSquare, ArrowRight, User, Calendar } from 'lucide-react';
+import { Plus, Search, MessageSquare, ArrowRight, User, Calendar, Loader2 } from 'lucide-react';
 import type { ForumPost } from '@/lib/types';
+import { useForum } from '@/hooks/use-forum';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
-// Mock data - replace with actual data fetching
-const mockPosts: ForumPost[] = [
-  {
-    id: '1',
-    title: '8. Sınıf Matematik Üslü Sayılar Konusunda Zorlanan Öğrenciler İçin Etkinlik Önerisi',
-    description: 'Üslü sayılar konusunu daha eğlenceli ve anlaşılır hale getirmek için hangi materyalleri veya etkinlikleri kullanabilirim? Özellikle soyut düşünme becerisi henüz gelişmemiş öğrenciler için zor oluyor.',
-    category: 'Matematik',
-    author: 'Ayşe Yılmaz',
-    date: new Date('2024-05-15T10:30:00Z').toISOString(),
-    replies: [],
-  },
-  {
-    id: '2',
-    title: 'Eğitimde Yapay Zeka Araçları Kullanımı',
-    description: 'Derslerimde yapay zeka tabanlı araçlar kullanmak istiyorum. Özellikle Türkçe dersleri için metin özetleme, dilbilgisi kontrolü gibi konularda önerebileceğiniz uygulamalar var mı?',
-    category: 'Eğitim Teknolojileri',
-    author: 'Mehmet Demir',
-    date: new Date('2024-05-14T14:00:00Z').toISOString(),
-    replies: [],
-  },
-    {
-    id: '3',
-    title: 'Okul Öncesi Dönemde Dikkat Geliştirme Oyunları',
-    description: '4-5 yaş grubu öğrencilerimin dikkat sürelerini artırmak için sınıf içinde oynatabileceğim, materyal gerektirmeyen veya basit materyallerle hazırlanabilen oyun önerileriniz nelerdir?',
-    category: 'Okul Öncesi',
-    author: 'Fatma Kaya',
-    date: new Date('2024-05-16T09:00:00Z').toISOString(),
-    replies: [],
-  },
-];
-
-const categories = ['Tümü', 'Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler', 'Eğitim Teknolojileri', 'Okul Öncesi', 'Rehberlik'];
+const categories = ['Tümü', 'Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler', 'Eğitim Teknolojileri', 'Okul Öncesi', 'Rehberlik', 'Diğer'];
 
 function ForumPageContent() {
+  const { posts, isLoading } = useForum();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('Tümü');
 
-  const filteredPosts = mockPosts.filter(post => {
-    const matchesCategory = selectedCategory === 'Tümü' || post.category === selectedCategory;
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) || post.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredPosts = React.useMemo(() => {
+    return posts.filter(post => {
+      const matchesCategory = selectedCategory === 'Tümü' || post.category === selectedCategory;
+      const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) || post.description.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [posts, searchTerm, selectedCategory]);
 
   return (
     <AppLayout>
@@ -108,6 +81,11 @@ function ForumPageContent() {
           </CardContent>
         </Card>
 
+        {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin" />
+            </div>
+        ) : (
         <div className="space-y-4">
           {filteredPosts.map(post => (
             <Card key={post.id} className="hover:border-primary/50 transition-colors">
@@ -122,7 +100,7 @@ function ForumPageContent() {
               </CardContent>
               <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">
                 <div className='flex items-center gap-4'>
-                    <span className="flex items-center gap-1.5"><User className="h-4 w-4" />{post.author}</span>
+                    <span className="flex items-center gap-1.5"><User className="h-4 w-4" />{post.author.name}</span>
                     <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" />{format(new Date(post.date), 'dd MMMM yyyy', { locale: tr })}</span>
                 </div>
                 <Link href={`/forum/soru/${post.id}`}>
@@ -134,8 +112,9 @@ function ForumPageContent() {
             </Card>
           ))}
         </div>
+        )}
         
-        {filteredPosts.length === 0 && (
+        {!isLoading && filteredPosts.length === 0 && (
             <div className="text-center py-12">
                 <p className='text-lg font-medium'>Aradığınız kriterlere uygun soru bulunamadı.</p>
                 <p className='text-muted-foreground mt-2'>Filtreleri temizlemeyi veya yeni bir soru sormayı deneyin.</p>

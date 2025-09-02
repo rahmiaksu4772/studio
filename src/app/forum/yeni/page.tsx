@@ -22,7 +22,11 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
+import { addPost } from '@/hooks/use-forum';
+import { useAuth } from '@/hooks/use-auth';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import type { ForumAuthor } from '@/lib/types';
 
 const categories = ['Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler', 'Eğitim Teknolojileri', 'Okul Öncesi', 'Rehberlik', 'Diğer'];
 
@@ -35,6 +39,8 @@ const formSchema = z.object({
 function NewPostPageContent() {
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
+  const { profile } = useUserProfile(user?.uid);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,14 +51,34 @@ function NewPostPageContent() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // In a real app, you would save this to Firestore
-    console.log(values);
-    toast({
-      title: 'Sorunuz Gönderildi!',
-      description: 'Sorunuz foruma eklendi ve yakında meslektaşlarınız tarafından yanıtlanacaktır.',
-    });
-    router.push('/forum');
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!user || !profile) {
+        toast({ title: 'Hata', description: 'Soru göndermek için giriş yapmalısınız.', variant: 'destructive'});
+        return;
+    }
+
+    const author: ForumAuthor = {
+        uid: user.uid,
+        name: profile.fullName,
+        avatarUrl: profile.avatarUrl,
+    };
+    
+    const postData = { ...values, author };
+    const success = await addPost(postData);
+
+    if (success) {
+        toast({
+        title: 'Sorunuz Gönderildi!',
+        description: 'Sorunuz foruma eklendi ve yakında meslektaşlarınız tarafından yanıtlanacaktır.',
+        });
+        router.push('/forum');
+    } else {
+        toast({
+            title: 'Hata!',
+            description: 'Sorunuz gönderilirken bir hata oluştu. Lütfen tekrar deneyin.',
+            variant: 'destructive',
+        });
+    }
   };
 
   return (
@@ -128,6 +154,7 @@ function NewPostPageContent() {
               </CardContent>
               <CardFooter className="border-t p-6">
                 <Button type="submit" disabled={form.formState.isSubmitting}>
+                   {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Soruyu Gönder
                 </Button>
               </CardFooter>
