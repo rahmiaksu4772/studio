@@ -447,7 +447,7 @@ function GunlukTakipPageContent() {
                                             key={option.value}
                                             variant='outline'
                                             size='icon'
-                                            className='rounded-full w-9 h-9 md:w-10 md:h-10 transition-all'
+                                            className='rounded-full w-8 h-8 md:w-10 md:h-10 transition-all'
                                             style={{
                                                 '--bg-color': option.bgColor,
                                                 '--text-color': option.color,
@@ -531,5 +531,7 @@ export default function GunlukTakipPage() {
       </AuthGuard>
     );
   }
+
+    
 
     
