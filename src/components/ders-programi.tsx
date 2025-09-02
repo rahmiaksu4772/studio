@@ -67,8 +67,8 @@ export default function DersProgrami() {
   }, []);
 
   const handleLessonClick = (day: Day, lessonSlot: number, lesson: Lesson | null) => {
-    if (lesson) {
-        const relatedPlan = plans.find(p => p.title.includes(lesson.class) && p.type === 'annual');
+    if (lesson?.grade) {
+        const relatedPlan = plans.find(p => p.grade === lesson.grade && p.type === 'annual');
         if (relatedPlan) {
             viewFile(relatedPlan);
             return;
@@ -280,7 +280,7 @@ export default function DersProgrami() {
                                     {lesson ? (
                                         <>
                                             <p className='font-bold text-sm'>{lesson.subject}</p>
-                                            <p className='text-xs text-muted-foreground'>{lesson.class}</p>
+                                            <p className='text-xs text-muted-foreground'>{lesson.grade} - {lesson.class}</p>
                                         </>
                                     ) : (
                                          <p className='text-sm text-muted-foreground'>Ders eklemek için tıklayın...</p>

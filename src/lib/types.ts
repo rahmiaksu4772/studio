@@ -57,7 +57,7 @@ export type Plan = {
     uploadDate: string; // ISO string for ordering
     fileType: string;
     fileName: string;
-    className?: string; // Optional field to link plan to a class
+    grade?: string; // e.g. "8. Sınıf"
 };
 
 export type Lesson = {
@@ -65,6 +65,8 @@ export type Lesson = {
   lessonSlot: number;
   subject: string;
   class: string;
+  grade?: string; // e.g. "8. Sınıf"
+  time: string;
 }
 
 export type Day = 'Pazartesi' | 'Salı' | 'Çarşamba' | 'Perşembe' | 'Cuma' | 'Cumartesi' | 'Pazar';

@@ -40,6 +40,7 @@ const ACCEPTED_FILE_TYPES_SCHEDULE = [
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'Plan başlığı en az 3 karakter olmalıdır.' }),
+  grade: z.string().optional(),
   type: z.enum(['annual', 'weekly'], { required_error: 'Lütfen bir plan türü seçin.' }),
   importToSchedule: z.boolean().default(false),
   file: z
@@ -81,6 +82,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
+      grade: '',
       type: 'annual',
       importToSchedule: false,
       file: undefined,
@@ -96,6 +98,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
       const fileDataUrl = await readFileAsDataURL(file);
       const planToAdd = {
         title: values.title,
+        grade: values.grade,
         type: values.type,
         fileDataUrl,
         fileType: file.type,
@@ -176,6 +179,22 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                   <FormControl>
                     <Input placeholder="Örn: 8. Sınıf Matematik Yıllık Planı" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="grade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sınıf Seviyesi (İsteğe Bağlı)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Örn: 8. Sınıf" {...field} />
+                  </FormControl>
+                   <FormDescription>
+                     Bu planın hangi sınıf seviyesine ait olduğunu belirtin.
+                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

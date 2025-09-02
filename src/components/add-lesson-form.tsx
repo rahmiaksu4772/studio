@@ -13,6 +13,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Dialog,
@@ -28,7 +29,8 @@ import { Trash2 } from 'lucide-react';
 
 const formSchema = z.object({
   subject: z.string().min(2, { message: 'Ders adı en az 2 karakter olmalıdır.' }),
-  class: z.string().min(1, { message: 'Sınıf adı en az 1 karakter olmalıdır.' }),
+  class: z.string().min(1, { message: 'Sınıf şubesi en az 1 karakter olmalıdır.' }),
+  grade: z.string().min(1, { message: 'Sınıf seviyesi belirtilmelidir.' }),
 });
 
 type AddLessonFormProps = {
@@ -48,6 +50,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
     defaultValues: {
       subject: lesson?.subject || '',
       class: lesson?.class || '',
+      grade: lesson?.grade || '',
     },
   });
   
@@ -55,6 +58,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
     form.reset({
       subject: lesson?.subject || '',
       class: lesson?.class || '',
+      grade: lesson?.grade || '',
     })
   }, [lesson, form]);
 
@@ -87,19 +91,38 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="class"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sınıf</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Örn: 6/A" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="grade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sınıf Seviyesi</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Örn: 8. Sınıf" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="class"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Şube</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Örn: A" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+             <FormDescription>
+                Dersin sınıf seviyesini belirtmek, ilgili yıllık planın otomatik olarak bulunmasını sağlar.
+             </FormDescription>
+
             <DialogFooter className='sm:justify-between pt-4 gap-2'>
                 <div>
                 {lesson && (
