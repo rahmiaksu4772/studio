@@ -556,7 +556,7 @@ function RaporlarPageContent() {
                         <TableBody>
                             {classReportData.studentSummaries.map(student => (
                                 <Collapsible key={student.id} asChild>
-                                    <>
+                                    <React.Fragment key={student.id}>
                                         <TableRow>
                                             <TableCell className="font-medium">{student.studentNumber}</TableCell>
                                             <TableCell>{student.firstName} {student.lastName}</TableCell>
@@ -591,7 +591,7 @@ function RaporlarPageContent() {
                                             </TableCell>
                                         </TableRow>
                                         </CollapsibleContent>
-                                    </>
+                                    </React.Fragment>
                                 </Collapsible>
                             ))}
                         </TableBody>
@@ -720,4 +720,5 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
+
 
