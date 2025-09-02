@@ -7,6 +7,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Form,
   FormControl,
   FormField,
@@ -27,10 +34,12 @@ import {
 import { Day, Lesson } from '@/lib/types';
 import { Trash2 } from 'lucide-react';
 
+const gradeLevels = ["1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf", "5. Sınıf", "6. Sınıf", "7. Sınıf", "8. Sınıf", "9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf", "Okul Öncesi"];
+
 const formSchema = z.object({
   subject: z.string().min(2, { message: 'Ders adı en az 2 karakter olmalıdır.' }),
   class: z.string().min(1, { message: 'Sınıf şubesi en az 1 karakter olmalıdır.' }),
-  grade: z.string().min(1, { message: 'Sınıf seviyesi belirtilmelidir.' }),
+  grade: z.string({ required_error: 'Lütfen bir sınıf seviyesi seçin.' }),
 });
 
 type AddLessonFormProps = {
@@ -98,9 +107,18 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sınıf Seviyesi</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Örn: 8. Sınıf" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seviye seçin..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {gradeLevels.map(level => (
+                            <SelectItem key={level} value={level}>{level}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     <FormMessage />
                   </FormItem>
                 )}

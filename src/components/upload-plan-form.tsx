@@ -8,6 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Upload, Plus, Folder, Loader2, FileText, Sheet, File as WordIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+  } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import {
   Dialog,
@@ -37,6 +44,8 @@ const ACCEPTED_FILE_TYPES_SCHEDULE = [
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 ];
+
+const gradeLevels = ["1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf", "5. Sınıf", "6. Sınıf", "7. Sınıf", "8. Sınıf", "9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf", "Okul Öncesi"];
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'Plan başlığı en az 3 karakter olmalıdır.' }),
@@ -189,9 +198,18 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Sınıf Seviyesi (İsteğe Bağlı)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Örn: 8. Sınıf" {...field} />
-                  </FormControl>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seviye seçin..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {gradeLevels.map(level => (
+                        <SelectItem key={level} value={level}>{level}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                    <FormDescription>
                      Bu planın hangi sınıf seviyesine ait olduğunu belirtin.
                    </FormDescription>
