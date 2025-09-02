@@ -15,6 +15,7 @@ import {
     Menu,
     StickyNote,
     ShieldCheck,
+    MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
@@ -43,6 +44,7 @@ const menuItems = [
     { href: '/raporlar', label: 'Raporlar', icon: BarChart },
     { href: '/planlarim', label: 'Planlarım', icon: Calendar },
     { href: '/notlarim', label: 'Notlarım', icon: StickyNote },
+    { href: '/forum', label: 'Forum', icon: MessageSquare },
 ];
 
 const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {

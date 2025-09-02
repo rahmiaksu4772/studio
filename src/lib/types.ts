@@ -1,3 +1,4 @@
+
 import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, FileCheck } from "lucide-react";
 
 export type Student = {
@@ -58,6 +59,7 @@ export type Plan = {
     fileType: string;
     fileName: string;
     grade?: string; // e.g. "8. Sınıf"
+    className?: string; // Optional: e.g. "8/A"
 };
 
 export type Lesson = {
@@ -98,4 +100,23 @@ export type LessonPlanEntry = {
     assessment?: string;
     specialDays?: string;
     extracurricular?: string;
+};
+
+// Forum Types
+export type ForumReply = {
+    id: string;
+    author: string;
+    date: string; // ISO String
+    content: string;
+    upvotes: number;
+};
+
+export type ForumPost = {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    author: string;
+    date: string; // ISO String
+    replies: ForumReply[];
 };

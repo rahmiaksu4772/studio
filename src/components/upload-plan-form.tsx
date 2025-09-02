@@ -197,7 +197,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
               name="grade"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sınıf Seviyesi (İsteğe Bağlı)</FormLabel>
+                  <FormLabel>Sınıf Seviyesi</FormLabel>
                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
