@@ -156,7 +156,6 @@ function NotlarimPageContent() {
 
     if (isRecording) {
       recognitionRef.current?.stop();
-      setIsRecording(false);
       return;
     }
 
@@ -173,10 +172,8 @@ function NotlarimPageContent() {
 
     recognition.onend = () => {
       setIsRecording(false);
-      if(recognitionRef.current) {
-        toast({ title: 'Kayıt durduruldu.' });
-      }
       recognitionRef.current = null;
+      toast({ title: 'Kayıt durduruldu.' });
     };
 
     recognition.onerror = (event: any) => {
@@ -196,17 +193,24 @@ function NotlarimPageContent() {
       setIsRecording(false);
     };
 
+    let final_transcript = '';
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = Array.from(event.results)
-            .map(result => result[0])
-            .map(result => result.transcript)
-            .join('');
+      let interim_transcript = '';
 
-        if (event.results[event.results.length - 1].isFinal) {
-             setNewNoteContent(prevContent => prevContent.trim() ? `${prevContent.trim()} ${transcript.trim()}` : transcript.trim());
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final_transcript += event.results[i][0].transcript;
+        } else {
+          interim_transcript += event.results[i][0].transcript;
         }
+      }
+      
+      const newContent = newNoteContent + final_transcript;
+      setNewNoteContent(newContent);
+      final_transcript = ''; // Reset after appending
     };
     
+    setNewNoteContent(prev => prev ? prev + ' ' : '');
     recognition.start();
   };
   
