@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -20,7 +21,7 @@ import { PlanViewer } from './plan-viewer';
 import * as XLSX from 'xlsx';
 import { getWeek } from 'date-fns';
 
-const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const dayShort: { [key in Day]: string } = {
     'Pazartesi': 'Pzt',
     'Salı': 'Sal',

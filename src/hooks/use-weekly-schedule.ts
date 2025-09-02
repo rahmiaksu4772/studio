@@ -7,7 +7,7 @@ import type { WeeklyScheduleItem, Day, Lesson, ScheduleSettings } from '@/lib/ty
 import { db } from '@/lib/firebase';
 import { doc, setDoc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 
-const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 const getDefaultSchedule = (): WeeklyScheduleItem[] => {
     return dayOrder.map(day => ({
