@@ -296,20 +296,20 @@ function NotlarimPageContent() {
                       </Tooltip>
                   </TooltipProvider>
                    <Popover>
-                      <PopoverTrigger asChild>
-                         <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button type="button" variant="ghost" size="icon" className="text-muted-foreground">
-                                        <Palette />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Renk Değiştir</p>
-                                </TooltipContent>
-                            </Tooltip>
-                         </TooltipProvider>
-                      </PopoverTrigger>
+                    <TooltipProvider>
+                      <Tooltip>
+                          <PopoverTrigger asChild>
+                            <TooltipTrigger asChild>
+                                <Button type="button" variant="ghost" size="icon" className="text-muted-foreground">
+                                    <Palette />
+                                </Button>
+                            </TooltipTrigger>
+                          </PopoverTrigger>
+                          <TooltipContent>
+                              <p>Renk Değiştir</p>
+                          </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                       <PopoverContent className="w-auto p-2">
                         <div className="flex gap-1">
                             {noteColors.map(color => (
