@@ -18,10 +18,31 @@ import {
 } from '@/components/ui/dialog';
 import type { Note } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { Palette, Trash2, Plus } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Checkbox } from './ui/checkbox';
+
+const noteColors = [
+  'bg-card',
+  'bg-red-100/50 dark:bg-red-900/20 border-red-200/50 dark:border-red-900/30',
+  'bg-yellow-100/50 dark:bg-yellow-900/20 border-yellow-200/50 dark:border-yellow-900/30',
+  'bg-green-100/50 dark:bg-green-900/20 border-green-200/50 dark:border-green-900/30',
+  'bg-blue-100/50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-900/30',
+  'bg-purple-100/50 dark:bg-purple-900/20 border-purple-200/50 dark:border-purple-900/30',
+  'bg-pink-100/50 dark:bg-pink-900/20 border-pink-200/50 dark:border-pink-900/30',
+];
 
 const formSchema = z.object({
   title: z.string(),
-  content: z.string().min(1, { message: 'İçerik boş bırakılamaz.' }),
+  content: z.string().optional(),
+  color: z.string(),
+  type: z.enum(['text', 'checklist']),
+  items: z.array(z.object({
+      id: z.string(),
+      text: z.string(),
+      isChecked: z.boolean(),
+  })).optional()
 });
 
 type EditNoteFormValues = z.infer<typeof formSchema>;
@@ -40,62 +61,152 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     defaultValues: {
       title: note.title,
       content: note.content,
+      color: note.color,
+      type: note.type,
+      items: note.items || [],
     },
   });
+
+  const watchColor = form.watch('color');
+  const watchItems = form.watch('items');
 
   React.useEffect(() => {
     if (note) {
       form.reset({
         title: note.title,
         content: note.content,
+        color: note.color,
+        type: note.type,
+        items: note.items || []
       });
     }
   }, [note, form]);
 
   const handleSubmit = (values: EditNoteFormValues) => {
+    if (values.type === 'text' && !values.title && !values.content) {
+        toast({ title: "Boş Not", description: "Lütfen bir başlık veya içerik girin.", variant: "destructive" });
+        return;
+    }
+    if (values.type === 'checklist' && !values.title && values.items?.every(item => !item.text)) {
+        toast({ title: "Boş Not", description: "Lütfen bir başlık veya en az bir liste öğesi girin.", variant: "destructive" });
+        return;
+    }
+
     onUpdate(note.id, values);
-    onClose();
+  };
+  
+  const handleAddItem = () => {
+    const currentItems = form.getValues('items') || [];
+    form.setValue('items', [...currentItems, { id: new Date().toISOString(), text: '', isChecked: false }]);
+  }
+  
+  const handleRemoveItem = (index: number) => {
+    const currentItems = form.getValues('items') || [];
+    form.setValue('items', currentItems.filter((_, i) => i !== index));
+  }
+
+  const handleItemCheckChange = (index: number, checked: boolean) => {
+    const currentItems = form.getValues('items') || [];
+    const newItems = [...currentItems];
+    newItems[index].isChecked = checked;
+    form.setValue('items', newItems);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Notu Düzenle</DialogTitle>
-        </DialogHeader>
+      <DialogContent className={cn("max-w-xl p-0", watchColor)}>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Başlık</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+          <form onSubmit={form.handleSubmit(handleSubmit)}>
+            <div className="p-6 space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                    <FormControl>
+                        <Input 
+                            placeholder="Başlık" 
+                            {...field} 
+                            className="text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                        />
+                    </FormControl>
+                )}
+              />
+              {note.type === 'text' ? (
+                <FormField
+                    control={form.control}
+                    name="content"
+                    render={({ field }) => (
+                        <FormControl>
+                        <Textarea 
+                            placeholder="Bir not alın..."
+                            {...field}
+                            rows={8} 
+                            className="border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                        />
+                        </FormControl>
+                    )}
+                />
+              ) : (
+                <div className='space-y-2'>
+                    {watchItems?.map((item, index) => (
+                        <div key={item.id} className="flex items-center gap-2 group">
+                             <FormField
+                                control={form.control}
+                                name={`items.${index}.isChecked`}
+                                render={({ field }) => (
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={(checked) => handleItemCheckChange(index, Boolean(checked))}
+                                        />
+                                    </FormControl>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name={`items.${index}.text`}
+                                render={({ field }) => (
+                                    <FormControl>
+                                        <Input 
+                                            {...field} 
+                                            className={cn("bg-transparent border-0 shadow-none focus-visible:ring-0", item.isChecked && "line-through text-muted-foreground")}
+                                        />
+                                    </FormControl>
+                                )}
+                            />
+                            <Button variant="ghost" size="icon" type="button" onClick={() => handleRemoveItem(index)} className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                                <Trash2 className="h-4 w-4"/>
+                            </Button>
+                        </div>
+                    ))}
+                    <Button variant="ghost" type="button" onClick={handleAddItem} className="w-full justify-start">
+                        <Plus className="h-4 w-4 mr-2"/>
+                        Madde Ekle
+                    </Button>
+                </div>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>İçerik</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={8} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="button" variant="secondary" onClick={onClose}>
-                İptal
-              </Button>
-              <Button type="submit">Değişiklikleri Kaydet</Button>
+            </div>
+            <DialogFooter className="p-4 pt-0 mt-4 flex justify-between items-center bg-transparent">
+               <Popover>
+                  <PopoverTrigger asChild>
+                      <Button type="button" variant="ghost" size="icon" className="text-muted-foreground">
+                          <Palette />
+                      </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-2">
+                    <div className="flex gap-1">
+                        {noteColors.map(color => (
+                            <button key={color} type="button" onClick={() => form.setValue('color', color)} className={cn("h-8 w-8 rounded-full border", color)} />
+                        ))}
+                    </div>
+                  </PopoverContent>
+               </Popover>
+               <div>
+                  <Button type="button" variant="ghost" onClick={onClose}>
+                    Kapat
+                  </Button>
+                  <Button type="submit">Değişiklikleri Kaydet</Button>
+               </div>
             </DialogFooter>
           </form>
         </Form>

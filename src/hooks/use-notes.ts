@@ -21,7 +21,7 @@ export function useNotes(userId?: string) {
 
     setIsLoading(true);
     const notesCollectionRef = collection(db, `users/${userId}/notes`);
-    const q = query(notesCollectionRef, orderBy('date', 'desc'));
+    const q = query(notesCollectionRef, orderBy('isPinned', 'desc'), orderBy('date', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const notesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
@@ -52,22 +52,9 @@ export function useNotes(userId?: string) {
         delete dataToSave.imageUrl;
     }
     
-    if (dataToSave.title.trim() === '' && dataToSave.content.trim() === '') {
-        toast({
-            title: 'Boş Not',
-            description: 'Lütfen bir başlık veya içerik girin.',
-            variant: 'destructive',
-        });
-        return;
-    }
-
     try {
         const notesCollectionRef = collection(db, `users/${userId}/notes`);
         await addDoc(notesCollectionRef, dataToSave);
-        toast({
-          title: 'Not Eklendi!',
-          description: 'Yeni notunuz başarıyla eklendi.',
-        });
     } catch (error) {
         console.error("Error adding note to Firestore:", error);
         toast({
@@ -86,10 +73,6 @@ export function useNotes(userId?: string) {
     try {
         const noteDocRef = doc(db, `users/${userId}/notes`, noteId);
         await updateDoc(noteDocRef, data);
-        toast({
-            title: 'Not Güncellendi!',
-            description: 'Notunuz başarıyla güncellendi.',
-        });
     } catch (error) {
         console.error("Error updating note in Firestore:", error);
         toast({

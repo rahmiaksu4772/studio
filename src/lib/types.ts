@@ -1,5 +1,5 @@
 
-import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, FileCheck } from "lucide-react";
+import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, FileCheck, Pin, PinOff } from "lucide-react";
 
 export type Student = {
   id: string;
@@ -41,13 +41,22 @@ export const statusOptions: { value: AttendanceStatus; label: string, icon?: Luc
     { value: 'G', label: 'İzinli', icon: FileCheck, color: 'hsl(221, 83%, 53%)', bgColor: 'hsl(221, 83%, 95.1%)' },
 ];
 
+export type NoteChecklistItem = {
+  id: string;
+  text: string;
+  isChecked: boolean;
+};
+
 export type Note = {
   id: string;
   title: string;
   content: string;
-  date: string; // Should be ISO string for proper date handling
+  type: 'text' | 'checklist';
+  items?: NoteChecklistItem[];
+  date: string; // ISO string for proper date handling
   color: string;
   imageUrl?: string;
+  isPinned?: boolean;
 };
 
 export type Plan = {
