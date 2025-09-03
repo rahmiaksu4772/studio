@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -92,14 +92,6 @@ function NotlarimPageContent() {
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
-     if (newNoteContent.trim() === '' && newNoteTitle.trim() === '' && !newNoteImage) {
-      toast({
-        title: 'Boş Not',
-        description: 'Lütfen bir başlık veya içerik girin ya da bir fotoğraf ekleyin.',
-        variant: 'destructive',
-      });
-      return;
-    }
     
     if (recognitionRef.current) {
         recognitionRef.current.stop();
@@ -112,7 +104,6 @@ function NotlarimPageContent() {
       imageUrl: newNoteImage,
       color: noteColors[Math.floor(Math.random() * noteColors.length)],
       date: new Date().toISOString(),
-      isPinned: false,
     };
     
     await addNote(newNoteData);
@@ -120,14 +111,6 @@ function NotlarimPageContent() {
     setNewNoteTitle('');
     setNewNoteContent('');
     setNewNoteImage(null);
-  };
-
-  const handleTogglePin = async (e: React.MouseEvent, note: Note) => {
-    e.stopPropagation(); // Prevent opening the edit dialog
-    await updateNote(note.id, { isPinned: !note.isPinned });
-    toast({
-        title: note.isPinned ? 'Notun Sabitlemesi Kaldırıldı' : 'Not Başa Sabitlendi',
-    })
   };
   
   const handleCapture = () => {
@@ -313,32 +296,18 @@ function NotlarimPageContent() {
         </Card>
 
         {notes.length > 0 ? (
-          <div
-            className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 mt-8"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             {notes.map((note) => (
               <Card
                 key={note.id}
-                className={cn(
-                    'flex flex-col break-inside-avoid border cursor-pointer transition-shadow hover:shadow-md', 
-                    note.color,
-                    note.isPinned && 'ring-2 ring-primary'
-                )}
+                className={cn('flex flex-col break-inside-avoid border cursor-pointer transition-shadow hover:shadow-md', note.color)}
                 onClick={() => setEditingNote(note)}
               >
-                <CardHeader className='relative'>
+                <CardHeader>
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover mb-4" />}
                    <CardTitle>{note.title || 'Başlıksız Not'}</CardTitle>
-                   <Button 
-                     variant='ghost' 
-                     size='icon' 
-                     className='absolute top-2 right-2 h-8 w-8 rounded-full'
-                     onClick={(e) => handleTogglePin(e, note)}
-                    >
-                      {note.isPinned ? <PinOff className='h-4 w-4'/> : <Pin className='h-4 w-4'/>}
-                   </Button>
                 </CardHeader>
-                <CardContent className="flex-grow whitespace-pre-wrap line-clamp-6">
+                <CardContent className="flex-grow whitespace-pre-wrap">
                   {note.content}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">

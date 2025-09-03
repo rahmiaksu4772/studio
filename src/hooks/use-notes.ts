@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useToast } from './use-toast';
 import type { Note } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy, updateDoc } from 'firebase/firestore';
 
 export function useNotes(userId?: string) {
   const { toast } = useToast();
@@ -48,9 +48,17 @@ export function useNotes(userId?: string) {
 
     const dataToSave: { [key: string]: any } = { ...noteData };
 
-    // Remove imageUrl if it is null, undefined, or an empty string to prevent Firestore errors
     if (!dataToSave.imageUrl) {
         delete dataToSave.imageUrl;
+    }
+    
+    if (dataToSave.title.trim() === '' && dataToSave.content.trim() === '') {
+        toast({
+            title: 'Boş Not',
+            description: 'Lütfen bir başlık veya içerik girin.',
+            variant: 'destructive',
+        });
+        return;
     }
 
     try {
@@ -69,6 +77,29 @@ export function useNotes(userId?: string) {
         });
     }
   };
+
+  const updateNote = async (noteId: string, data: Partial<Note>) => {
+    if (!userId) {
+        toast({ title: 'Hata', description: 'Not güncellemek için kullanıcı girişi gereklidir.', variant: 'destructive'});
+        return;
+    }
+    try {
+        const noteDocRef = doc(db, `users/${userId}/notes`, noteId);
+        await updateDoc(noteDocRef, data);
+        toast({
+            title: 'Not Güncellendi!',
+            description: 'Notunuz başarıyla güncellendi.',
+        });
+    } catch (error) {
+        console.error("Error updating note in Firestore:", error);
+        toast({
+            title: 'Hata!',
+            description: 'Notunuz güncellenirken bir hata oluştu.',
+            variant: 'destructive',
+        });
+    }
+  };
+
 
   const deleteNote = async (noteId: string) => {
      if (!userId) {
@@ -93,5 +124,5 @@ export function useNotes(userId?: string) {
     }
   };
 
-  return { notes, isLoading, addNote, deleteNote };
+  return { notes, isLoading, addNote, updateNote, deleteNote };
 }
