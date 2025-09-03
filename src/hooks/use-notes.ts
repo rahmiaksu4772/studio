@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useToast } from './use-toast';
 import type { Note } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy, updateDoc, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy, updateDoc } from 'firebase/firestore';
 
 export function useNotes(userId?: string) {
   const { toast } = useToast();
@@ -20,44 +20,39 @@ export function useNotes(userId?: string) {
     }
 
     setIsLoading(true);
+    // A single, simple query that doesn't require a composite index.
+    // We will sort in the client.
     const notesCollectionRef = collection(db, `users/${userId}/notes`);
-    
-    // Instead of a single query requiring a composite index, we'll use two separate queries
-    // and combine the results. This is more resilient if the index hasn't been created yet.
-    
-    const qPinned = query(notesCollectionRef, where('isPinned', '==', true), orderBy('date', 'desc'));
-    const qUnpinned = query(notesCollectionRef, where('isPinned', '==', false), orderBy('date', 'desc'));
+    const q = query(notesCollectionRef, orderBy('date', 'desc'));
 
-    const unsubscribePinned = onSnapshot(qPinned, (pinnedSnapshot) => {
-        const pinnedNotes = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
-        
-        const unsubscribeUnpinned = onSnapshot(qUnpinned, (unpinnedSnapshot) => {
-            const unpinnedNotes = unpinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
-            
-            // Also fetch notes that might not have the isPinned field (legacy data)
-            const qLegacy = query(notesCollectionRef, where('isPinned', '==', null));
-            getDocs(qLegacy).then(legacySnapshot => {
-                 const legacyNotes = legacySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
-                 const allUnpinned = [...unpinnedNotes, ...legacyNotes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                 setNotes([...pinnedNotes, ...allUnpinned]);
-                 setIsLoading(false);
-            });
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const notesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
+      
+      // Sort client-side: pinned notes first, then by date (which they already are)
+      notesData.sort((a, b) => {
+        const aPinned = !!a.isPinned;
+        const bPinned = !!b.isPinned;
+        if (aPinned === bPinned) {
+          return 0; // Keep original date order
+        }
+        return aPinned ? -1 : 1; // Pinned notes come first
+      });
 
-        }, (error) => {
-             console.error("Error fetching unpinned notes:", error);
-             toast({ title: "Hata", description: "Notlar yüklenirken bir hata oluştu (unpinned).", variant: "destructive" });
-             setIsLoading(false);
-        });
-
-        return () => unsubscribeUnpinned();
-
+      setNotes(notesData);
+      setIsLoading(false);
     }, (error) => {
-        console.error("Error fetching pinned notes:", error);
-        toast({ title: "Hata", description: "Notlar yüklenirken bir hata oluştu (pinned).", variant: "destructive" });
-        setIsLoading(false);
+      console.error("Error fetching notes:", error);
+      // This is a simplified query, so index errors are highly unlikely.
+      // If it fails, it's likely a permissions or network issue.
+      toast({
+        title: "Hata",
+        description: "Notlar yüklenirken bir hata oluştu.",
+        variant: "destructive"
+      });
+      setIsLoading(false);
     });
 
-    return () => unsubscribePinned();
+    return () => unsubscribe();
   }, [userId, toast]);
 
   const addNote = async (noteData: Omit<Note, 'id'>) => {
