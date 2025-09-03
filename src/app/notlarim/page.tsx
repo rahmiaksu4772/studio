@@ -54,7 +54,7 @@ const noteColors = [
   'bg-green-900 dark:bg-green-800 border-green-800 dark:border-green-700',
   'bg-blue-900 dark:bg-blue-800 border-blue-800 dark:border-blue-700',
   'bg-purple-900 dark:bg-purple-800 border-purple-800 dark:border-purple-700',
-  'bg-pink-900 dark:bg-pink-800 border-pink-800 dark:border-pink-700',
+  'bg-orange-900 dark:bg-orange-800 border-orange-800 dark:border-orange-700',
 ];
 
 function NotlarimPageContent() {
@@ -256,7 +256,7 @@ function NotlarimPageContent() {
                 placeholder="Başlık"
                 className={cn(
                     "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent", 
-                    isNewNoteDark && "text-primary-foreground placeholder:text-primary-foreground/60"
+                    isNewNoteDark ? "text-primary-foreground placeholder:text-primary-foreground/60" : "text-foreground placeholder:text-muted-foreground"
                 )}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
@@ -265,7 +265,7 @@ function NotlarimPageContent() {
                   placeholder="Bir not alın..."
                   className={cn(
                       "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
-                      isNewNoteDark && "text-primary-foreground placeholder:text-primary-foreground/60"
+                      isNewNoteDark ? "text-primary-foreground placeholder:text-primary-foreground/60" : "text-foreground placeholder:text-muted-foreground"
                     )}
                   value={newNoteContent}
                   onChange={(e) => setNewNoteContent(e.target.value)}
@@ -274,23 +274,23 @@ function NotlarimPageContent() {
             </CardContent>
             <CardFooter className="flex justify-between items-center p-2">
               <div className='flex items-center gap-1'>
-                    <TooltipProvider>
-                      <Tooltip>
-                          <TooltipTrigger asChild>
-                              <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={handleToggleRecording}
-                                  className={cn("text-muted-foreground", isRecording && "text-red-500 animate-pulse", isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}
-                              >
-                                  {isRecording ? <MicOff /> : <Mic />}
-                              </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                              <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
-                          </TooltipContent>
-                      </Tooltip>
+                  <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleToggleRecording}
+                                className={cn("text-muted-foreground", isRecording && "text-red-500 animate-pulse", isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}
+                            >
+                                {isRecording ? <MicOff /> : <Mic />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
+                        </TooltipContent>
+                    </Tooltip>
                   </TooltipProvider>
                   <TooltipProvider>
                       <Tooltip>
@@ -334,7 +334,7 @@ function NotlarimPageContent() {
                       </PopoverContent>
                    </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn(isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}>Ekle</Button>
+              <Button type="submit" variant="ghost" className={cn(isNewNoteDark ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-muted-foreground')}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>

@@ -37,7 +37,7 @@ const noteColors = [
   'bg-green-900 dark:bg-green-800 border-green-800 dark:border-green-700',
   'bg-blue-900 dark:bg-blue-800 border-blue-800 dark:border-blue-700',
   'bg-purple-900 dark:bg-purple-800 border-purple-800 dark:border-purple-700',
-  'bg-pink-900 dark:bg-pink-800 border-pink-800 dark:border-pink-700',
+  'bg-orange-900 dark:bg-orange-800 border-orange-800 dark:border-orange-700',
 ];
 
 const formSchema = z.object({
