@@ -333,11 +333,7 @@ function GunlukTakipPageContent() {
 
         {isDirty && (
             <Card className='p-4 bg-primary/10 border-primary/20 sticky top-0 z-10'>
-                <div className='flex items-center justify-between'>
-                    <div className='flex items-center gap-2 text-primary font-medium'>
-                       <AlertTriangle className='h-5 w-5' />
-                       <p>Kaydedilmemiş değişiklikleriniz var.</p>
-                    </div>
+                <div className='flex items-center justify-end'>
                     <div className='flex items-center gap-2'>
                         <Button variant='ghost' onClick={handleCancelChanges}><Undo2 className='h-4 w-4 mr-2'/>İptal</Button>
                         <Button onClick={handleSaveChanges}><Save className='h-4 w-4 mr-2'/> Değişiklikleri Kaydet</Button>
@@ -446,7 +442,7 @@ function GunlukTakipPageContent() {
                                      {statusOptions.map(option => (
                                          <Button
                                             key={option.value}
-                                            variant={lastStatusEvent?.value === option.value ? 'secondary' : 'outline'}
+                                            variant={lastStatusEvent?.value === option.value ? 'destructive' : 'outline'}
                                             size='icon'
                                             className='rounded-full w-7 h-7 transition-all'
                                             onClick={() => handleStatusClick(student.id, option.value as AttendanceStatus)}
