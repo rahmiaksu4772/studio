@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, CheckSquare, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -54,6 +54,7 @@ function NotlarimPageContent() {
   
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
   const [newNoteContent, setNewNoteContent] = React.useState('');
+  const [newNoteType, setNewNoteType] = React.useState<'text' | 'checklist'>('text');
   const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
   const [isRecording, setIsRecording] = React.useState(false);
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
@@ -97,13 +98,25 @@ function NotlarimPageContent() {
         recognitionRef.current.stop();
         setIsRecording(false);
     }
+    
+     if (newNoteType === 'text' && newNoteTitle.trim() === '' && newNoteContent.trim() === '') {
+        toast({
+            title: 'Boş Not',
+            description: 'Lütfen bir başlık veya içerik girin.',
+            variant: 'destructive',
+        });
+        return;
+    }
 
     const newNoteData: Omit<Note, 'id'> = {
       title: newNoteTitle,
       content: newNoteContent,
+      type: newNoteType,
+      items: newNoteType === 'checklist' ? [{ id: Date.now().toString(), content: '', isChecked: false }] : [],
       imageUrl: newNoteImage,
       color: noteColors[Math.floor(Math.random() * noteColors.length)],
       date: new Date().toISOString(),
+      isPinned: false,
     };
     
     await addNote(newNoteData);
@@ -111,6 +124,7 @@ function NotlarimPageContent() {
     setNewNoteTitle('');
     setNewNoteContent('');
     setNewNoteImage(null);
+    setNewNoteType('text');
   };
   
   const handleCapture = () => {
@@ -134,70 +148,62 @@ function NotlarimPageContent() {
     }
   };
 
-  const handleToggleRecording = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast({
-        title: 'Desteklenmiyor',
-        description: 'Tarayıcınız sesle yazmayı desteklemiyor.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (isRecording) {
-      recognitionRef.current?.stop();
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.lang = 'tr-TR';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onstart = () => {
-      setIsRecording(true);
-      toast({ title: 'Kayıt başladı...', description: 'Konuşmaya başlayabilirsiniz.' });
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-      recognitionRef.current = null;
-      toast({ title: 'Kayıt durduruldu.' });
-    };
-
-    recognition.onerror = (event: any) => {
-        if (event.error === 'not-allowed') {
-            toast({
-                title: 'Mikrofon İzni Gerekli',
-                description: 'Sesle not almak için mikrofon izni vermelisiniz.',
-                variant: 'destructive',
-            });
-        } else {
-             toast({
-                title: 'Bir hata oluştu',
-                description: `Ses tanıma hatası: ${event.error}`,
-                variant: 'destructive',
-            });
+    const handleToggleRecording = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            toast({ title: 'Desteklenmiyor', description: 'Tarayıcınız sesle yazmayı desteklemiyor.', variant: 'destructive' });
+            return;
         }
-      setIsRecording(false);
-    };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let final_transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                final_transcript += event.results[i][0].transcript;
+        if (isRecording && recognitionRef.current) {
+            recognitionRef.current.stop();
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        recognition.lang = 'tr-TR';
+        recognition.continuous = false; // Set to false to get a final result after a pause
+        recognition.interimResults = false;
+
+        let finalTranscript = '';
+
+        recognition.onstart = () => {
+            setIsRecording(true);
+            toast({ title: 'Kayıt başladı...', description: 'Konuşmaya başlayabilirsiniz.' });
+        };
+
+        recognition.onend = () => {
+            setIsRecording(false);
+            recognitionRef.current = null;
+            toast({ title: 'Kayıt durduruldu.' });
+        };
+
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            if (event.error === 'not-allowed') {
+                toast({ title: 'Mikrofon İzni Gerekli', description: 'Sesle not almak için mikrofon izni vermelisiniz.', variant: 'destructive' });
+            } else {
+                toast({ title: 'Bir hata oluştu', description: `Ses tanıma hatası: ${event.error}`, variant: 'destructive' });
             }
-        }
-        if (final_transcript) {
-            setNewNoteContent(prev => prev ? prev + ' ' + final_transcript : final_transcript);
-        }
+            setIsRecording(false);
+        };
+        
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+            finalTranscript = Array.from(event.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+
+            setNewNoteContent(prevContent => prevContent ? `${prevContent} ${finalTranscript}`.trim() : finalTranscript);
+        };
+
+        recognition.start();
     };
-    
-    recognition.start();
-  };
+
+    const handlePinToggle = (e: React.MouseEvent, note: Note) => {
+        e.stopPropagation();
+        updateNote(note.id, { isPinned: !note.isPinned });
+    };
   
    if (isLoading) {
     return (
@@ -234,7 +240,7 @@ function NotlarimPageContent() {
                 </div>
               )}
               <Input
-                placeholder="Not başlığı (isteğe bağlı)..."
+                placeholder="Not başlığı..."
                 className="text-lg font-semibold border-0 focus-visible:ring-0 shadow-none px-2"
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
@@ -283,6 +289,23 @@ function NotlarimPageContent() {
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
+                     <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setNewNoteType(newNoteType === 'text' ? 'checklist' : 'text')}
+                                >
+                                    {newNoteType === 'text' ? <CheckSquare/> : <Type />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{newNoteType === 'text' ? 'Onay Kutularını Göster' : 'Düz Metin'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
               </div>
             </CardContent>
@@ -296,19 +319,36 @@ function NotlarimPageContent() {
         </Card>
 
         {notes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+          <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 mt-8">
             {notes.map((note) => (
               <Card
                 key={note.id}
-                className={cn('flex flex-col break-inside-avoid border cursor-pointer transition-shadow hover:shadow-md', note.color)}
+                className={cn('flex flex-col break-inside-avoid border cursor-pointer transition-shadow hover:shadow-md relative group', note.color)}
                 onClick={() => setEditingNote(note)}
               >
+                <button 
+                    onClick={(e) => handlePinToggle(e, note)}
+                    className="absolute top-2 right-2 p-2 rounded-full bg-background/50 text-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                >
+                    {note.isPinned ? <PinOff className='h-4 w-4'/> : <Pin className='h-4 w-4'/>}
+                </button>
                 <CardHeader>
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover mb-4" />}
-                   <CardTitle>{note.title || 'Başlıksız Not'}</CardTitle>
+                   {note.title && <CardTitle>{note.title}</CardTitle>}
                 </CardHeader>
-                <CardContent className="flex-grow whitespace-pre-wrap">
-                  {note.content}
+                <CardContent className="flex-grow whitespace-pre-wrap line-clamp-6 break-words">
+                    {note.type === 'checklist' && note.items && note.items.length > 0 ? (
+                        <ul className='space-y-2'>
+                           {note.items.map(item => (
+                               <li key={item.id} className='flex items-center gap-2'>
+                                   <input type="checkbox" checked={item.isChecked} readOnly className='h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary' />
+                                   <span className={cn(item.isChecked && 'line-through text-muted-foreground')}>{item.content}</span>
+                               </li>
+                           ))}
+                        </ul>
+                    ) : (
+                        note.content
+                    )}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">
                   <span>{format(new Date(note.date), 'dd.MM.yyyy')}</span>
@@ -317,6 +357,7 @@ function NotlarimPageContent() {
                         <Button 
                           variant="ghost" 
                           size="icon"
+                          className='opacity-0 group-hover:opacity-100'
                           onClick={(e) => e.stopPropagation()}
                         >
                             <Trash2 className="h-4 w-4" />
