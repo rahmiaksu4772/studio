@@ -169,7 +169,7 @@ function RaporlarPageContent() {
     const noteEvents: { date: string; type: 'note'; value: string }[] = [];
     const scoresByDate: { [date: string]: number } = {};
     const scoreValues: { [key in AttendanceStatus]: number } = {
-        '+': 2, 'Y': 0, '-': -2, 'D': 0, 'G': 0,
+        '+': 10, 'Y': -5, '-': -10, 'D': 0, 'G': 0,
     };
     
     studentRecords.forEach(record => {
@@ -224,7 +224,7 @@ function RaporlarPageContent() {
         });
       });
       
-      const totalScore = summary['+'] * 2 + summary['Y'] * 0 + summary['-'] * -2;
+      const totalScore = summary['+'] * 10 + summary['Y'] * -5 + summary['-'] * -10;
       
       return {
         ...student,
@@ -723,5 +723,7 @@ export default function RaporlarPage() {
 
 
 
+
+    
 
     
