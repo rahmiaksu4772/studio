@@ -365,9 +365,9 @@ function GunlukTakipPageContent() {
                                     <Button
                                         variant="outline"
                                         size='icon'
-                                        className={cn('rounded-full w-8 h-8 transition-all hover:bg-muted')}
+                                        className={cn('rounded-full w-7 h-7 transition-all hover:bg-muted')}
                                     >
-                                        {option.icon && <option.icon className="h-5 w-5" style={{ color: option.color }} />}
+                                        {option.icon && <option.icon className="h-4 w-4" style={{ color: option.color }} />}
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -390,10 +390,10 @@ function GunlukTakipPageContent() {
                             <Button
                                 variant="outline"
                                 size="icon"
-                                className="rounded-full w-8 h-8"
+                                className="rounded-full w-7 h-7"
                                 onClick={() => setIsBulkNoteOpen(true)}
                             >
-                                <FilePenLine className="h-5 w-5 text-muted-foreground" />
+                                <FilePenLine className="h-4 w-4 text-muted-foreground" />
                             </Button>
                        </div>
                     </div>
@@ -406,7 +406,7 @@ function GunlukTakipPageContent() {
                             <div key={student.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-3 border-b last:border-none hover:bg-muted/50 rounded-md">
                                 <div className="font-medium text-muted-foreground w-8 text-center">{student.studentNumber}</div>
                                 <div className="flex flex-col min-w-0">
-                                    <p className='font-semibold truncate'>{student.firstName} {student.lastName}</p>
+                                    <p className='font-semibold'>{student.firstName} {student.lastName}</p>
                                     <div className="flex items-center gap-1.5 mt-1 overflow-x-auto flex-nowrap pb-1 no-scrollbar">
                                         {statusEvents.map((event) => {
                                             const option = statusOptions.find(o => o.value === event.value);
@@ -440,25 +440,25 @@ function GunlukTakipPageContent() {
                                         )})}
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-end gap-1 md:gap-2">
-                                     <div className="flex items-center border-l-2 pl-1.5 gap-1">
+                                <div className="flex items-center justify-end gap-1">
+                                     <div className="flex items-center border-l pl-1 ml-1 gap-1">
                                      {statusOptions.map(option => (
                                          <Button
                                             key={option.value}
                                             variant='outline'
                                             size='icon'
-                                            className='rounded-full w-8 h-8 md:w-10 md:h-10 transition-all'
+                                            className='rounded-full w-8 h-8 md:w-9 md:h-9 transition-all'
                                             style={{
                                                 '--bg-color': option.bgColor,
                                                 '--text-color': option.color,
                                             } as React.CSSProperties}
                                             onClick={() => handleStatusClick(student.id, option.value as AttendanceStatus)}
                                          >
-                                            {option.icon && <option.icon className="h-5 w-5" />}
+                                            {option.icon && <option.icon className="h-4 w-4 md:h-5 md:w-5" />}
                                          </Button>
                                      ))}
-                                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground h-9 w-9 md:h-10 md:h-10 relative" onClick={() => openNoteEditor(student)}>
-                                        <MessageSquarePlus className="h-5 w-5"/>
+                                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground w-8 h-8 md:w-9 md:h-9 relative" onClick={() => openNoteEditor(student)}>
+                                        <MessageSquarePlus className="h-4 w-4 md:h-5 md:w-5"/>
                                         {noteEvent && <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />}
                                     </Button>
                                     </div>
@@ -531,6 +531,8 @@ export default function GunlukTakipPage() {
       </AuthGuard>
     );
   }
+
+    
 
     
 
