@@ -333,7 +333,11 @@ function GunlukTakipPageContent() {
 
         {isDirty && (
             <Card className='p-4 bg-primary/10 border-primary/20 sticky top-0 z-10'>
-                <div className='flex items-center justify-end'>
+                <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-2 text-primary font-medium'>
+                       <AlertTriangle className='h-5 w-5' />
+                       <p>Kaydedilmemiş değişiklikleriniz var.</p>
+                    </div>
                     <div className='flex items-center gap-2'>
                         <Button variant='ghost' onClick={handleCancelChanges}><Undo2 className='h-4 w-4 mr-2'/>İptal</Button>
                         <Button onClick={handleSaveChanges}><Save className='h-4 w-4 mr-2'/> Değişiklikleri Kaydet</Button>
@@ -397,6 +401,7 @@ function GunlukTakipPageContent() {
                         const record = recordsByStudentId[student.id];
                         const noteEvent = record?.events.find(e => e.type === 'note');
                         const statusEvents = record?.events.filter(e => e.type === 'status') || [];
+                        const lastStatusEvent = statusEvents.length > 0 ? statusEvents[statusEvents.length - 1] : null;
 
                         return (
                             <div key={student.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-3 border-b last:border-none hover:bg-muted/50 rounded-md">
@@ -441,13 +446,9 @@ function GunlukTakipPageContent() {
                                      {statusOptions.map(option => (
                                          <Button
                                             key={option.value}
-                                            variant='outline'
+                                            variant={lastStatusEvent?.value === option.value ? 'secondary' : 'outline'}
                                             size='icon'
                                             className='rounded-full w-7 h-7 transition-all'
-                                            style={{
-                                                '--bg-color': option.bgColor,
-                                                '--text-color': option.color,
-                                            } as React.CSSProperties}
                                             onClick={() => handleStatusClick(student.id, option.value as AttendanceStatus)}
                                          >
                                             {option.icon && <option.icon className="h-4 w-4" />}
