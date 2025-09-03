@@ -333,11 +333,7 @@ function GunlukTakipPageContent() {
 
         {isDirty && (
             <Card className='p-4 bg-primary/10 border-primary/20 sticky top-0 z-10'>
-                <div className='flex items-center justify-between'>
-                    <div className='flex items-center gap-2 text-primary font-semibold'>
-                        <AlertTriangle className='h-5 w-5'/>
-                        Kaydedilmemiş değişiklikleriniz var.
-                    </div>
+                <div className='flex items-center justify-end'>
                     <div className='flex items-center gap-2'>
                         <Button variant='ghost' onClick={handleCancelChanges}><Undo2 className='h-4 w-4 mr-2'/>İptal</Button>
                         <Button onClick={handleSaveChanges}><Save className='h-4 w-4 mr-2'/> Değişiklikleri Kaydet</Button>
@@ -541,5 +537,7 @@ export default function GunlukTakipPage() {
     
 
 
+
+    
 
     
