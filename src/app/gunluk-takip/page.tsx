@@ -354,9 +354,9 @@ function GunlukTakipPageContent() {
                     </div>
                 ) : (
                 <div className="space-y-1">
-                    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 text-sm font-medium text-muted-foreground border-b">
-                       <div>No</div>
-                       <div>Adı Soyadı</div>
+                    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 font-medium text-muted-foreground border-b">
+                       <div className='text-xs'>No</div>
+                       <div className='text-xs'>Adı Soyadı</div>
                        <div className='text-center flex items-center justify-end gap-1'>
                             <span className='text-xs mr-2 hidden sm:inline'>Tümüne:</span>
                             {statusOptions.map(option => (
@@ -447,18 +447,18 @@ function GunlukTakipPageContent() {
                                             key={option.value}
                                             variant='outline'
                                             size='icon'
-                                            className='rounded-full w-8 h-8 md:w-9 md:h-9 transition-all'
+                                            className='rounded-full w-7 h-7 transition-all'
                                             style={{
                                                 '--bg-color': option.bgColor,
                                                 '--text-color': option.color,
                                             } as React.CSSProperties}
                                             onClick={() => handleStatusClick(student.id, option.value as AttendanceStatus)}
                                          >
-                                            {option.icon && <option.icon className="h-4 w-4 md:h-5 md:w-5" />}
+                                            {option.icon && <option.icon className="h-4 w-4" />}
                                          </Button>
                                      ))}
-                                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground w-8 h-8 md:w-9 md:h-9 relative" onClick={() => openNoteEditor(student)}>
-                                        <MessageSquarePlus className="h-4 w-4 md:h-5 md:w-5"/>
+                                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground w-7 h-7 relative" onClick={() => openNoteEditor(student)}>
+                                        <MessageSquarePlus className="h-4 w-4"/>
                                         {noteEvent && <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-primary ring-2 ring-background" />}
                                     </Button>
                                     </div>
@@ -531,6 +531,8 @@ export default function GunlukTakipPage() {
       </AuthGuard>
     );
   }
+
+    
 
     
 
