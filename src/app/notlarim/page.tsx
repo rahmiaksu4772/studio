@@ -313,7 +313,7 @@ function NotlarimPageContent() {
                       <PopoverContent className="w-auto p-2">
                         <div className="flex gap-1">
                             {noteColors.map(color => (
-                                <button key={color} onClick={() => setNewNoteColor(color)} className={cn("h-8 w-8 rounded-full border", color)} />
+                                <button key={color} type="button" onClick={() => setNewNoteColor(color)} className={cn("h-8 w-8 rounded-full border", color)} />
                             ))}
                         </div>
                       </PopoverContent>
