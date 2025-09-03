@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -36,6 +36,8 @@ import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
 import { useNotes } from '@/hooks/use-notes';
+import { EditNoteDialog } from '@/components/edit-note-dialog';
+
 
 const noteColors = [
   'bg-yellow-50 border-yellow-200',
@@ -48,7 +50,7 @@ const noteColors = [
 function NotlarimPageContent() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { notes, isLoading, addNote, deleteNote } = useNotes(user?.uid);
+  const { notes, isLoading, addNote, deleteNote, updateNote } = useNotes(user?.uid);
   
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
   const [newNoteContent, setNewNoteContent] = React.useState('');
@@ -57,6 +59,7 @@ function NotlarimPageContent() {
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
+  const [editingNote, setEditingNote] = React.useState<Note | null>(null);
   
   const recognitionRef = React.useRef<any>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -89,10 +92,10 @@ function NotlarimPageContent() {
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newNoteContent.trim() === '' && !newNoteImage) {
+     if (newNoteContent.trim() === '' && newNoteTitle.trim() === '' && !newNoteImage) {
       toast({
         title: 'Boş Not',
-        description: 'Lütfen not içeriği girin veya bir fotoğraf ekleyin.',
+        description: 'Lütfen bir başlık veya içerik girin ya da bir fotoğraf ekleyin.',
         variant: 'destructive',
       });
       return;
@@ -108,7 +111,8 @@ function NotlarimPageContent() {
       content: newNoteContent,
       imageUrl: newNoteImage,
       color: noteColors[Math.floor(Math.random() * noteColors.length)],
-      date: new Date().toISOString() // Store as ISO string for proper ordering in Firestore
+      date: new Date().toISOString(),
+      isPinned: false,
     };
     
     await addNote(newNoteData);
@@ -118,8 +122,12 @@ function NotlarimPageContent() {
     setNewNoteImage(null);
   };
 
-  const handleDeleteNote = async (id: string) => {
-    await deleteNote(id);
+  const handleTogglePin = async (e: React.MouseEvent, note: Note) => {
+    e.stopPropagation(); // Prevent opening the edit dialog
+    await updateNote(note.id, { isPinned: !note.isPinned });
+    toast({
+        title: note.isPinned ? 'Notun Sabitlemesi Kaldırıldı' : 'Not Başa Sabitlendi',
+    })
   };
   
   const handleCapture = () => {
@@ -193,24 +201,18 @@ function NotlarimPageContent() {
       setIsRecording(false);
     };
 
-    let final_transcript = '';
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim_transcript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          final_transcript += event.results[i][0].transcript;
-        } else {
-          interim_transcript += event.results[i][0].transcript;
+        let final_transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                final_transcript += event.results[i][0].transcript;
+            }
         }
-      }
-      
-      const newContent = newNoteContent + final_transcript;
-      setNewNoteContent(newContent);
-      final_transcript = ''; // Reset after appending
+        if (final_transcript) {
+            setNewNoteContent(prev => prev ? prev + ' ' + final_transcript : final_transcript);
+        }
     };
     
-    setNewNoteContent(prev => prev ? prev + ' ' : '');
     recognition.start();
   };
   
@@ -312,28 +314,42 @@ function NotlarimPageContent() {
 
         {notes.length > 0 ? (
           <div
-            className="grid gap-4 mt-8"
-            style={{
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-            }}
+            className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 mt-8"
           >
             {notes.map((note) => (
               <Card
                 key={note.id}
-                className={cn('flex flex-col break-inside-avoid border', note.color)}
+                className={cn(
+                    'flex flex-col break-inside-avoid border cursor-pointer transition-shadow hover:shadow-md', 
+                    note.color,
+                    note.isPinned && 'ring-2 ring-primary'
+                )}
+                onClick={() => setEditingNote(note)}
               >
-                {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover" />}
-                <CardHeader>
-                  <CardTitle>{note.title || 'Başlıksız Not'}</CardTitle>
+                <CardHeader className='relative'>
+                   {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover mb-4" />}
+                   <CardTitle>{note.title || 'Başlıksız Not'}</CardTitle>
+                   <Button 
+                     variant='ghost' 
+                     size='icon' 
+                     className='absolute top-2 right-2 h-8 w-8 rounded-full'
+                     onClick={(e) => handleTogglePin(e, note)}
+                    >
+                      {note.isPinned ? <PinOff className='h-4 w-4'/> : <Pin className='h-4 w-4'/>}
+                   </Button>
                 </CardHeader>
-                <CardContent className="flex-grow whitespace-pre-wrap">
+                <CardContent className="flex-grow whitespace-pre-wrap line-clamp-6">
                   {note.content}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">
                   <span>{format(new Date(note.date), 'dd.MM.yyyy')}</span>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </AlertDialogTrigger>
@@ -346,7 +362,12 @@ function NotlarimPageContent() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteNote(note.id)} className="bg-destructive hover:bg-destructive/90">
+                        <AlertDialogAction 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteNote(note.id)
+                          }} 
+                          className="bg-destructive hover:bg-destructive/90">
                           Sil
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -366,6 +387,15 @@ function NotlarimPageContent() {
           </div>
         )}
       </main>
+      
+      {editingNote && (
+        <EditNoteDialog 
+            isOpen={!!editingNote}
+            onClose={() => setEditingNote(null)}
+            note={editingNote}
+            onUpdate={updateNote}
+        />
+      )}
       
       <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
         <DialogContent className="sm:max-w-md">
