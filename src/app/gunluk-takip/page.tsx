@@ -332,7 +332,7 @@ function GunlukTakipPageContent() {
         </div>
 
         {isDirty && (
-            <Card className='p-4 bg-primary/10 border-primary/20'>
+            <Card className='p-4 bg-primary/10 border-primary/20 sticky top-0 z-10'>
                 <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-2 text-primary font-semibold'>
                         <AlertTriangle className='h-5 w-5'/>
@@ -540,3 +540,6 @@ export default function GunlukTakipPage() {
 
     
 
+
+
+    
