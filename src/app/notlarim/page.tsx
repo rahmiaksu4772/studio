@@ -229,6 +229,8 @@ function NotlarimPageContent() {
     );
   }
 
+  const isNewNoteDark = newNoteColor.includes('dark:');
+
   return (
     <AppLayout>
       <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -252,13 +254,19 @@ function NotlarimPageContent() {
               )}
               <Input
                 placeholder="Başlık"
-                className={cn("text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent", newNoteColor.includes('dark:') && "text-primary-foreground placeholder:text-primary-foreground/60")}
+                className={cn(
+                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent", 
+                    isNewNoteDark && "text-primary-foreground placeholder:text-primary-foreground/60"
+                )}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
               />
               <Textarea
                   placeholder="Bir not alın..."
-                  className={cn("border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent", newNoteColor.includes('dark:') && "text-primary-foreground placeholder:text-primary-foreground/60")}
+                  className={cn(
+                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
+                      isNewNoteDark && "text-primary-foreground placeholder:text-primary-foreground/60"
+                    )}
                   value={newNoteContent}
                   onChange={(e) => setNewNoteContent(e.target.value)}
                   rows={newNoteImage || newNoteTitle ? 3 : 1}
@@ -274,7 +282,7 @@ function NotlarimPageContent() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={handleToggleRecording}
-                                  className={cn("text-muted-foreground", isRecording && "text-red-500 animate-pulse", newNoteColor.includes('dark:') && 'text-primary-foreground/70 hover:text-primary-foreground')}
+                                  className={cn("text-muted-foreground", isRecording && "text-red-500 animate-pulse", isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}
                               >
                                   {isRecording ? <MicOff /> : <Mic />}
                               </Button>
@@ -292,7 +300,7 @@ function NotlarimPageContent() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setIsCameraOpen(true)}
-                                  className={cn("text-muted-foreground", newNoteColor.includes('dark:') && 'text-primary-foreground/70 hover:text-primary-foreground')}
+                                  className={cn("text-muted-foreground", isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}
                               >
                                   <Camera />
                               </Button>
@@ -305,13 +313,13 @@ function NotlarimPageContent() {
                    <Popover>
                     <TooltipProvider>
                       <Tooltip>
-                          <PopoverTrigger asChild>
+                        <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" className={cn("text-muted-foreground", newNoteColor.includes('dark:') && 'text-primary-foreground/70 hover:text-primary-foreground')}>
+                                <Button type="button" variant="ghost" size="icon" className={cn("text-muted-foreground", isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}>
                                     <Palette />
                                 </Button>
                             </TooltipTrigger>
-                          </PopoverTrigger>
+                        </PopoverTrigger>
                           <TooltipContent>
                               <p>Renk Değiştir</p>
                           </TooltipContent>
@@ -326,7 +334,7 @@ function NotlarimPageContent() {
                       </PopoverContent>
                    </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn(newNoteColor.includes('dark:') && 'text-primary-foreground/70 hover:text-primary-foreground')}>Ekle</Button>
+              <Button type="submit" variant="ghost" className={cn(isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>
