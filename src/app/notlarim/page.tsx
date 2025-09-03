@@ -286,8 +286,8 @@ function NotlarimPageContent() {
                                 size="icon"
                                 onClick={handleToggleRecording}
                                 className={cn(
-                                    isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700',
-                                    isRecording && "text-red-500 animate-pulse"
+                                    isRecording && "text-red-500 animate-pulse",
+                                    isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700'
                                 )}
                             >
                                 {isRecording ? <MicOff /> : <Mic />}
@@ -346,7 +346,7 @@ function NotlarimPageContent() {
         </Card>
 
         {notes.length > 0 ? (
-          <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 mt-8">
+          <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4 mt-8">
             {notes.map((note) => {
               const isDarkNote = note.color && (note.color.startsWith('bg-gray-800') || note.color.startsWith('bg-red-900') || note.color.startsWith('bg-green-900') || note.color.startsWith('bg-blue-900') || note.color.startsWith('bg-purple-900') || note.color.startsWith('bg-yellow-900'));
               return (
