@@ -31,6 +31,13 @@ const noteColors = [
   'bg-blue-100/50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-900/30',
   'bg-purple-100/50 dark:bg-purple-900/20 border-purple-200/50 dark:border-purple-900/30',
   'bg-pink-100/50 dark:bg-pink-900/20 border-pink-200/50 dark:border-pink-900/30',
+  'bg-gray-800 dark:bg-gray-700 border-gray-700 dark:border-gray-600',
+  'bg-red-900 dark:bg-red-800 border-red-800 dark:border-red-700',
+  'bg-yellow-900 dark:bg-yellow-800 border-yellow-800 dark:border-yellow-700',
+  'bg-green-900 dark:bg-green-800 border-green-800 dark:border-green-700',
+  'bg-blue-900 dark:bg-blue-800 border-blue-800 dark:border-blue-700',
+  'bg-purple-900 dark:bg-purple-800 border-purple-800 dark:border-purple-700',
+  'bg-pink-900 dark:bg-pink-800 border-pink-800 dark:border-pink-700',
 ];
 
 const formSchema = z.object({
@@ -112,6 +119,8 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     form.setValue('items', newItems);
   };
 
+  const isDarkColor = watchColor && watchColor.includes('dark:');
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={cn("max-w-xl p-0", watchColor)}>
@@ -126,7 +135,10 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                         <Input 
                             placeholder="Başlık" 
                             {...field} 
-                            className="text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                            className={cn(
+                                "text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent",
+                                isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60"
+                            )}
                         />
                     </FormControl>
                 )}
@@ -141,7 +153,10 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                             placeholder="Bir not alın..."
                             {...field}
                             rows={8} 
-                            className="border-0 shadow-none focus-visible:ring-0 bg-transparent"
+                            className={cn(
+                                "border-0 shadow-none focus-visible:ring-0 bg-transparent",
+                                isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60"
+                            )}
                         />
                         </FormControl>
                     )}
@@ -158,6 +173,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                                         <Checkbox
                                             checked={field.value}
                                             onCheckedChange={(checked) => handleItemCheckChange(index, Boolean(checked))}
+                                            className={cn(isDarkColor && "border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-background")}
                                         />
                                     </FormControl>
                                 )}
@@ -169,17 +185,22 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                                     <FormControl>
                                         <Input 
                                             {...field} 
-                                            className={cn("bg-transparent border-0 shadow-none focus-visible:ring-0", item.isChecked && "line-through text-muted-foreground")}
+                                            className={cn(
+                                                "bg-transparent border-0 shadow-none focus-visible:ring-0", 
+                                                item.isChecked && "line-through text-muted-foreground",
+                                                isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60",
+                                                item.isChecked && isDarkColor && "text-primary-foreground/50"
+                                            )}
                                         />
                                     </FormControl>
                                 )}
                             />
-                            <Button variant="ghost" size="icon" type="button" onClick={() => handleRemoveItem(index)} className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                            <Button variant="ghost" size="icon" type="button" onClick={() => handleRemoveItem(index)} className={cn("h-8 w-8 opacity-0 group-hover:opacity-100", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
                                 <Trash2 className="h-4 w-4"/>
                             </Button>
                         </div>
                     ))}
-                    <Button variant="ghost" type="button" onClick={handleAddItem} className="w-full justify-start">
+                    <Button variant="ghost" type="button" onClick={handleAddItem} className={cn("w-full justify-start", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
                         <Plus className="h-4 w-4 mr-2"/>
                         Madde Ekle
                     </Button>
@@ -189,12 +210,12 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
             <DialogFooter className="p-4 pt-0 mt-4 flex justify-between items-center bg-transparent">
                <Popover>
                   <PopoverTrigger asChild>
-                      <Button type="button" variant="ghost" size="icon" className="text-muted-foreground">
+                      <Button type="button" variant="ghost" size="icon" className={cn("text-muted-foreground", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
                           <Palette />
                       </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-2">
-                    <div className="flex gap-1">
+                    <div className="grid grid-cols-7 gap-1">
                         {noteColors.map(color => (
                             <button key={color} type="button" onClick={() => form.setValue('color', color)} className={cn("h-8 w-8 rounded-full border", color)} />
                         ))}
@@ -202,7 +223,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                   </PopoverContent>
                </Popover>
                <div>
-                  <Button type="button" variant="ghost" onClick={onClose}>
+                  <Button type="button" variant="ghost" onClick={onClose} className={cn(isDarkColor && 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10')}>
                     Kapat
                   </Button>
                   <Button type="submit">Değişiklikleri Kaydet</Button>
