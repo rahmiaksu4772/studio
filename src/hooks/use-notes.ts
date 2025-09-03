@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useToast } from './use-toast';
 import type { Note } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy, updateDoc, where, getDocs } from 'firebase/firestore';
 
 export function useNotes(userId?: string) {
   const { toast } = useToast();
@@ -21,23 +21,43 @@ export function useNotes(userId?: string) {
 
     setIsLoading(true);
     const notesCollectionRef = collection(db, `users/${userId}/notes`);
-    const q = query(notesCollectionRef, orderBy('isPinned', 'desc'), orderBy('date', 'desc'));
+    
+    // Instead of a single query requiring a composite index, we'll use two separate queries
+    // and combine the results. This is more resilient if the index hasn't been created yet.
+    
+    const qPinned = query(notesCollectionRef, where('isPinned', '==', true), orderBy('date', 'desc'));
+    const qUnpinned = query(notesCollectionRef, where('isPinned', '==', false), orderBy('date', 'desc'));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
-      setNotes(notesData);
-      setIsLoading(false);
+    const unsubscribePinned = onSnapshot(qPinned, (pinnedSnapshot) => {
+        const pinnedNotes = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
+        
+        const unsubscribeUnpinned = onSnapshot(qUnpinned, (unpinnedSnapshot) => {
+            const unpinnedNotes = unpinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
+            
+            // Also fetch notes that might not have the isPinned field (legacy data)
+            const qLegacy = query(notesCollectionRef, where('isPinned', '==', null));
+            getDocs(qLegacy).then(legacySnapshot => {
+                 const legacyNotes = legacySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));
+                 const allUnpinned = [...unpinnedNotes, ...legacyNotes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                 setNotes([...pinnedNotes, ...allUnpinned]);
+                 setIsLoading(false);
+            });
+
+        }, (error) => {
+             console.error("Error fetching unpinned notes:", error);
+             toast({ title: "Hata", description: "Notlar yüklenirken bir hata oluştu (unpinned).", variant: "destructive" });
+             setIsLoading(false);
+        });
+
+        return () => unsubscribeUnpinned();
+
     }, (error) => {
-      console.error("Error fetching notes from Firestore:", error);
-      toast({
-        title: "Notlar Yüklenemedi",
-        description: "Notlarınız veritabanından yüklenirken bir sorun oluştu.",
-        variant: "destructive"
-      });
-      setIsLoading(false);
+        console.error("Error fetching pinned notes:", error);
+        toast({ title: "Hata", description: "Notlar yüklenirken bir hata oluştu (pinned).", variant: "destructive" });
+        setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribePinned();
   }, [userId, toast]);
 
   const addNote = async (noteData: Omit<Note, 'id'>) => {
@@ -46,7 +66,10 @@ export function useNotes(userId?: string) {
         return;
     }
 
-    const dataToSave: { [key: string]: any } = { ...noteData };
+    const dataToSave: { [key: string]: any } = { 
+        ...noteData,
+        isPinned: noteData.isPinned || false, // Ensure isPinned is never undefined
+    };
 
     if (!dataToSave.imageUrl) {
         delete dataToSave.imageUrl;
@@ -72,7 +95,13 @@ export function useNotes(userId?: string) {
     }
     try {
         const noteDocRef = doc(db, `users/${userId}/notes`, noteId);
-        await updateDoc(noteDocRef, data);
+        
+        const dataToUpdate = {...data};
+        if (dataToUpdate.isPinned === undefined) {
+            delete dataToUpdate.isPinned;
+        }
+
+        await updateDoc(noteDocRef, dataToUpdate);
     } catch (error) {
         console.error("Error updating note in Firestore:", error);
         toast({
