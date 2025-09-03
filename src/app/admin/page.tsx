@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/app-layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { Loader2, ShieldCheck, User, GraduationCap, Users, MoreHorizontal, Trash2, UserCog } from 'lucide-react';
+import { Loader2, ShieldCheck, User, GraduationCap, Users, MoreHorizontal, Trash2, UserCog, UserCheck, UserX } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteUserAction, updateUserRoleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import type { UserRole } from '@/lib/types';
 
 function AdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -73,7 +74,7 @@ function AdminPage() {
     setSelectedUser(null);
   };
   
-  const handleUpdateRole = async (userId: string, newRole: 'admin' | 'teacher') => {
+  const handleUpdateRole = async (userId: string, newRole: UserRole) => {
       const result = await updateUserRoleAction(userId, newRole);
        if (result.success) {
         toast({ title: 'Başarılı!', description: result.message });
@@ -103,6 +104,15 @@ function AdminPage() {
   if (profile?.role !== 'admin') {
     return null; // or a redirection component
   }
+  
+  const getRoleBadgeVariant = (role: UserRole) => {
+    switch (role) {
+        case 'admin': return 'destructive';
+        case 'teacher': return 'secondary';
+        case 'beklemede': return 'premium';
+        default: return 'outline';
+    }
+  }
 
   return (
     <AppLayout>
@@ -122,7 +132,7 @@ function AdminPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Kullanıcı Listesi</CardTitle>
-                <CardDescription>{usersData.length} öğretmen sisteme kayıtlı.</CardDescription>
+                <CardDescription>{usersData.length} kullanıcı sisteme kayıtlı.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -148,8 +158,8 @@ function AdminPage() {
                                         </TableCell>
                                         <TableCell>{userData.email}</TableCell>
                                         <TableCell className='text-center'>
-                                            <Badge variant={userData.role === 'admin' ? 'destructive' : 'secondary'}>
-                                                {userData.role}
+                                            <Badge variant={getRoleBadgeVariant(userData.role)}>
+                                                {userData.role === 'beklemede' ? 'Onay Bekliyor' : userData.role}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-center">
@@ -175,17 +185,31 @@ function AdminPage() {
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
                                                     <DropdownMenuSeparator />
-                                                    {userData.role === 'teacher' ? (
+                                                    {userData.role === 'beklemede' && (
+                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
+                                                            <UserCheck className="mr-2 h-4 w-4" />
+                                                            Öğretmen Olarak Onayla
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                     {userData.role === 'teacher' && (
+                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'beklemede')}>
+                                                            <UserX className="mr-2 h-4 w-4" />
+                                                            Onayı Kaldır
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {userData.role !== 'admin' && (
                                                         <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
                                                             <UserCog className="mr-2 h-4 w-4" />
                                                             Admin Yap
                                                         </DropdownMenuItem>
-                                                    ) : (
+                                                    )}
+                                                     {userData.role === 'admin' && userData.id !== user?.uid && (
                                                         <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
                                                             <User className="mr-2 h-4 w-4" />
                                                             Öğretmen Yap
                                                         </DropdownMenuItem>
                                                     )}
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem className='text-destructive' onClick={() => openDeleteConfirm(userData)}>
                                                         <Trash2 className="mr-2 h-4 w-4" />
                                                         Kullanıcıyı Sil

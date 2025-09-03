@@ -1,6 +1,19 @@
 
 import { type LucideIcon, UserX, CircleSlash, PlusCircle, MinusCircle, FileCheck, Pin, PinOff } from "lucide-react";
 
+export type UserRole = 'admin' | 'teacher' | 'beklemede';
+
+export type UserProfile = {
+  fullName: string;
+  title: string;
+  email: string;
+  branch: string;
+  workplace: string;
+  avatarUrl: string;
+  hometown: string;
+  role: UserRole;
+};
+
 export type Student = {
   id: string;
   studentNumber: number;

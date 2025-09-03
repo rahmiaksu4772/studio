@@ -4,6 +4,7 @@
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeAdmin } from '@/lib/firebase-admin';
+import type { UserRole } from '@/lib/types';
 
 // Initialize Firebase Admin SDK
 const adminApp = initializeAdmin();
@@ -30,7 +31,7 @@ export async function deleteUserAction(userId: string) {
   }
 }
 
-export async function updateUserRoleAction(userId: string, newRole: 'admin' | 'teacher') {
+export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
     const userRef = db.collection('users').doc(userId);
     await userRef.update({ role: newRole });

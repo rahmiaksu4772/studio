@@ -5,17 +5,19 @@ import Link from 'next/link';
 import AppLayout from '@/components/app-layout';
 import DersProgrami from '@/components/ders-programi';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, GraduationCap, Edit, ArrowRight, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Users, GraduationCap, Edit, ArrowRight, Loader2, Hourglass } from 'lucide-react';
 import { format } from 'date-fns';
 import React from 'react';
 import { useAllRecords, useClassesAndStudents } from '@/hooks/use-daily-records';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 
 function AnaSayfaPageContent() {
   const { user } = useAuth();
+  const { profile, isLoading: isProfileLoading } = useUserProfile(user?.uid);
   const { classes, isLoading: isClassesLoading } = useClassesAndStudents(user?.uid);
   const { records, isLoading: isRecordsLoading } = useAllRecords(user?.uid);
   
@@ -39,7 +41,40 @@ function AnaSayfaPageContent() {
     }
   }, [records, isRecordsLoading]);
 
-  const isLoading = isClassesLoading || isRecordsLoading;
+  const isLoading = isClassesLoading || isRecordsLoading || isProfileLoading;
+
+  if (isLoading) {
+    return (
+        <AppLayout>
+            <main className="flex-1 p-8 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </main>
+        </AppLayout>
+    )
+  }
+
+  if (profile?.role === 'beklemede') {
+    return (
+         <AppLayout>
+            <main className="flex-1 p-4 md:p-8 pt-6">
+                 <Card className="max-w-2xl mx-auto mt-10 text-center">
+                    <CardHeader>
+                        <Hourglass className="mx-auto h-12 w-12 text-primary" />
+                        <CardTitle className="mt-4">Hesabınız Onay Bekliyor</CardTitle>
+                        <CardDescription className='text-base'>
+                            Hoş geldiniz! Platformumuzu kullanmaya başlamadan önce hesabınızın bir yönetici tarafından onaylanması gerekmektedir.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            Onay süreci tamamlandığında tüm özellikleri kullanabileceksiniz. Anlayışınız için teşekkür ederiz.
+                        </p>
+                    </CardContent>
+                 </Card>
+            </main>
+        </AppLayout>
+    )
+  }
 
   return (
     <AppLayout>

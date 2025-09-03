@@ -6,17 +6,7 @@ import { useToast } from './use-toast';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useAuth } from './use-auth';
-
-export type UserProfile = {
-  fullName: string;
-  title: string;
-  email: string;
-  branch: string;
-  workplace: string;
-  avatarUrl: string;
-  hometown: string;
-  role: 'admin' | 'teacher';
-};
+import type { UserProfile, UserRole } from '@/lib/types';
 
 const defaultProfile: Omit<UserProfile, 'email' | 'workplace' | 'hometown' | 'role'> = {
   fullName: 'Yeni Kullanıcı',
@@ -50,7 +40,7 @@ export function useUserProfile(userId?: string) {
       } else {
         if (user?.email) {
           try {
-            const userRole = user.email === ADMIN_EMAIL ? 'admin' : 'teacher';
+            const userRole: UserRole = user.email === ADMIN_EMAIL ? 'admin' : 'beklemede';
             const newProfile: UserProfile = {
               ...defaultProfile,
               email: user.email,
