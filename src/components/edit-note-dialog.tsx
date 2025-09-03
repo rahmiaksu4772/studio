@@ -136,8 +136,10 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                             placeholder="Başlık" 
                             {...field} 
                             className={cn(
-                                "text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent text-foreground placeholder:text-muted-foreground",
-                                isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60"
+                                "text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent",
+                                isDarkColor 
+                                    ? "text-primary-foreground placeholder:text-primary-foreground/60"
+                                    : "text-foreground placeholder:text-muted-foreground"
                             )}
                         />
                     </FormControl>
@@ -154,8 +156,10 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                             {...field}
                             rows={8} 
                             className={cn(
-                                "border-0 shadow-none focus-visible:ring-0 bg-transparent text-foreground placeholder:text-muted-foreground",
-                                isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60"
+                                "border-0 shadow-none focus-visible:ring-0 bg-transparent",
+                                isDarkColor 
+                                    ? "text-primary-foreground placeholder:text-primary-foreground/60"
+                                    : "text-foreground placeholder:text-muted-foreground"
                             )}
                         />
                         </FormControl>
@@ -188,19 +192,21 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                                             className={cn(
                                                 "bg-transparent border-0 shadow-none focus-visible:ring-0", 
                                                 item.isChecked && "line-through text-muted-foreground",
-                                                isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60",
+                                                isDarkColor 
+                                                    ? "text-primary-foreground placeholder:text-primary-foreground/60"
+                                                    : "text-foreground placeholder:text-muted-foreground",
                                                 item.isChecked && isDarkColor && "text-primary-foreground/50"
                                             )}
                                         />
                                     </FormControl>
                                 )}
                             />
-                            <Button variant="ghost" size="icon" type="button" onClick={() => handleRemoveItem(index)} className={cn("h-8 w-8 opacity-0 group-hover:opacity-100", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
+                            <Button variant="ghost" size="icon" type="button" onClick={() => handleRemoveItem(index)} className={cn("h-8 w-8 opacity-0 group-hover:opacity-100", isDarkColor ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground")}>
                                 <Trash2 className="h-4 w-4"/>
                             </Button>
                         </div>
                     ))}
-                    <Button variant="ghost" type="button" onClick={handleAddItem} className={cn("w-full justify-start text-muted-foreground", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
+                    <Button variant="ghost" type="button" onClick={handleAddItem} className={cn("w-full justify-start", isDarkColor ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground")}>
                         <Plus className="h-4 w-4 mr-2"/>
                         Madde Ekle
                     </Button>
@@ -210,7 +216,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
             <DialogFooter className="p-4 pt-0 mt-4 flex justify-between items-center bg-transparent">
                <Popover>
                   <PopoverTrigger asChild>
-                      <Button type="button" variant="ghost" size="icon" className={cn("text-muted-foreground", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
+                      <Button type="button" variant="ghost" size="icon" className={cn(isDarkColor ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground")}>
                           <Palette />
                       </Button>
                   </PopoverTrigger>

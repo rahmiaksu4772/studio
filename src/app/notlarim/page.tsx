@@ -254,8 +254,10 @@ function NotlarimPageContent() {
               <Input
                 placeholder="Başlık"
                 className={cn(
-                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent text-foreground placeholder:text-muted-foreground",
-                    isDarkColorSelected && "text-primary-foreground placeholder:text-primary-foreground/60"
+                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent",
+                    isDarkColorSelected
+                        ? "text-primary-foreground placeholder:text-primary-foreground/60"
+                        : "text-foreground placeholder:text-muted-foreground"
                 )}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
@@ -263,8 +265,10 @@ function NotlarimPageContent() {
               <Textarea
                   placeholder="Bir not alın..."
                   className={cn(
-                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent text-foreground placeholder:text-muted-foreground",
-                      isDarkColorSelected && "text-primary-foreground placeholder:text-primary-foreground/60"
+                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
+                      isDarkColorSelected
+                        ? "text-primary-foreground placeholder:text-primary-foreground/60"
+                        : "text-foreground placeholder:text-muted-foreground"
                     )}
                   value={newNoteContent}
                   onChange={(e) => setNewNoteContent(e.target.value)}
@@ -282,9 +286,8 @@ function NotlarimPageContent() {
                                 size="icon"
                                 onClick={handleToggleRecording}
                                 className={cn(
-                                    "text-muted-foreground", 
-                                    isRecording && "text-red-500 animate-pulse", 
-                                    isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground'
+                                    isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : "text-muted-foreground", 
+                                    isRecording && "text-red-500 animate-pulse"
                                 )}
                             >
                                 {isRecording ? <MicOff /> : <Mic />}
@@ -303,7 +306,7 @@ function NotlarimPageContent() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setIsCameraOpen(true)}
-                                  className={cn("text-muted-foreground", isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground')}
+                                  className={cn(isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : "text-muted-foreground")}
                               >
                                   <Camera />
                               </Button>
@@ -318,7 +321,7 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" className={cn("text-muted-foreground", isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground')}>
+                                <Button type="button" variant="ghost" size="icon" className={cn(isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : "text-muted-foreground")}>
                                     <Palette />
                                 </Button>
                             </TooltipTrigger>
@@ -337,7 +340,7 @@ function NotlarimPageContent() {
                       </PopoverContent>
                    </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn('text-muted-foreground', isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground')}>Ekle</Button>
+              <Button type="submit" variant="ghost" className={cn(isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-muted-foreground')}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>
