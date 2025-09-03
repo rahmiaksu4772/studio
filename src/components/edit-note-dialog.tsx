@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import type { Note } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -118,7 +119,14 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     form.setValue('items', newItems);
   };
 
-  const isDarkColor = watchColor && (watchColor.startsWith('bg-gray-800') || watchColor.startsWith('bg-red-900') || watchColor.startsWith('bg-green-900') || watchColor.startsWith('bg-blue-900') || watchColor.startsWith('bg-purple-900') || watchColor.startsWith('bg-yellow-900'));
+  const isDarkColor = watchColor && (
+    watchColor.startsWith('bg-gray-800') || 
+    watchColor.startsWith('bg-red-900') || 
+    watchColor.startsWith('bg-green-900') || 
+    watchColor.startsWith('bg-blue-900') || 
+    watchColor.startsWith('bg-purple-900') || 
+    watchColor.startsWith('bg-yellow-900')
+  );
 
 
   return (
@@ -126,6 +134,10 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
       <DialogContent className={cn("max-w-xl p-0", watchColor)}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
+            <DialogHeader className="sr-only">
+              <DialogTitle>Notu Düzenle</DialogTitle>
+              <DialogDescription>Notun başlığını, içeriğini ve rengini düzenleyin.</DialogDescription>
+            </DialogHeader>
             <div className="p-6 space-y-4">
               <FormField
                 control={form.control}
