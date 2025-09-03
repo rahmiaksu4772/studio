@@ -33,11 +33,10 @@ const noteColors = [
   'bg-pink-100/50 dark:bg-pink-900/20 border-pink-200/50 dark:border-pink-900/30',
   'bg-gray-800 dark:bg-gray-700 border-gray-700 dark:border-gray-600',
   'bg-red-900 dark:bg-red-800 border-red-800 dark:border-red-700',
-  'bg-yellow-900 dark:bg-yellow-800 border-yellow-800 dark:border-yellow-700',
   'bg-green-900 dark:bg-green-800 border-green-800 dark:border-green-700',
   'bg-blue-900 dark:bg-blue-800 border-blue-800 dark:border-blue-700',
   'bg-purple-900 dark:bg-purple-800 border-purple-800 dark:border-purple-700',
-  'bg-orange-900 dark:bg-orange-800 border-orange-800 dark:border-orange-700',
+  'bg-yellow-900 dark:bg-yellow-800 border-yellow-800 dark:border-yellow-700',
 ];
 
 const formSchema = z.object({
