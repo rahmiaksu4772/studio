@@ -136,7 +136,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                             placeholder="Başlık" 
                             {...field} 
                             className={cn(
-                                "text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent",
+                                "text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent text-foreground placeholder:text-muted-foreground",
                                 isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60"
                             )}
                         />
@@ -154,7 +154,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                             {...field}
                             rows={8} 
                             className={cn(
-                                "border-0 shadow-none focus-visible:ring-0 bg-transparent",
+                                "border-0 shadow-none focus-visible:ring-0 bg-transparent text-foreground placeholder:text-muted-foreground",
                                 isDarkColor && "text-primary-foreground placeholder:text-primary-foreground/60"
                             )}
                         />
@@ -200,7 +200,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                             </Button>
                         </div>
                     ))}
-                    <Button variant="ghost" type="button" onClick={handleAddItem} className={cn("w-full justify-start", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
+                    <Button variant="ghost" type="button" onClick={handleAddItem} className={cn("w-full justify-start text-muted-foreground", isDarkColor && "text-primary-foreground/70 hover:text-primary-foreground")}>
                         <Plus className="h-4 w-4 mr-2"/>
                         Madde Ekle
                     </Button>

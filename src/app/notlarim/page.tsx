@@ -228,7 +228,7 @@ function NotlarimPageContent() {
     );
   }
 
-  const isDefaultCardColor = newNoteColor === noteColors[0];
+  const isDarkColorSelected = newNoteColor.includes('dark:') || newNoteColor.includes('bg-gray-800') || newNoteColor.includes('bg-red-900') || newNoteColor.includes('bg-green-900') || newNoteColor.includes('bg-blue-900') || newNoteColor.includes('bg-purple-900') || newNoteColor.includes('bg-yellow-900');
 
   return (
     <AppLayout>
@@ -254,8 +254,8 @@ function NotlarimPageContent() {
               <Input
                 placeholder="Başlık"
                 className={cn(
-                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent", 
-                    isDefaultCardColor ? "text-foreground placeholder:text-muted-foreground" : "text-primary-foreground placeholder:text-primary-foreground/60"
+                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent text-foreground placeholder:text-muted-foreground",
+                    isDarkColorSelected && "text-primary-foreground placeholder:text-primary-foreground/60"
                 )}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
@@ -263,8 +263,8 @@ function NotlarimPageContent() {
               <Textarea
                   placeholder="Bir not alın..."
                   className={cn(
-                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
-                      isDefaultCardColor ? "text-foreground placeholder:text-muted-foreground" : "text-primary-foreground placeholder:text-primary-foreground/60"
+                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent text-foreground placeholder:text-muted-foreground",
+                      isDarkColorSelected && "text-primary-foreground placeholder:text-primary-foreground/60"
                     )}
                   value={newNoteContent}
                   onChange={(e) => setNewNoteContent(e.target.value)}
@@ -284,7 +284,7 @@ function NotlarimPageContent() {
                                 className={cn(
                                     "text-muted-foreground", 
                                     isRecording && "text-red-500 animate-pulse", 
-                                    !isDefaultCardColor && 'text-primary-foreground/70 hover:text-primary-foreground'
+                                    isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground'
                                 )}
                             >
                                 {isRecording ? <MicOff /> : <Mic />}
@@ -303,7 +303,7 @@ function NotlarimPageContent() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setIsCameraOpen(true)}
-                                  className={cn("text-muted-foreground", !isDefaultCardColor && 'text-primary-foreground/70 hover:text-primary-foreground')}
+                                  className={cn("text-muted-foreground", isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground')}
                               >
                                   <Camera />
                               </Button>
@@ -318,7 +318,7 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" className={cn("text-muted-foreground", !isDefaultCardColor && 'text-primary-foreground/70 hover:text-primary-foreground')}>
+                                <Button type="button" variant="ghost" size="icon" className={cn("text-muted-foreground", isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground')}>
                                     <Palette />
                                 </Button>
                             </TooltipTrigger>
@@ -337,14 +337,16 @@ function NotlarimPageContent() {
                       </PopoverContent>
                    </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn('text-muted-foreground', !isDefaultCardColor && 'text-primary-foreground/70 hover:text-primary-foreground')}>Ekle</Button>
+              <Button type="submit" variant="ghost" className={cn('text-muted-foreground', isDarkColorSelected && 'text-primary-foreground/70 hover:text-primary-foreground')}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>
 
         {notes.length > 0 ? (
           <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 mt-8">
-            {notes.map((note) => (
+            {notes.map((note) => {
+              const isDarkNote = note.color && (note.color.includes('dark:') || note.color.includes('bg-gray-800') || note.color.includes('bg-red-900') || note.color.includes('bg-green-900') || note.color.includes('bg-blue-900') || note.color.includes('bg-purple-900') || note.color.includes('bg-yellow-900'));
+              return (
               <Card
                 key={note.id}
                 onClick={() => setEditingNote(note)}
@@ -353,17 +355,17 @@ function NotlarimPageContent() {
                 <CardHeader className="p-0">
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover max-h-60" />}
                 </CardHeader>
-                <CardContent className={cn("p-4 flex-grow whitespace-pre-wrap break-all", !note.title && !note.content ? 'hidden' : 'block', note.imageUrl && "pt-4", note.color && note.color.includes('dark:') && 'text-primary-foreground')}>
-                  {note.title && <h3 className={cn('font-bold mb-2', note.color && note.color.includes('dark:') && 'text-primary-foreground')}>{note.title}</h3>}
+                <CardContent className={cn("p-4 flex-grow whitespace-pre-wrap break-all", !note.title && !note.content ? 'hidden' : 'block', note.imageUrl && "pt-4", isDarkNote && 'text-primary-foreground')}>
+                  {note.title && <h3 className={cn('font-bold mb-2', isDarkNote && 'text-primary-foreground')}>{note.title}</h3>}
                   <p className='text-sm'>{note.content}</p>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground p-2">
-                  <span className={cn('pl-2', note.color && note.color.includes('dark:') && 'text-primary-foreground/70')}>{format(new Date(note.date), 'dd MMM')}</span>
+                  <span className={cn('pl-2', isDarkNote && 'text-primary-foreground/70')}>{format(new Date(note.date), 'dd MMM')}</span>
                   <div className='flex items-center opacity-0 group-hover:opacity-100 transition-opacity'>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={(e) => handleTogglePin(e, note)} className={cn(note.color && note.color.includes('dark:') && 'text-primary-foreground/70 hover:text-primary-foreground')}>
+                                <Button variant="ghost" size="icon" onClick={(e) => handleTogglePin(e, note)} className={cn(isDarkNote && 'text-primary-foreground/70 hover:text-primary-foreground')}>
                                     {note.isPinned ? <PinOff className='h-4 w-4 text-primary'/> : <Pin className='h-4 w-4'/>}
                                 </Button>
                             </TooltipTrigger>
@@ -378,7 +380,7 @@ function NotlarimPageContent() {
                               variant="ghost" 
                               size="icon"
                               onClick={(e) => e.stopPropagation()}
-                              className={cn(note.color && note.color.includes('dark:') && 'text-primary-foreground/70 hover:text-primary-foreground')}
+                              className={cn(isDarkNote && 'text-primary-foreground/70 hover:text-primary-foreground')}
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
@@ -403,7 +405,8 @@ function NotlarimPageContent() {
                   </div>
                 </CardFooter>
               </Card>
-            ))}
+            )}
+            )}
           </div>
         ) : (
           <div className="text-center p-12 border-2 border-dashed rounded-lg mt-8 max-w-xl mx-auto">
