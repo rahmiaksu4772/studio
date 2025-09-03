@@ -255,8 +255,8 @@ function NotlarimPageContent() {
               <Input
                 placeholder="Başlık"
                 className={cn(
-                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent", 
-                    isNewNoteDark ? "text-primary-foreground placeholder:text-primary-foreground/60" : "text-foreground placeholder:text-muted-foreground"
+                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent text-foreground placeholder:text-muted-foreground", 
+                    isNewNoteDark && "text-primary-foreground placeholder:text-primary-foreground/60"
                 )}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
@@ -264,8 +264,8 @@ function NotlarimPageContent() {
               <Textarea
                   placeholder="Bir not alın..."
                   className={cn(
-                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
-                      isNewNoteDark ? "text-primary-foreground placeholder:text-primary-foreground/60" : "text-foreground placeholder:text-muted-foreground"
+                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent text-foreground placeholder:text-muted-foreground",
+                      isNewNoteDark && "text-primary-foreground placeholder:text-primary-foreground/60"
                     )}
                   value={newNoteContent}
                   onChange={(e) => setNewNoteContent(e.target.value)}
@@ -334,7 +334,7 @@ function NotlarimPageContent() {
                       </PopoverContent>
                    </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn(isNewNoteDark ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-muted-foreground')}>Ekle</Button>
+              <Button type="submit" variant="ghost" className={cn('text-muted-foreground', isNewNoteDark && 'text-primary-foreground/70 hover:text-primary-foreground')}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>
@@ -350,9 +350,9 @@ function NotlarimPageContent() {
                 <CardHeader className="p-0">
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover max-h-60" />}
                 </CardHeader>
-                <CardContent className={cn("p-4 flex-grow whitespace-pre-wrap break-all", note.imageUrl && "pt-4", note.color && note.color.includes('dark:') && 'text-primary-foreground')}>
+                <CardContent className={cn("p-4 flex-grow whitespace-pre-wrap", !note.title && !note.content ? 'hidden' : 'block', note.imageUrl && "pt-4", note.color && note.color.includes('dark:') && 'text-primary-foreground')}>
                   {note.title && <h3 className={cn('font-bold mb-2', note.color && note.color.includes('dark:') && 'text-primary-foreground')}>{note.title}</h3>}
-                  <p className='text-sm'>{note.content}</p>
+                  <p className='text-sm break-all'>{note.content}</p>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground p-2">
                   <span className={cn('pl-2', note.color && note.color.includes('dark:') && 'text-primary-foreground/70')}>{format(new Date(note.date), 'dd MMM')}</span>
