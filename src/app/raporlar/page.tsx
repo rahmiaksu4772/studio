@@ -427,7 +427,7 @@ function RaporlarPageContent() {
                 </Button>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
                     {Object.entries(summary).map(([key, value]: [string, any]) => (
                         <Card key={key} className="p-4">
                             <div className="flex justify-center items-center mb-2">
@@ -478,12 +478,12 @@ function RaporlarPageContent() {
                                     const statusOption = statusOptions.find(o => o.value === statusKey);
 
                                     return (
-                                    <div key={`${event.date}-${index}`} className="flex items-start gap-4">
-                                        <div className="font-semibold text-center w-28 flex-shrink-0">
+                                    <div key={`${event.date}-${index}`} className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                                        <div className="font-semibold text-left sm:text-center sm:w-28 flex-shrink-0 mb-1 sm:mb-0">
                                             <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
                                             <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
                                         </div>
-                                        <div className="border-l pl-4 flex-1">
+                                        <div className="border-t sm:border-t-0 sm:border-l pt-2 sm:pt-0 sm:pl-4 flex-1">
                                             <p className="font-medium flex items-center gap-2">
                                             {event.type === 'status' && statusOption?.icon &&
                                                     React.createElement(statusOption.icon, {
@@ -507,12 +507,12 @@ function RaporlarPageContent() {
                     <CardContent>
                         <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
                                 {noteEvents.length > 0 ? noteEvents.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => (
-                                    <div key={`${event.date}-${index}`} className="flex items-start gap-4">
-                                        <div className="font-semibold text-center w-28 flex-shrink-0">
+                                    <div key={`${event.date}-${index}`} className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                                        <div className="font-semibold text-left sm:text-center sm:w-28 flex-shrink-0 mb-1 sm:mb-0">
                                             <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
                                             <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
                                         </div>
-                                        <div className="border-l pl-4 flex-1">
+                                        <div className="border-t sm:border-t-0 sm:border-l pt-2 sm:pt-0 sm:pl-4 flex-1">
                                             <p className="text-sm text-foreground">{event.value}</p>
                                         </div>
                                     </div>
