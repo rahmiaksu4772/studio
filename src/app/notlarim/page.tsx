@@ -228,7 +228,7 @@ function NotlarimPageContent() {
     );
   }
 
-  const isDarkColor = newNoteColor.includes('dark:') || newNoteColor.includes('bg-gray-800') || newNoteColor.includes('bg-red-900') || newNoteColor.includes('bg-green-900') || newNoteColor.includes('bg-blue-900') || newNoteColor.includes('bg-purple-900') || newNoteColor.includes('bg-yellow-900');
+  const isDarkColorSelected = newNoteColor.startsWith('bg-gray-800') || newNoteColor.startsWith('bg-red-900') || newNoteColor.startsWith('bg-green-900') || newNoteColor.startsWith('bg-blue-900') || newNoteColor.startsWith('bg-purple-900') || newNoteColor.startsWith('bg-yellow-900');
 
   return (
     <AppLayout>
@@ -255,9 +255,9 @@ function NotlarimPageContent() {
                 placeholder="Başlık"
                 className={cn(
                     "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent",
-                    isDarkColor
-                        ? "text-white placeholder:text-white/60"
-                        : "text-black placeholder:text-zinc-500"
+                    isDarkColorSelected
+                        ? "text-primary-foreground placeholder:text-primary-foreground/60"
+                        : "text-foreground placeholder:text-muted-foreground"
                 )}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
@@ -266,9 +266,9 @@ function NotlarimPageContent() {
                   placeholder="Bir not alın..."
                   className={cn(
                       "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
-                      isDarkColor
-                        ? "text-white placeholder:text-white/60"
-                        : "text-black placeholder:text-zinc-500"
+                      isDarkColorSelected
+                        ? "text-primary-foreground placeholder:text-primary-foreground/60"
+                        : "text-foreground placeholder:text-muted-foreground"
                     )}
                   value={newNoteContent}
                   onChange={(e) => setNewNoteContent(e.target.value)}
@@ -286,7 +286,7 @@ function NotlarimPageContent() {
                                 size="icon"
                                 onClick={handleToggleRecording}
                                 className={cn(
-                                    isDarkColor ? 'text-white/70 hover:text-white' : "text-zinc-500 hover:text-zinc-700", 
+                                    isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
                                     isRecording && "text-red-500 animate-pulse"
                                 )}
                             >
@@ -306,7 +306,7 @@ function NotlarimPageContent() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setIsCameraOpen(true)}
-                                  className={cn(isDarkColor ? 'text-white/70 hover:text-white' : "text-zinc-500 hover:text-zinc-700")}
+                                  className={cn(isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
                               >
                                   <Camera />
                               </Button>
@@ -321,7 +321,7 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" className={cn(isDarkColor ? 'text-white/70 hover:text-white' : "text-zinc-500 hover:text-zinc-700")}>
+                                <Button type="button" variant="ghost" size="icon" className={cn(isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
                                     <Palette />
                                 </Button>
                             </TooltipTrigger>
@@ -340,7 +340,7 @@ function NotlarimPageContent() {
                       </PopoverContent>
                    </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn(isDarkColor ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700')}>Ekle</Button>
+              <Button type="submit" variant="ghost" className={cn(isDarkColorSelected ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>
@@ -348,7 +348,7 @@ function NotlarimPageContent() {
         {notes.length > 0 ? (
           <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4 mt-8">
             {notes.map((note) => {
-              const isDarkNote = note.color && (note.color.includes('dark:') || note.color.includes('bg-gray-800') || note.color.includes('bg-red-900') || note.color.includes('bg-green-900') || note.color.includes('bg-blue-900') || note.color.includes('bg-purple-900') || note.color.includes('bg-yellow-900'));
+              const isDarkNote = note.color && (note.color.startsWith('bg-gray-800') || note.color.startsWith('bg-red-900') || note.color.startsWith('bg-green-900') || note.color.startsWith('bg-blue-900') || note.color.startsWith('bg-purple-900') || note.color.startsWith('bg-yellow-900'));
               return (
               <Card
                 key={note.id}

@@ -118,7 +118,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     form.setValue('items', newItems);
   };
 
-  const isDarkColor = watchColor && (watchColor.includes('dark:') || watchColor.includes('bg-gray-800') || watchColor.includes('bg-red-900') || watchColor.includes('bg-green-900') || watchColor.includes('bg-blue-900') || watchColor.includes('bg-purple-900') || watchColor.includes('bg-yellow-900'));
+  const isDarkColor = watchColor && (watchColor.startsWith('bg-gray-800') || watchColor.startsWith('bg-red-900') || watchColor.startsWith('bg-green-900') || watchColor.startsWith('bg-blue-900') || watchColor.startsWith('bg-purple-900') || watchColor.startsWith('bg-yellow-900'));
 
 
   return (
@@ -229,7 +229,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                   </PopoverContent>
                </Popover>
                <div>
-                  <Button type="button" variant="ghost" onClick={onClose} className={cn(isDarkColor && 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10')}>
+                  <Button type="button" variant="ghost" onClick={onClose} className={cn(isDarkColor ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10' : 'text-muted-foreground hover:text-foreground')}>
                     Kapat
                   </Button>
                   <Button type="submit">Değişiklikleri Kaydet</Button>
