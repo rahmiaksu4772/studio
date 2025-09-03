@@ -118,7 +118,8 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     form.setValue('items', newItems);
   };
 
-  const isDarkColor = watchColor && watchColor.includes('dark:');
+  const isDarkColor = watchColor && (watchColor.includes('dark:') || watchColor.includes('bg-gray-800') || watchColor.includes('bg-red-900') || watchColor.includes('bg-green-900') || watchColor.includes('bg-blue-900') || watchColor.includes('bg-purple-900') || watchColor.includes('bg-yellow-900'));
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
