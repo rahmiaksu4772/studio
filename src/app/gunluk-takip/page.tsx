@@ -355,10 +355,10 @@ function GunlukTakipPageContent() {
                 ) : (
                 <div className="space-y-1">
                     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 font-medium text-muted-foreground border-b">
-                       <div>No</div>
-                       <div>Adı Soyadı</div>
+                       <div className='text-xs'>No</div>
+                       <div className='text-xs'>Adı Soyadı</div>
                        <div className='text-center flex items-center justify-end gap-1'>
-                            <span className='text-xs mr-2 hidden sm:inline'>Tümüne:</span>
+                            <span className='mr-2 hidden sm:inline text-xs'>Tümüne:</span>
                             {statusOptions.map(option => (
                                <AlertDialog key={`set-all-${option.value}`}>
                                 <AlertDialogTrigger asChild>
