@@ -1,5 +1,5 @@
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 // Check if the service account JSON is available in environment variables
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
