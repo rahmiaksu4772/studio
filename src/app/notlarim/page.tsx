@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, CheckSquare, Type } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -36,7 +36,6 @@ import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
 import { useNotes } from '@/hooks/use-notes';
-import { EditNoteDialog } from '@/components/edit-note-dialog';
 
 
 const noteColors = [
@@ -50,17 +49,15 @@ const noteColors = [
 function NotlarimPageContent() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { notes, isLoading, addNote, deleteNote, updateNote } = useNotes(user?.uid);
+  const { notes, isLoading, addNote, deleteNote } = useNotes(user?.uid);
   
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
   const [newNoteContent, setNewNoteContent] = React.useState('');
-  const [newNoteType, setNewNoteType] = React.useState<'text' | 'checklist'>('text');
   const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
   const [isRecording, setIsRecording] = React.useState(false);
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
-  const [editingNote, setEditingNote] = React.useState<Note | null>(null);
   
   const recognitionRef = React.useRef<any>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -99,24 +96,12 @@ function NotlarimPageContent() {
         setIsRecording(false);
     }
     
-     if (newNoteType === 'text' && newNoteTitle.trim() === '' && newNoteContent.trim() === '') {
-        toast({
-            title: 'Boş Not',
-            description: 'Lütfen bir başlık veya içerik girin.',
-            variant: 'destructive',
-        });
-        return;
-    }
-
     const newNoteData: Omit<Note, 'id'> = {
       title: newNoteTitle,
       content: newNoteContent,
-      type: newNoteType,
-      items: newNoteType === 'checklist' ? [{ id: Date.now().toString(), content: '', isChecked: false }] : [],
       imageUrl: newNoteImage,
       color: noteColors[Math.floor(Math.random() * noteColors.length)],
       date: new Date().toISOString(),
-      isPinned: false,
     };
     
     await addNote(newNoteData);
@@ -124,7 +109,6 @@ function NotlarimPageContent() {
     setNewNoteTitle('');
     setNewNoteContent('');
     setNewNoteImage(null);
-    setNewNoteType('text');
   };
   
   const handleCapture = () => {
@@ -199,11 +183,6 @@ function NotlarimPageContent() {
 
         recognition.start();
     };
-
-    const handlePinToggle = (e: React.MouseEvent, note: Note) => {
-        e.stopPropagation();
-        updateNote(note.id, { isPinned: !note.isPinned });
-    };
   
    if (isLoading) {
     return (
@@ -222,7 +201,7 @@ function NotlarimPageContent() {
           <h2 className="text-3xl font-bold tracking-tight">Notlarım</h2>
         </div>
 
-        <Card className="max-w-xl mx-auto">
+        <Card>
           <form onSubmit={handleAddNote}>
             <CardContent className="p-4 space-y-2">
               {newNoteImage && (
@@ -289,23 +268,6 @@ function NotlarimPageContent() {
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
-                     <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setNewNoteType(newNoteType === 'text' ? 'checklist' : 'text')}
-                                >
-                                    {newNoteType === 'text' ? <CheckSquare/> : <Type />}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{newNoteType === 'text' ? 'Onay Kutularını Göster' : 'Düz Metin'}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
                 </div>
               </div>
             </CardContent>
@@ -323,32 +285,14 @@ function NotlarimPageContent() {
             {notes.map((note) => (
               <Card
                 key={note.id}
-                className={cn('flex flex-col break-inside-avoid border cursor-pointer transition-shadow hover:shadow-md relative group', note.color)}
-                onClick={() => setEditingNote(note)}
+                className={cn('flex flex-col break-inside-avoid border group min-w-0', note.color)}
               >
-                <button 
-                    onClick={(e) => handlePinToggle(e, note)}
-                    className="absolute top-2 right-2 p-2 rounded-full bg-background/50 text-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
-                >
-                    {note.isPinned ? <PinOff className='h-4 w-4'/> : <Pin className='h-4 w-4'/>}
-                </button>
                 <CardHeader>
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover mb-4" />}
                    {note.title && <CardTitle>{note.title}</CardTitle>}
                 </CardHeader>
-                <CardContent className="flex-grow whitespace-pre-wrap line-clamp-6 break-words">
-                    {note.type === 'checklist' && note.items && note.items.length > 0 ? (
-                        <ul className='space-y-2'>
-                           {note.items.map(item => (
-                               <li key={item.id} className='flex items-center gap-2'>
-                                   <input type="checkbox" checked={item.isChecked} readOnly className='h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary' />
-                                   <span className={cn(item.isChecked && 'line-through text-muted-foreground')}>{item.content}</span>
-                               </li>
-                           ))}
-                        </ul>
-                    ) : (
-                        note.content
-                    )}
+                <CardContent className="flex-grow whitespace-pre-wrap break-all">
+                  {note.content}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-4">
                   <span>{format(new Date(note.date), 'dd.MM.yyyy')}</span>
@@ -358,7 +302,6 @@ function NotlarimPageContent() {
                           variant="ghost" 
                           size="icon"
                           className='opacity-0 group-hover:opacity-100'
-                          onClick={(e) => e.stopPropagation()}
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -373,10 +316,7 @@ function NotlarimPageContent() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>İptal</AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNote(note.id)
-                          }} 
+                          onClick={() => deleteNote(note.id)} 
                           className="bg-destructive hover:bg-destructive/90">
                           Sil
                         </AlertDialogAction>
@@ -397,15 +337,6 @@ function NotlarimPageContent() {
           </div>
         )}
       </main>
-      
-      {editingNote && (
-        <EditNoteDialog 
-            isOpen={!!editingNote}
-            onClose={() => setEditingNote(null)}
-            note={editingNote}
-            onUpdate={updateNote}
-        />
-      )}
       
       <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
         <DialogContent className="sm:max-w-md">
@@ -456,3 +387,5 @@ export default function NotlarimPage() {
         </AuthGuard>
     )
 }
+
+    
