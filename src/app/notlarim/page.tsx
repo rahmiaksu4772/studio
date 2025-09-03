@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, Palette } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, Palette, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,13 +31,14 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import type { Note } from '@/lib/types';
+import type { Note, NoteChecklistItem } from '@/lib/types';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
 import { useNotes } from '@/hooks/use-notes';
 import { EditNoteDialog } from '@/components/edit-note-dialog';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const noteColors = [
@@ -65,6 +66,9 @@ function NotlarimPageContent() {
   const [newNoteContent, setNewNoteContent] = React.useState('');
   const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
   const [newNoteColor, setNewNoteColor] = React.useState(noteColors[0]);
+  const [newNoteType, setNewNoteType] = React.useState<'text' | 'checklist'>('text');
+  const [newNoteItems, setNewNoteItems] = React.useState<NoteChecklistItem[]>([]);
+
   const [isRecording, setIsRecording] = React.useState(false);
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
@@ -99,6 +103,15 @@ function NotlarimPageContent() {
         }
     }
   }, [isCameraOpen]);
+  
+  const resetForm = () => {
+    setNewNoteTitle('');
+    setNewNoteContent('');
+    setNewNoteImage(null);
+    setNewNoteColor(noteColors[0]);
+    setNewNoteType('text');
+    setNewNoteItems([]);
+  };
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +121,8 @@ function NotlarimPageContent() {
         setIsRecording(false);
     }
     
-    if (newNoteTitle.trim() === '' && newNoteContent.trim() === '' && !newNoteImage) {
+    const isChecklistEmpty = newNoteItems.length === 0 || newNoteItems.every(item => item.text.trim() === '');
+    if (newNoteTitle.trim() === '' && (newNoteType === 'text' ? newNoteContent.trim() === '' : isChecklistEmpty) && !newNoteImage) {
         toast({
             title: 'Boş Not',
             description: 'Lütfen bir başlık, içerik veya resim ekleyin.',
@@ -120,7 +134,8 @@ function NotlarimPageContent() {
     const newNoteData: Omit<Note, 'id'> = {
       title: newNoteTitle,
       content: newNoteContent,
-      type: 'text',
+      type: newNoteType,
+      items: newNoteType === 'checklist' ? newNoteItems : [],
       imageUrl: newNoteImage,
       color: newNoteColor,
       isPinned: false,
@@ -128,11 +143,7 @@ function NotlarimPageContent() {
     };
     
     await addNote(newNoteData);
-
-    setNewNoteTitle('');
-    setNewNoteContent('');
-    setNewNoteImage(null);
-    setNewNoteColor(noteColors[0]);
+    resetForm();
   };
   
   const handleCapture = () => {
@@ -217,6 +228,16 @@ function NotlarimPageContent() {
     e.stopPropagation();
     updateNote(note.id, { isPinned: !note.isPinned });
   }
+
+  const handleAddItem = () => {
+    setNewNoteItems([...newNoteItems, { id: Date.now().toString(), text: '', isChecked: false }]);
+  };
+
+  const handleItemChange = (index: number, text: string) => {
+    const items = [...newNoteItems];
+    items[index].text = text;
+    setNewNoteItems(items);
+  };
   
    if (isLoading) {
     return (
@@ -228,7 +249,7 @@ function NotlarimPageContent() {
     );
   }
   
-  const isDarkColorSelected = newNoteColor.startsWith('bg-gray-800') || newNoteColor.startsWith('bg-red-900') || newNoteColor.startsWith('bg-green-900') || newNoteColor.startsWith('bg-blue-900') || newNoteColor.startsWith('bg-purple-900') || newNoteColor.startsWith('bg-yellow-900');
+  const isDarkColorSelected = newNoteColor.startsWith('bg-gray-800') || newNoteColor.startsWith('bg-red-900') || newNoteColor.startsWith('bg-green-900') || newNoteColor.startsWith('bg-blue-900') || newNoteColor.startsWith('bg-purple-900') || newNoteColor.includes('dark:');
 
   return (
     <AppLayout>
@@ -255,49 +276,89 @@ function NotlarimPageContent() {
                 placeholder="Başlık"
                 className={cn(
                     "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent",
-                    isDarkColorSelected
-                        ? "text-white placeholder:text-white/60"
-                        : "text-black placeholder:text-zinc-500"
+                     isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
                 )}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
               />
-              <Textarea
-                  placeholder="Bir not alın..."
-                  className={cn(
-                      "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
-                     isDarkColorSelected
-                        ? "text-white placeholder:text-white/60"
-                        : "text-black placeholder:text-zinc-500"
+              {newNoteType === 'text' ? (
+                <Textarea
+                    placeholder="Bir not alın..."
+                    className={cn(
+                        "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
+                        isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
                     )}
-                  value={newNoteContent}
-                  onChange={(e) => setNewNoteContent(e.target.value)}
-                  rows={newNoteImage || newNoteTitle ? 3 : 1}
-              />
+                    value={newNoteContent}
+                    onChange={(e) => setNewNoteContent(e.target.value)}
+                    rows={newNoteImage || newNoteTitle ? 3 : 1}
+                />
+              ) : (
+                <div className='p-4 pt-0 space-y-2'>
+                    {newNoteItems.map((item, index) => (
+                        <div key={index} className='flex items-center gap-2'>
+                             <Checkbox disabled className={cn(isDarkColorSelected && "border-white/50")}/>
+                             <Input 
+                                placeholder='Liste öğesi'
+                                value={item.text}
+                                onChange={(e) => handleItemChange(index, e.target.value)}
+                                className={cn(
+                                    "bg-transparent border-0 shadow-none focus-visible:ring-0 h-auto p-0",
+                                     isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
+                                )}
+                             />
+                        </div>
+                    ))}
+                    <Button type='button' variant='ghost' onClick={handleAddItem} className={cn('w-full justify-start', isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                        <Plus className='h-4 w-4 mr-2' />
+                        Öğe Ekle
+                    </Button>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-between items-center p-2">
               <div className='flex items-center gap-1'>
-                  <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleToggleRecording}
-                                className={cn(
-                                    isRecording && "text-red-500 animate-pulse",
-                                    isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700'
-                                )}
-                            >
-                                {isRecording ? <MicOff /> : <Mic />}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setNewNoteType(newNoteType === 'text' ? 'checklist' : 'text')}
+                                    className={cn(
+                                        newNoteType === 'checklist' && 'bg-primary/20 text-primary',
+                                        isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700'
+                                    )}
+                                >
+                                    <CheckSquare/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Yapılacaklar Listesi</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleToggleRecording}
+                                    className={cn(
+                                        isRecording && "text-red-500 animate-pulse",
+                                        isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700'
+                                    )}
+                                >
+                                    {isRecording ? <MicOff /> : <Mic />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                   <TooltipProvider>
                       <Tooltip>
                           <TooltipTrigger asChild>
@@ -348,7 +409,9 @@ function NotlarimPageContent() {
         {notes.length > 0 ? (
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4 mt-8">
             {notes.map((note) => {
-              const isDarkNote = note.color && (note.color.startsWith('bg-gray-800') || note.color.startsWith('bg-red-900') || note.color.startsWith('bg-green-900') || note.color.startsWith('bg-blue-900') || note.color.startsWith('bg-purple-900') || note.color.startsWith('bg-yellow-900'));
+              const isDarkNote = note.color && (note.color.startsWith('bg-gray-800') || note.color.startsWith('bg-red-900') || note.color.startsWith('bg-green-900') || note.color.startsWith('bg-blue-900') || note.color.startsWith('bg-purple-900') || note.color.includes('dark:'));
+              const sortedItems = note.items ? [...note.items].sort((a, b) => a.isChecked === b.isChecked ? 0 : a.isChecked ? 1 : -1) : [];
+
               return (
               <Card
                 key={note.id}
@@ -358,9 +421,21 @@ function NotlarimPageContent() {
                 <CardHeader className="p-0">
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover max-h-60" />}
                 </CardHeader>
-                <CardContent className={cn("p-4 flex-grow whitespace-pre-wrap break-all", !note.title && !note.content ? 'hidden' : 'block', note.imageUrl && "pt-4", isDarkNote ? 'text-white' : 'text-black')}>
+                <CardContent className={cn("p-4 flex-grow", !note.title && !note.content && (!note.items || note.items.length === 0) ? 'hidden' : 'block', note.imageUrl && "pt-4", isDarkNote ? 'text-white' : 'text-black')}>
                   {note.title && <h3 className={cn('font-bold mb-2', isDarkNote ? 'text-white' : 'text-black')}>{note.title}</h3>}
-                  <p className='text-sm'>{note.content}</p>
+                  
+                  {note.type === 'checklist' && note.items && note.items.length > 0 ? (
+                    <ul className='space-y-2'>
+                        {sortedItems.map(item => (
+                            <li key={item.id} className='flex items-start gap-3'>
+                                <Checkbox id={`item-${item.id}`} checked={item.isChecked} className={cn('mt-1', isDarkNote && 'border-white/50')} />
+                                <label htmlFor={`item-${item.id}`} className={cn('flex-1 text-sm break-all', item.isChecked && 'line-through text-muted-foreground', isDarkNote && item.isChecked && 'text-white/50')}>{item.text}</label>
+                            </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <p className='text-sm whitespace-pre-wrap break-all'>{note.content}</p>
+                  )}
                 </CardContent>
                 <CardFooter className="flex justify-between items-center text-xs text-muted-foreground p-2">
                   <span className={cn('pl-2', isDarkNote && 'text-white/70')}>{format(new Date(note.date), 'dd MMM')}</span>
