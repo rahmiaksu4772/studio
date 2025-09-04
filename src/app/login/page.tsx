@@ -28,10 +28,24 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { GraduationCap, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Lütfen geçerli bir e-posta adresi girin.' }),
   password: z.string().min(1, { message: 'Şifre alanı boş bırakılamaz.' }),
+});
+
+const resetFormSchema = z.object({
+    email: z.string().email({ message: 'Lütfen geçerli bir e-posta adresi girin.' }),
 });
 
 export default function LoginPage() {
@@ -39,6 +53,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { logIn, sendPasswordReset, error, loading, user } = useAuth();
   const [resetLoading, setResetLoading] = React.useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,29 +63,27 @@ export default function LoginPage() {
     },
   });
 
+  const resetForm = useForm<z.infer<typeof resetFormSchema>>({
+    resolver: zodResolver(resetFormSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     await logIn(values.email, values.password);
   };
   
-  const handlePasswordReset = async () => {
-    const email = form.getValues('email');
-    if (!email) {
-        form.trigger('email');
-        toast({
-            title: 'E-posta Gerekli',
-            description: 'Şifre sıfırlama için lütfen e-posta adresinizi girin.',
-            variant: 'destructive',
-        });
-        return;
-    }
-    
+  const handlePasswordReset = async (values: z.infer<typeof resetFormSchema>) => {
     setResetLoading(true);
-    const success = await sendPasswordReset(email);
+    const success = await sendPasswordReset(values.email);
     if(success) {
         toast({
             title: 'E-posta Gönderildi',
             description: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.',
         });
+        setIsResetDialogOpen(false);
+        resetForm.reset();
     } else {
          toast({
             title: 'Hata',
@@ -92,6 +105,7 @@ export default function LoginPage() {
   }, [user, router, toast]);
 
   return (
+    <>
     <div className="flex h-screen w-full items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
@@ -137,14 +151,14 @@ export default function LoginPage() {
                   <FormItem>
                     <div className="flex items-center">
                       <FormLabel>Şifre</FormLabel>
-                      <button
+                      <Button
                         type="button"
-                        onClick={handlePasswordReset}
-                        disabled={resetLoading}
-                        className="ml-auto inline-block text-sm underline"
+                        variant="link"
+                        onClick={() => setIsResetDialogOpen(true)}
+                        className="ml-auto inline-block text-sm underline p-0 h-auto"
                       >
                         Şifrenizi mi unuttunuz?
-                      </button>
+                      </Button>
                     </div>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
@@ -174,5 +188,49 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+
+    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Şifrenizi Sıfırlayın</DialogTitle>
+                <DialogDescription>
+                    Şifrenizi sıfırlamak için bir bağlantı almak üzere kayıtlı e-posta adresinizi girin.
+                </DialogDescription>
+            </DialogHeader>
+            <Form {...resetForm}>
+                <form onSubmit={resetForm.handleSubmit(handlePasswordReset)} className='space-y-4 py-4'>
+                    <FormField
+                    control={resetForm.control}
+                    name="email"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>E-posta Adresi</FormLabel>
+                        <FormControl>
+                        <Input
+                            type="email"
+                            placeholder="ornek@eposta.com"
+                            {...field}
+                        />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                 <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary" disabled={resetLoading}>
+                            İptal
+                        </Button>
+                    </DialogClose>
+                    <Button type="submit" disabled={resetLoading}>
+                        {resetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Sıfırlama Maili Gönder
+                    </Button>
+                </DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
