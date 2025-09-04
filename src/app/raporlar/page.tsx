@@ -722,17 +722,3 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
-
-
-
-
-    
-
-    
-
-
-
-
-    
-
-    
