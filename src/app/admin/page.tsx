@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/app-layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserProfile } from '@/hooks/use-user-profile';
-import { Loader2, ShieldCheck, User, GraduationCap, Users, MoreHorizontal, Trash2, UserCog, UserCheck, UserX } from 'lucide-react';
+import { Loader2, ShieldCheck, User, GraduationCap, Users, MoreHorizontal, Trash2, UserCog, UserCheck, UserX, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
@@ -37,9 +37,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { deleteUserAction, updateUserRoleAction } from './actions';
+import { deleteUserAction, updateUserRoleAction, sendNotificationToAllUsersAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 function AdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -50,6 +53,10 @@ function AdminPage() {
 
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState<UserData | null>(null);
+  
+  const [notificationTitle, setNotificationTitle] = React.useState('');
+  const [notificationBody, setNotificationBody] = React.useState('');
+  const [isSending, setIsSending] = React.useState(false);
 
   React.useEffect(() => {
     if (!authLoading && !profileLoading) {
@@ -83,6 +90,25 @@ function AdminPage() {
         toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
     }
   };
+
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notificationTitle || !notificationBody) {
+        toast({ title: 'Eksik Bilgi', description: 'Lütfen bildirim başlığı ve içeriğini girin.', variant: 'destructive'});
+        return;
+    }
+
+    setIsSending(true);
+    const result = await sendNotificationToAllUsersAction(notificationTitle, notificationBody);
+    if (result.success) {
+        toast({ title: 'Gönderim Raporu', description: result.message });
+        setNotificationTitle('');
+        setNotificationBody('');
+    } else {
+        toast({ title: 'Gönderim Hatası', description: result.message, variant: 'destructive' });
+    }
+    setIsSending(false);
+  }
 
   const openDeleteConfirm = (user: UserData) => {
     setSelectedUser(user);
@@ -129,102 +155,136 @@ function AdminPage() {
             </div>
         </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Kullanıcı Listesi</CardTitle>
-                <CardDescription>{usersData.length} kullanıcı sisteme kayıtlı.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                    <Table className="min-w-[800px]">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="pl-6">Ad Soyad</TableHead>
-                                <TableHead>E-posta</TableHead>
-                                <TableHead className='text-center'>Rol</TableHead>
-                                <TableHead className='text-center'>Sınıf Sayısı</TableHead>
-                                <TableHead className='text-center'>Öğrenci Sayısı</TableHead>
-                                <TableHead className='text-right pr-6'>İşlemler</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {usersData.map(userData => {
-                                const totalStudents = userData.classes.reduce((sum, cls) => sum + cls.students.length, 0);
-                                return (
-                                    <TableRow key={userData.id}>
-                                        <TableCell className="font-medium flex items-center gap-2 pl-6">
-                                            <User className='h-4 w-4 text-muted-foreground'/>
-                                            {userData.fullName}
-                                        </TableCell>
-                                        <TableCell>{userData.email}</TableCell>
-                                        <TableCell className='text-center'>
-                                            <Badge variant={getRoleBadgeVariant(userData.role)}>
-                                                {userData.role === 'beklemede' ? 'Onay Bekliyor' : userData.role}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <div className='flex items-center justify-center gap-2'>
-                                            <GraduationCap className='h-4 w-4 text-muted-foreground'/>
-                                            {userData.classes.length}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <div className='flex items-center justify-center gap-2'>
-                                                <Users className='h-4 w-4 text-muted-foreground'/>
-                                                {totalStudents}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right pr-6">
-                                        <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={userData.id === user?.uid}>
-                                                    <span className="sr-only">Menüyü aç</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
-                                                    <DropdownMenuSeparator />
-                                                    {userData.role === 'beklemede' && (
-                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
-                                                            <UserCheck className="mr-2 h-4 w-4" />
-                                                            Öğretmen Olarak Onayla
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <Card className="lg:col-span-4">
+                <CardHeader>
+                    <CardTitle>Kullanıcı Listesi</CardTitle>
+                    <CardDescription>{usersData.length} kullanıcı sisteme kayıtlı.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <Table className="min-w-[800px]">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="pl-6">Ad Soyad</TableHead>
+                                    <TableHead>E-posta</TableHead>
+                                    <TableHead className='text-center'>Rol</TableHead>
+                                    <TableHead className='text-center'>Sınıf Sayısı</TableHead>
+                                    <TableHead className='text-center'>Öğrenci Sayısı</TableHead>
+                                    <TableHead className='text-right pr-6'>İşlemler</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {usersData.map(userData => {
+                                    const totalStudents = userData.classes.reduce((sum, cls) => sum + cls.students.length, 0);
+                                    return (
+                                        <TableRow key={userData.id}>
+                                            <TableCell className="font-medium flex items-center gap-2 pl-6">
+                                                <User className='h-4 w-4 text-muted-foreground'/>
+                                                {userData.fullName}
+                                            </TableCell>
+                                            <TableCell>{userData.email}</TableCell>
+                                            <TableCell className='text-center'>
+                                                <Badge variant={getRoleBadgeVariant(userData.role)}>
+                                                    {userData.role === 'beklemede' ? 'Onay Bekliyor' : userData.role}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <div className='flex items-center justify-center gap-2'>
+                                                <GraduationCap className='h-4 w-4 text-muted-foreground'/>
+                                                {userData.classes.length}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <div className='flex items-center justify-center gap-2'>
+                                                    <Users className='h-4 w-4 text-muted-foreground'/>
+                                                    {totalStudents}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6">
+                                            <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={userData.id === user?.uid}>
+                                                        <span className="sr-only">Menüyü aç</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        {userData.role === 'beklemede' && (
+                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
+                                                                <UserCheck className="mr-2 h-4 w-4" />
+                                                                Öğretmen Olarak Onayla
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {userData.role === 'teacher' && (
+                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'beklemede')}>
+                                                                <UserX className="mr-2 h-4 w-4" />
+                                                                Onayı Kaldır
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {userData.role !== 'admin' && (
+                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
+                                                                <UserCog className="mr-2 h-4 w-4" />
+                                                                Admin Yap
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {userData.role === 'admin' && userData.id !== user?.uid && (
+                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
+                                                                <User className="mr-2 h-4 w-4" />
+                                                                Öğretmen Yap
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem className='text-destructive' onClick={() => openDeleteConfirm(userData)}>
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Kullanıcıyı Sil
                                                         </DropdownMenuItem>
-                                                    )}
-                                                     {userData.role === 'teacher' && (
-                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'beklemede')}>
-                                                            <UserX className="mr-2 h-4 w-4" />
-                                                            Onayı Kaldır
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {userData.role !== 'admin' && (
-                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
-                                                            <UserCog className="mr-2 h-4 w-4" />
-                                                            Admin Yap
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                     {userData.role === 'admin' && userData.id !== user?.uid && (
-                                                        <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
-                                                            <User className="mr-2 h-4 w-4" />
-                                                            Öğretmen Yap
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem className='text-destructive' onClick={() => openDeleteConfirm(userData)}>
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Kullanıcıyı Sil
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-        </Card>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+             <Card className="lg:col-span-3">
+                <CardHeader>
+                    <CardTitle>Tüm Kullanıcılara Bildirim Gönder</CardTitle>
+                    <CardDescription>Bu araç ile sisteme kayıtlı ve bildirim izni vermiş tüm kullanıcılara anlık bildirim gönderebilirsiniz.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSendNotification} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="notif-title">Bildirim Başlığı</Label>
+                            <Input 
+                                id="notif-title" 
+                                placeholder="Örn: Yeni Özellik Eklendi!"
+                                value={notificationTitle}
+                                onChange={(e) => setNotificationTitle(e.target.value)} 
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="notif-body">Mesaj İçeriği</Label>
+                            <Textarea 
+                                id="notif-body" 
+                                placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın."
+                                value={notificationBody}
+                                onChange={(e) => setNotificationBody(e.target.value)}
+                            />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={isSending}>
+                            {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                            {isSending ? 'Gönderiliyor...' : 'Bildirimi Gönder'}
+                        </Button>
+                    </form>
+                </CardContent>
+             </Card>
+        </div>
       </main>
 
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
