@@ -23,9 +23,10 @@ function getCredential() {
 
 // Initialize Firebase Admin SDK
 if (admin.apps.length === 0) {
+    // Explicitly provide the projectId to ensure the correct project is used.
     adminApp = admin.initializeApp({
         credential: getCredential(),
-        projectId: process.env.GCLOUD_PROJECT || 'takip-k0hdb', 
+        projectId: 'takip-k0hdb', 
     });
 } else {
     adminApp = admin.app();
