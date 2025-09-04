@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,7 +15,7 @@ import type { LessonPlanEntry } from '@/lib/types';
 import { Button } from './ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { getWeek } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type PlanViewerProps = {
   isOpen: boolean;
@@ -42,15 +43,10 @@ export function PlanViewer({ isOpen, onClose, title, entries, startWeek }: PlanV
     if (!isOpen || !entries.length) return null;
 
     const currentEntry = entries[currentWeekIndex];
-
-    const renderContent = (label: string, content: string | number | undefined) => {
-        if (!content || String(content).trim() === '') return null;
-        return (
-            <div className='py-2'>
-                <p className='text-sm font-semibold text-muted-foreground'>{label}</p>
-                <p className='text-base'>{String(content)}</p>
-            </div>
-        )
+    
+    const renderContent = (content: string | number | undefined) => {
+        if (!content || String(content).trim() === '') return <p className="text-sm text-muted-foreground">Bu alan için içerik bulunmuyor.</p>;
+        return <p className='text-sm whitespace-pre-wrap'>{String(content)}</p>;
     }
 
     const goToPreviousWeek = () => {
@@ -63,36 +59,40 @@ export function PlanViewer({ isOpen, onClose, title, entries, startWeek }: PlanV
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl w-full h-full md:h-auto md:max-h-[90vh] flex flex-col p-0">
+            <DialogContent className="max-w-3xl w-full h-full md:h-auto md:max-h-[90vh] flex flex-col p-0">
                 <DialogHeader className="p-4 md:p-6 border-b">
                     <DialogTitle className='text-xl md:text-2xl'>{title}</DialogTitle>
-                    <DialogDescription>
-                        Aşağıda seçtiğiniz plana ait haftalık içerikleri görebilirsiniz.
-                    </DialogDescription>
                 </DialogHeader>
                 
-                <div className='flex-1 overflow-y-auto p-4 md:p-6 space-y-6'>
+                <div className='flex-1 overflow-y-auto p-4 md:p-6 space-y-4'>
                    {currentEntry && (
-                     <Card>
-                        <CardHeader className='flex-col md:flex-row items-start md:items-center justify-between gap-2'>
-                            <div className='space-y-1.5'>
-                                {currentEntry.week && <Badge variant='secondary' className='text-base'>{currentEntry.week.replace(":", "")}</Badge>}
-                                <CardTitle className='text-lg md:text-xl'>{currentEntry.unit} - {currentEntry.topic}</CardTitle>
+                     <div className='space-y-4'>
+                        <div className="text-center">
+                            {currentEntry.week && <Badge variant='default' className='text-base font-bold'>{currentEntry.week.replace(":", "")}</Badge>}
+                        </div>
+                        
+                        <Tabs defaultValue="objective" className="w-full">
+                            <TabsList className="grid w-full grid-cols-5">
+                                <TabsTrigger value="objective">Kazanım</TabsTrigger>
+                                <TabsTrigger value="topic">Konu</TabsTrigger>
+                                <TabsTrigger value="objectiveExplanation">Açıklamalar</TabsTrigger>
+                                <TabsTrigger value="methods">Yöntem-Teknik</TabsTrigger>
+                                <TabsTrigger value="assessment">Ölçme-Değ.</TabsTrigger>
+                            </TabsList>
+                            <div className="p-4 border rounded-b-md min-h-[200px]">
+                                <TabsContent value="objective">{renderContent(currentEntry.objective)}</TabsContent>
+                                <TabsContent value="topic">{renderContent(currentEntry.topic)}</TabsContent>
+                                <TabsContent value="objectiveExplanation">{renderContent(currentEntry.objectiveExplanation)}</TabsContent>
+                                <TabsContent value="methods">{renderContent(currentEntry.methods)}</TabsContent>
+                                <TabsContent value="assessment">{renderContent(currentEntry.assessment)}</TabsContent>
                             </div>
-                            {currentEntry.hours && <div className='text-left md:text-right flex-shrink-0'>
-                                <p className='font-bold text-lg'>{currentEntry.hours}</p>
-                                <p className='text-sm text-muted-foreground'>Ders Saati</p>
-                            </div>}
-                        </CardHeader>
-                        <CardContent className='grid md:grid-cols-2 gap-x-8 gap-y-2 md:gap-y-4 pt-4'>
-                            {renderContent('Kazanım', currentEntry.objective)}
-                            {renderContent('Kazanım Açıklaması', currentEntry.objectiveExplanation)}
-                            {renderContent('Yöntem ve Teknikler', currentEntry.methods)}
-                            {renderContent('Ölçme ve Değerlendirme', currentEntry.assessment)}
-                            {renderContent('Belirli Gün ve Haftalar', currentEntry.specialDays)}
-                            {renderContent('Okul Dışı Öğrenme', currentEntry.extracurricular)}
-                        </CardContent>
-                     </Card>
+                        </Tabs>
+
+                        <div className='flex justify-between items-center text-sm text-muted-foreground'>
+                            <span>Belirli Gün ve Haftalar: {currentEntry.specialDays || '-'}</span>
+                            <span>Okul Dışı Öğrenme: {currentEntry.extracurricular || '-'}</span>
+                        </div>
+                     </div>
                    )}
                 </div>
 
