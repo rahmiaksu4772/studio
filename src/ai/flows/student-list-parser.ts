@@ -25,7 +25,7 @@ const StudentListParserInputSchema = z.object({
   fileDataUri: z
     .string()
     .describe(
-      "A student list file (PDF or Excel), as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A student list file (PDF or Excel), as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
 });
 type StudentListParserInput = z.infer<typeof StudentListParserInputSchema>;
@@ -37,15 +37,11 @@ export type StudentListParserOutput = z.infer<typeof StudentListParserOutputSche
 
 
 export async function parseStudentList(input: StudentListParserInput): Promise<StudentListParserOutput> {
-  return studentListParserFlow(input);
-}
-
-
-const prompt = ai.definePrompt({
-    name: 'studentListParserPrompt',
-    input: { schema: StudentListParserInputSchema },
-    output: { schema: StudentListParserOutputSchema },
-    prompt: `You are an expert document parser. Your task is to analyze the provided file and extract student list information for one or more classes.
+  const prompt = ai.definePrompt({
+      name: 'studentListParserPrompt',
+      input: { schema: StudentListParserInputSchema },
+      output: { schema: StudentListParserOutputSchema },
+      prompt: `You are an expert document parser. Your task is to analyze the provided file and extract student list information for one or more classes.
 
     The user has provided a file that contains a list of students. This file could be a PDF or an Excel sheet generated from a system like e-Okul.
 
@@ -59,17 +55,19 @@ const prompt = ai.definePrompt({
     7.  Return the data in the specified JSON format. Ensure all student numbers are parsed as numbers, not strings.
 
     File to analyze: {{media url=fileDataUri}}`,
-});
+  });
 
+  const studentListParserFlow = ai.defineFlow(
+    {
+      name: 'studentListParserFlow',
+      inputSchema: StudentListParserInputSchema,
+      outputSchema: StudentListParserOutputSchema,
+    },
+    async (input) => {
+      const { output } = await prompt(input);
+      return output!;
+    }
+  );
 
-const studentListParserFlow = ai.defineFlow(
-  {
-    name: 'studentListParserFlow',
-    inputSchema: StudentListParserInputSchema,
-    outputSchema: StudentListParserOutputSchema,
-  },
-  async (input) => {
-    const { output } = await prompt(input);
-    return output!;
-  }
-);
+  return studentListParserFlow(input);
+}

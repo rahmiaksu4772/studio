@@ -24,14 +24,11 @@ const DescriptionAutoFillOutputSchema = z.object({
 export type DescriptionAutoFillOutput = z.infer<typeof DescriptionAutoFillOutputSchema>;
 
 export async function descriptionAutoFill(input: DescriptionAutoFillInput): Promise<DescriptionAutoFillOutput> {
-  return descriptionAutoFillFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'descriptionAutoFillPrompt',
-  input: {schema: DescriptionAutoFillInputSchema},
-  output: {schema: DescriptionAutoFillOutputSchema},
-  prompt: `You are an AI assistant helping teachers auto-fill description fields for student records.
+    const prompt = ai.definePrompt({
+    name: 'descriptionAutoFillPrompt',
+    input: {schema: DescriptionAutoFillInputSchema},
+    output: {schema: DescriptionAutoFillOutputSchema},
+    prompt: `You are an AI assistant helping teachers auto-fill description fields for student records.
 
   Given the student ID, class ID, and record date, generate a concise, objective, and pedagogical observation note for the student.
   The note should reflect a potential observation a teacher might make on that day.
@@ -45,16 +42,19 @@ const prompt = ai.definePrompt({
   Record Date: {{{recordDate}}}
 
   Description:`,
-});
+  });
 
-const descriptionAutoFillFlow = ai.defineFlow(
-  {
-    name: 'descriptionAutoFillFlow',
-    inputSchema: DescriptionAutoFillInputSchema,
-    outputSchema: DescriptionAutoFillOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+  const descriptionAutoFillFlow = ai.defineFlow(
+    {
+      name: 'descriptionAutoFillFlow',
+      inputSchema: DescriptionAutoFillInputSchema,
+      outputSchema: DescriptionAutoFillOutputSchema,
+    },
+    async input => {
+      const {output} = await prompt(input);
+      return output!;
+    }
+  );
+  
+  return descriptionAutoFillFlow(input);
+}
