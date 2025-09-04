@@ -457,7 +457,7 @@ function NotlarimPageContent() {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={(e) => handleTogglePin(e, note)} style={{color: note.textColor}} className="opacity-70 hover:opacity-100">
+                                <Button variant="ghost" size="icon" onClick={(e) => handleTogglePin(e, note)} className="text-muted-foreground hover:text-foreground">
                                     {note.isPinned ? <PinOff className='h-4 w-4 text-primary'/> : <Pin className='h-4 w-4'/>}
                                 </Button>
                             </TooltipTrigger>
@@ -467,13 +467,11 @@ function NotlarimPageContent() {
                         </Tooltip>
                     </TooltipProvider>
                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                        <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              onClick={(e) => e.stopPropagation()}
-                              style={{color: note.textColor}}
-                              className="opacity-70 hover:opacity-100"
+                              className="text-muted-foreground hover:text-destructive"
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
