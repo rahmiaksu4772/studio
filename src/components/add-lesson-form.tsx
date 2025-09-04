@@ -93,7 +93,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="text-left">
           <DialogTitle>{lesson?.subject ? 'Dersi Düzenle' : 'Yeni Ders Ekle'}</DialogTitle>
           <DialogDescription>
             {day} günü, {timeSlot} saati için bilgileri girin.
@@ -156,11 +156,11 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
              </FormDescription>
 
             <DialogFooter className='flex-col sm:flex-row sm:justify-between pt-4 gap-2'>
-                <div className='flex gap-2 w-full sm:w-auto'>
+                <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
                 {lesson && (
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button type="button" variant="destructive" className="w-full">
+                            <Button type="button" variant="destructive" className="w-full justify-center">
                                 <Trash2 className='mr-2 h-4 w-4' /> Dersi Temizle
                             </Button>
                         </AlertDialogTrigger>
@@ -181,7 +181,7 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                     </AlertDialog>
                 )}
                 {relatedPlan && (
-                    <Button type='button' variant='outline' onClick={() => onViewPlan(relatedPlan)} className="w-full">
+                    <Button type='button' variant='outline' onClick={() => onViewPlan(relatedPlan)} className="w-full justify-center">
                         <BookOpen className='mr-2 h-4 w-4' /> Yıllık Planı Gör
                     </Button>
                 )}
