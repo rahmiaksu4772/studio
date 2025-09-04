@@ -467,11 +467,12 @@ function NotlarimPageContent() {
                         </Tooltip>
                     </TooltipProvider>
                     <AlertDialog>
-                        <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogTrigger asChild>
                             <Button 
                               variant="ghost" 
                               size="icon"
                               className="text-muted-foreground hover:text-destructive"
+                              onClick={(e) => e.stopPropagation()}
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
@@ -486,7 +487,10 @@ function NotlarimPageContent() {
                           <AlertDialogFooter>
                             <AlertDialogCancel>İptal</AlertDialogCancel>
                             <AlertDialogAction 
-                              onClick={() => deleteNote(note.id)} 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNote(note.id);
+                              }}
                               className="bg-destructive hover:bg-destructive/90">
                               Sil
                             </AlertDialogAction>
