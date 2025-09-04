@@ -135,7 +135,7 @@ function NotlarimPageContent() {
       title: newNoteTitle,
       content: newNoteContent,
       type: newNoteType,
-      items: newNoteType === 'checklist' ? newNoteItems : [],
+      items: newNoteType === 'checklist' ? newNoteItems.filter(item => item.text.trim() !== '') : [],
       imageUrl: newNoteImage,
       color: newNoteColor,
       isPinned: false,
@@ -239,6 +239,10 @@ function NotlarimPageContent() {
     setNewNoteItems(items);
   };
   
+  const handleRemoveItem = (index: number) => {
+    setNewNoteItems(newNoteItems.filter((_, i) => i !== index));
+  };
+  
    if (isLoading) {
     return (
       <AppLayout>
@@ -295,7 +299,7 @@ function NotlarimPageContent() {
               ) : (
                 <div className='p-4 pt-0 space-y-2'>
                     {newNoteItems.map((item, index) => (
-                        <div key={index} className='flex items-center gap-2'>
+                        <div key={index} className='flex items-center gap-2 group'>
                              <Checkbox disabled className={cn(isDarkColorSelected && "border-white/50")}/>
                              <Input 
                                 placeholder='Liste öğesi'
@@ -306,6 +310,15 @@ function NotlarimPageContent() {
                                      isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
                                 )}
                              />
+                             <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveItem(index)}
+                                className={cn("h-8 w-8 opacity-0 group-hover:opacity-100", isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}
+                             >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
                         </div>
                     ))}
                     <Button type='button' variant='ghost' onClick={handleAddItem} className={cn('w-full justify-start', isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>

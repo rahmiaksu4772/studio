@@ -90,17 +90,22 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
   }, [note, form]);
 
   const handleSubmit = (values: EditNoteFormValues) => {
-    if (values.type === 'text' && !values.title && !values.content) {
+    const finalValues = {
+        ...values,
+        items: values.items?.filter(item => item.text.trim() !== '') || []
+    };
+
+    if (finalValues.type === 'text' && !finalValues.title && !finalValues.content) {
         toast({ title: "Boş Not", description: "Lütfen bir başlık veya içerik girin.", variant: "destructive" });
         return;
     }
-    const isChecklistEmpty = !values.items || values.items.every(item => !item.text.trim());
-    if (values.type === 'checklist' && !values.title && isChecklistEmpty) {
+    const isChecklistEmpty = !finalValues.items || finalValues.items.every(item => !item.text.trim());
+    if (finalValues.type === 'checklist' && !finalValues.title && isChecklistEmpty) {
         toast({ title: "Boş Not", description: "Lütfen bir başlık veya en az bir liste öğesi girin.", variant: "destructive" });
         return;
     }
 
-    onUpdate(note.id, values);
+    onUpdate(note.id, finalValues);
   };
   
   const handleAddItem = () => {

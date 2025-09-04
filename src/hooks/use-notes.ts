@@ -69,6 +69,10 @@ export function useNotes(userId?: string) {
     if (!dataToSave.imageUrl) {
         delete dataToSave.imageUrl;
     }
+
+    if (dataToSave.type === 'checklist') {
+        dataToSave.items = dataToSave.items.filter((item: any) => item.text.trim() !== '');
+    }
     
     try {
         const notesCollectionRef = collection(db, `users/${userId}/notes`);
@@ -91,9 +95,13 @@ export function useNotes(userId?: string) {
     try {
         const noteDocRef = doc(db, `users/${userId}/notes`, noteId);
         
-        const dataToUpdate = {...data};
+        const dataToUpdate: { [key: string]: any } = {...data};
         if (dataToUpdate.isPinned === undefined) {
             delete dataToUpdate.isPinned;
+        }
+
+        if (dataToUpdate.type === 'checklist' && dataToUpdate.items) {
+            dataToUpdate.items = dataToUpdate.items.filter((item: any) => item.text.trim() !== '');
         }
 
         await updateDoc(noteDocRef, dataToUpdate);
