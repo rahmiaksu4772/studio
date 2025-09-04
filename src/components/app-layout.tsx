@@ -16,6 +16,7 @@ import {
     StickyNote,
     ShieldCheck,
     MessageSquare,
+    Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
@@ -36,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useAuth } from '@/hooks/use-auth';
 import { useFCM } from '@/hooks/use-fcm';
+import { useNotifications } from '@/hooks/use-notifications';
 
 
 const menuItems = [
@@ -46,6 +48,7 @@ const menuItems = [
     { href: '/planlarim', label: 'Planlarım', icon: Calendar },
     { href: '/notlarim', label: 'Notlarım', icon: StickyNote },
     { href: '/forum', label: 'Forum', icon: MessageSquare },
+    { href: '/bildirimler', label: 'Bildirimler', icon: Bell },
 ];
 
 const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
@@ -55,6 +58,7 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     const { profile } = useUserProfile(user?.uid);
     const { logOut } = useAuth();
     const { toast } = useToast();
+    const { unreadCount } = useNotifications(user?.uid);
 
     const handleLogout = async () => {
         try {
@@ -94,7 +98,14 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
                                 pathname.startsWith(item.href) ? 'bg-primary/10 text-primary' : ''
                             )}
                         >
-                            <item.icon className="h-5 w-5" />
+                            <div className='relative'>
+                                <item.icon className="h-5 w-5" />
+                                {item.href === '/bildirimler' && unreadCount > 0 && (
+                                     <span className="absolute -top-1 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                                        {unreadCount}
+                                     </span>
+                                )}
+                            </div>
                             {item.label}
                         </Link>
                     ))}
@@ -155,8 +166,9 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-    const { user, loading } = useAuth();
+    const { user } = useAuth();
     const { profile } = useUserProfile(user?.uid);
+    const { unreadCount } = useNotifications(user?.uid);
     const [open, setOpen] = React.useState(false);
     
     // Initialize FCM
@@ -191,6 +203,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </SheetContent>
                     </Sheet>
                     <div className="w-full flex-1" />
+                     <Link href="/bildirimler" className="relative">
+                        <Button variant="ghost" size="icon">
+                            <Bell className="h-5 w-5" />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                                    {unreadCount}
+                                </span>
+                            )}
+                            <span className="sr-only">Bildirimler</span>
+                        </Button>
+                    </Link>
                     <Link href="/ayarlar">
                         <Avatar>
                             <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName} data-ai-hint="teacher portrait" />

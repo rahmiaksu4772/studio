@@ -14,6 +14,7 @@ export type UserProfile = {
   hometown: string;
   role: UserRole;
   fcmTokens?: string[];
+  readNotificationIds?: string[];
 };
 
 export type Student = {
@@ -157,4 +158,13 @@ export type ForumPost = {
     author: ForumAuthor;
     date: string; // ISO String
     replies?: ForumReply[]; // Subcollection, might not be loaded directly
+};
+
+// Notification type
+export type Notification = {
+    id: string;
+    title: string;
+    body: string;
+    createdAt: string; // ISO String
+    isRead?: boolean;
 };
