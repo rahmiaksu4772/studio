@@ -15,7 +15,7 @@ const firebaseConfig = {
   projectId: "takip-k0hdb",
   storageBucket: "takip-k0hdb.appspot.com",
   messagingSenderId: "1093335320755",
-  appId: "1:1093335320755:web:b029_a206cb0fe66f7408c6"
+  appId: "1:1093335320755:web:b029a206cb0fe66f7408c6"
 };
 
 // Initialize Firebase

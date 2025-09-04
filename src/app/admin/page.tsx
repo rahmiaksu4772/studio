@@ -37,7 +37,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { deleteUserAction, updateUserRoleAction } from './actions';
+import { deleteUserAction, updateUserRoleAction, sendPasswordResetEmailAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/types';
 
@@ -80,6 +80,15 @@ function AdminPage() {
        if (result.success) {
         toast({ title: 'Başarılı!', description: result.message });
         setUsersData(prev => prev.map(u => u.id === userId ? {...u, role: newRole} : u));
+    } else {
+        toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
+    }
+  };
+
+  const handlePasswordReset = async (email: string) => {
+    const result = await sendPasswordResetEmailAction(email);
+    if (result.success) {
+        toast({ title: 'Başarılı!', description: result.message });
     } else {
         toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
     }
@@ -186,6 +195,11 @@ function AdminPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => handlePasswordReset(userData.email)}>
+                                                            <Send className="mr-2 h-4 w-4" />
+                                                            Şifre Sıfırlama Maili Gönder
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         {userData.role === 'beklemede' && (
                                                             <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>

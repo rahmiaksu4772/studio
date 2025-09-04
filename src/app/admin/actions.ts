@@ -7,7 +7,8 @@ import { initializeAdmin } from '@/lib/firebase-admin';
 import type { UserRole, ForumAuthor } from '@/lib/types';
 import { getMessaging } from 'firebase-admin/messaging';
 import { addDoc, collection, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth as clientAuth } from '@/lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 
 // Initialize Firebase Admin SDK
@@ -82,3 +83,13 @@ export async function deleteNotificationAction(notificationId: string) {
         return { success: false, message: 'Bildirim silinirken bir hata oluştu.'}
     }
 }
+
+export async function sendPasswordResetEmailAction(email: string) {
+    try {
+      await sendPasswordResetEmail(clientAuth, email);
+      return { success: true, message: `"${email}" adresine şifre sıfırlama e-postası başarıyla gönderildi.` };
+    } catch (error: any) {
+      console.error('Error sending password reset email:', error);
+      return { success: false, message: 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu. Lütfen kullanıcının e-posta adresinin doğru olduğundan emin olun.' };
+    }
+  }
