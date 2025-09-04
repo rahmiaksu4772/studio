@@ -5,9 +5,10 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Upload, Plus, Folder, Loader2, FileText, Sheet, File as WordIcon } from 'lucide-react';
+import { Upload, Plus, Folder, Loader2, FileText, Sheet as ExcelIcon, File as WordIcon, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import * as XLSX from 'xlsx';
 import {
     Select,
     SelectContent,
@@ -128,6 +129,26 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
         setIsSubmitting(false);
     }
   };
+  
+  const handleDownloadTemplate = () => {
+    const headers = [
+      "AY",
+      "HAFTA",
+      "SAAT",
+      "ÜNİTE",
+      "KONU (ALT ÖĞRENME ALANI)",
+      "KAZANIM",
+      "AÇIKLAMALAR",
+      "YÖNTEM VE TEKNİKLER",
+      "ÖLÇME VE DEĞERLENDİRME",
+      "BELİRLİ GÜN VE HAFTALAR",
+      "DİĞER"
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Yıllık Plan');
+    XLSX.writeFile(wb, 'yillik_plan_sablonu.xlsx');
+  };
 
   const readFileAsDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -158,7 +179,7 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
     const fileType = selectedFile[0].type;
     if (fileType.includes('pdf')) return <FileText className="mr-2 h-4 w-4 text-red-500" />;
     if (fileType.includes('word')) return <WordIcon className="mr-2 h-4 w-4 text-blue-500" />;
-    if (fileType.includes('sheet') || fileType.includes('excel')) return <Sheet className="mr-2 h-4 w-4 text-green-500" />;
+    if (fileType.includes('sheet') || fileType.includes('excel')) return <ExcelIcon className="mr-2 h-4 w-4 text-green-500" />;
     return <Folder className="mr-2 h-4 w-4" />;
   };
 
@@ -252,7 +273,13 @@ export function UploadPlanForm({ onAddPlan, isFirstPlan = false }: UploadPlanFor
                 name="file"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Dosya</FormLabel>
+                    <div className='flex justify-between items-center'>
+                      <FormLabel>Dosya</FormLabel>
+                      <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={handleDownloadTemplate}>
+                        <FileDown className="mr-1 h-3 w-3"/>
+                        Şablonu İndir
+                      </Button>
+                    </div>
                     <FormControl>
                       <div>
                         <label 
