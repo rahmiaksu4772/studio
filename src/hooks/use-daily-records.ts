@@ -126,26 +126,41 @@ export function useClassesAndStudents(userId?: string) {
         const q = query(collection(db, `users/${userId}/classes`));
         
         const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-            const classesData: ClassInfo[] = [];
-            for (const classDoc of querySnapshot.docs) {
-                const classData = { id: classDoc.id, ...classDoc.data() } as ClassInfo
-                
-                const studentsSnapshot = await getDocs(collection(db, `users/${userId}/classes/${classDoc.id}/students`));
-                classData.students = studentsSnapshot.docs.map(studentDoc => ({
-                    id: studentDoc.id,
-                    ...studentDoc.data()
-                } as Student));
-                
-                classesData.push(classData);
-            }
+            const classesData = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name, students: [] }));
+
+            const unsubscribers = classesData.map((classInfo, index) => {
+                const studentsQuery = query(collection(db, `users/${userId}/classes/${classInfo.id}/students`));
+                return onSnapshot(studentsQuery, studentSnapshot => {
+                    const students = studentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student));
+                    
+                    setClasses(currentClasses => {
+                        const newClasses = [...currentClasses];
+                        const classIndex = newClasses.findIndex(c => c.id === classInfo.id);
+                        if(classIndex > -1){
+                            newClasses[classIndex] = {...newClasses[classIndex], students };
+                        } else {
+                            // This might happen if classes change while students are loading
+                            newClasses.push({...classInfo, students});
+                        }
+                        return newClasses;
+                    });
+                });
+            });
+
+            // Set initial classes and then let student snapshots update them
             setClasses(classesData);
             setIsLoading(false);
+
+            // Return a cleanup function that unsubscribes from all student listeners
+            return () => unsubscribers.forEach(unsub => unsub());
+
         }, (error) => {
             console.error("Failed to load classes from Firestore", error);
             toast({ title: "Hata", description: "Sınıf verileri yüklenemedi.", variant: 'destructive' });
             setIsLoading(false);
         });
 
+        // The main unsubscribe function for the classes listener
         return () => unsubscribe();
     }, [userId, toast]);
     
