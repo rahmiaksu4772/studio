@@ -5,13 +5,15 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { ClassInfo } from '@/lib/types';
+import type { ClassInfo, Student } from '@/lib/types';
+import { ImportClassesAndStudentsDialog } from './import-classes-and-students-dialog';
 
 const formSchema = z.object({
   className: z.string().min(2, { message: 'Sınıf adı en az 2 karakter olmalıdır.' }),
@@ -19,10 +21,11 @@ const formSchema = z.object({
 
 type AddClassFormProps = {
   onAddClass: (className: string) => Promise<void>;
+  onBulkImport: (data: { className: string, students: Omit<Student, 'id'|'classId'>[] }[]) => void;
   existingClasses: ClassInfo[];
 };
 
-export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps) {
+export function AddClassForm({ onAddClass, onBulkImport, existingClasses }: AddClassFormProps) {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
 
@@ -103,6 +106,21 @@ export function AddClassForm({ onAddClass, existingClasses }: AddClassFormProps)
               </Button>
             </form>
           </Form>
+          
+          <div className="relative my-2">
+            <Separator />
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-popover px-2 text-muted-foreground">
+                Veya
+              </span>
+            </div>
+          </div>
+          
+           <ImportClassesAndStudentsDialog onImport={onBulkImport} />
+
         </div>
       </PopoverContent>
     </Popover>

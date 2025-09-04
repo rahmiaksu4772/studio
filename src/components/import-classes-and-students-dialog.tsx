@@ -100,9 +100,9 @@ export function ImportClassesAndStudentsDialog({ onImport }: ImportClassesAndStu
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="w-full">
           <Upload className="mr-2 h-4 w-4" />
-          Toplu Aktar
+          Toplu Sınıf/Öğrenci Aktar
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">

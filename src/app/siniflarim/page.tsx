@@ -27,7 +27,6 @@ import { useClassesAndStudents } from '@/hooks/use-daily-records';
 import { EditClassForm } from '@/components/edit-class-form';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
-import { ImportClassesAndStudentsDialog } from '@/components/import-classes-and-students-dialog';
 
 function SiniflarimPageContent() {
   const { toast } = useToast();
@@ -156,8 +155,7 @@ function SiniflarimPageContent() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Sınıflarım</h2>
           <div className='flex items-center gap-2'>
-            <ImportClassesAndStudentsDialog onImport={handleBulkImport} />
-            <AddClassForm onAddClass={handleAddClass} existingClasses={classes} />
+            <AddClassForm onAddClass={handleAddClass} onBulkImport={handleBulkImport} existingClasses={classes} />
           </div>
         </div>
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
