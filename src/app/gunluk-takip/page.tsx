@@ -89,6 +89,9 @@ function GunlukTakipPageContent() {
       const recordsForDay = allRecords.filter(r => r.classId === selectedClass.id && r.date === dateStr);
       setDailyRecords(recordsForDay);
       setIsDirty(false); // Reset dirty state when date or class changes
+    } else {
+      setDailyRecords([]);
+      setIsDirty(false);
     }
   }, [allRecords, selectedClass, dateStr]);
 
@@ -101,14 +104,6 @@ function GunlukTakipPageContent() {
   }, [dailyRecords]);
 
 
-  // Set initial class
-  React.useEffect(() => {
-    if (classes.length > 0 && !selectedClass) {
-      const firstClass = classes[0];
-      setSelectedClass(firstClass);
-    }
-  }, [classes, selectedClass]);
-  
   // Fetch students when class changes
   React.useEffect(() => {
     if (!selectedClass) {
@@ -149,7 +144,7 @@ function GunlukTakipPageContent() {
     const newEvent: RecordEvent = { id: new Date().toISOString(), type: 'status', value: status };
     updateLocalRecord(studentId, record => ({
         ...record,
-        events: [...record.events, newEvent]
+        events: record.events.filter(e => e.type !== 'status').concat(newEvent)
     }));
   };
 
@@ -164,7 +159,7 @@ function GunlukTakipPageContent() {
             const newEvent: RecordEvent = { id: new Date().toISOString() + studentId, type: 'status', value: status };
             const existingRecord = recordsMap.get(studentId);
             if (existingRecord) {
-                recordsMap.set(studentId, { ...existingRecord, events: [...existingRecord.events, newEvent] });
+                recordsMap.set(studentId, { ...existingRecord, events: existingRecord.events.filter(e => e.type !== 'status').concat(newEvent) });
             } else {
                  recordsMap.set(studentId, {
                     id: `${selectedClass.id}-${dateStr}-${studentId}`,
@@ -282,7 +277,7 @@ function GunlukTakipPageContent() {
             <div className='flex flex-col'>
                 <h2 className='text-2xl font-bold tracking-tight'>Günlük Değerlendirme Çizelgesi</h2>
                 <p className='text-muted-foreground'>
-                   {selectedClass?.name} sınıfı için değerlendirmeleri girin.
+                   {selectedClass?.name ? `${selectedClass.name} sınıfı için değerlendirmeleri girin.` : 'Lütfen bir sınıf seçin.'}
                 </p>
             </div>
 
@@ -362,6 +357,7 @@ function GunlukTakipPageContent() {
                                         variant="outline"
                                         size='icon'
                                         className={cn('rounded-full w-7 h-7 transition-all hover:bg-muted')}
+                                        disabled={!selectedClass}
                                     >
                                         {option.icon && <option.icon className="h-4 w-4" style={{ color: option.color }} />}
                                     </Button>
@@ -388,6 +384,7 @@ function GunlukTakipPageContent() {
                                 size="icon"
                                 className="rounded-full w-7 h-7"
                                 onClick={() => setIsBulkNoteOpen(true)}
+                                disabled={!selectedClass}
                             >
                                 <FilePenLine className="h-4 w-4 text-muted-foreground" />
                             </Button>
@@ -459,6 +456,11 @@ function GunlukTakipPageContent() {
                             </div>
                         )
                     })}
+                    {!selectedClass && (
+                        <div className="text-center p-10 text-muted-foreground">
+                            Lütfen işlem yapmak için bir sınıf seçin.
+                        </div>
+                    )}
                 </div>
                 )}
             </CardContent>
@@ -538,3 +540,4 @@ export default function GunlukTakipPage() {
     
 
     
+
