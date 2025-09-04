@@ -427,15 +427,15 @@ function RaporlarPageContent() {
                 </Button>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
                     {Object.entries(summary).map(([key, value]: [string, any]) => (
-                        <Card key={key} className="p-4">
+                        <div key={key} className="border rounded-md p-4">
                             <div className="flex justify-center items-center mb-2">
                                 {value.icon && <value.icon className={cn("h-6 w-6", statusOptions.find(o => o.value === key)?.color)} />}
                             </div>
                             <p className="text-2xl font-bold">{value.count}</p>
                             <p className="text-sm text-muted-foreground">{value.label}</p>
-                        </Card>
+                        </div>
                     ))}
                 </div>
                 
@@ -722,3 +722,4 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
+
