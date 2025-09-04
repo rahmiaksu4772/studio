@@ -146,15 +146,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     }
   };
 
-
-  const isDarkColor = watchColor && (
-    watchColor.startsWith('bg-gray-800') || 
-    watchColor.startsWith('bg-red-900') || 
-    watchColor.startsWith('bg-green-900') || 
-    watchColor.startsWith('bg-blue-900') || 
-    watchColor.startsWith('bg-purple-900') || 
-    watchColor.includes('dark:')
-  );
+  const isDarkColor = watchColor && (watchColor.includes('800') || watchColor.includes('900') || watchColor.includes('700'));
 
 
   return (

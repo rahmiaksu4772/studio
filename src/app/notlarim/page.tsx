@@ -253,7 +253,7 @@ function NotlarimPageContent() {
     );
   }
   
-  const isDarkColorSelected = newNoteColor.startsWith('bg-gray-800') || newNoteColor.startsWith('bg-red-900') || newNoteColor.startsWith('bg-green-900') || newNoteColor.startsWith('bg-blue-900') || newNoteColor.startsWith('bg-purple-900') || newNoteColor.includes('dark:');
+  const isDarkColorSelected = newNoteColor.includes('800') || newNoteColor.includes('900') || newNoteColor.includes('700');
 
   return (
     <AppLayout>
@@ -437,7 +437,7 @@ function NotlarimPageContent() {
         {notes.length > 0 ? (
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4 mt-8">
             {notes.map((note) => {
-              const isDarkNote = note.color && (note.color.startsWith('bg-gray-800') || note.color.startsWith('bg-red-900') || note.color.startsWith('bg-green-900') || note.color.startsWith('bg-blue-900') || note.color.startsWith('bg-purple-900') || note.color.includes('dark:'));
+              const isDarkNote = note.color && (note.color.includes('800') || note.color.includes('900') || note.color.includes('700'));
               const sortedItems = note.items ? [...note.items].sort((a, b) => a.isChecked === b.isChecked ? 0 : a.isChecked ? 1 : -1) : [];
 
               return (
