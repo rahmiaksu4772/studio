@@ -4,26 +4,34 @@
 import * as React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Bell, BellRing, Loader2, Trash2 } from 'lucide-react';
+import { Bell, BellRing, Loader2, Trash2, Send } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotifications } from '@/hooks/use-notifications';
 import AppLayout from '@/components/app-layout';
 import AuthGuard from '@/components/auth-guard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { deleteNotificationAction } from '../admin/actions';
+import { deleteNotificationAction, sendNotificationToAllUsersAction } from '../admin/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import type { ForumAuthor } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 function NotificationsPageContent() {
   const { user } = useAuth();
   const { profile } = useUserProfile(user?.uid);
   const { notifications, isLoading, markAsRead, setNotifications } = useNotifications(user?.uid);
   const { toast } = useToast();
+  
+  const [notificationTitle, setNotificationTitle] = React.useState('');
+  const [notificationBody, setNotificationBody] = React.useState('');
+  const [isSending, setIsSending] = React.useState(false);
+
 
   React.useEffect(() => {
     // For non-admins, mark notifications as read on visit.
@@ -48,6 +56,35 @@ function NotificationsPageContent() {
     }
   }
 
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notificationTitle || !notificationBody) {
+        toast({ title: 'Eksik Bilgi', description: 'Lütfen bildirim başlığı ve içeriğini girin.', variant: 'destructive'});
+        return;
+    }
+    if (!user || !profile) {
+        toast({ title: 'Giriş Gerekli', description: 'Bildirim göndermek için admin olarak giriş yapmalısınız.', variant: 'destructive'});
+        return;
+    }
+
+    setIsSending(true);
+
+    const author: ForumAuthor = {
+      uid: user.uid,
+      name: profile.fullName,
+      avatarUrl: profile.avatarUrl,
+    }
+
+    const result = await sendNotificationToAllUsersAction(notificationTitle, notificationBody, author);
+    if (result.success) {
+        toast({ title: 'Gönderim Raporu', description: result.message });
+        setNotificationTitle('');
+        setNotificationBody('');
+    } else {
+        toast({ title: 'Gönderim Hatası', description: result.message, variant: 'destructive' });
+    }
+    setIsSending(false);
+  }
 
   if (isLoading) {
     return (
@@ -59,9 +96,9 @@ function NotificationsPageContent() {
     );
   }
   
-  const pageTitle = profile?.role === 'admin' ? "Gönderilen Duyurular" : "Bildirimler";
+  const pageTitle = profile?.role === 'admin' ? "Duyuru Merkezi" : "Bildirimler";
   const pageDescription = profile?.role === 'admin' 
-    ? "Tüm kullanıcılara gönderdiğiniz duyuruları buradan yönetebilirsiniz."
+    ? "Tüm kullanıcılara duyuru gönderin ve geçmiş duyuruları yönetin."
     : "Yönetici tarafından gönderilen en son duyurular.";
 
   return (
@@ -79,77 +116,119 @@ function NotificationsPageContent() {
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto space-y-4">
-            {notifications.length > 0 ? (
-                notifications.map(notification => (
-                    <Card 
-                        key={notification.id}
-                        className={cn(
-                            "transition-all",
-                            profile?.role !== 'admin' && (notification.isRead ? "border-transparent bg-card/50" : "border-primary/20 bg-primary/5")
-                        )}
-                    >
-                        <CardHeader className='pb-4'>
-                            <div className="flex items-start justify-between gap-4">
-                               <div className='flex items-center gap-3'>
-                                 <div className={cn(
-                                    "h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0",
-                                    profile?.role === 'admin' ? 'bg-muted text-muted-foreground' : (notification.isRead ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground')
-                                 )}>
-                                    <BellRing className="h-5 w-5" />
-                                 </div>
-                                 <div>
-                                    <CardTitle className='text-base leading-tight'>{notification.title}</CardTitle>
-                                     <p className="text-xs text-muted-foreground mt-1">
-                                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: tr })}
-                                    </p>
-                                 </div>
-                               </div>
-                               {profile?.role === 'admin' && (
-                                 <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className='text-destructive/70 hover:text-destructive'>
-                                            <Trash2 className='h-4 w-4' />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Bu Duyuruyu Silmek İstediğinizden Emin misiniz?</AlertDialogTitle>
-                                            <AlertDialogDescription>Bu işlem geri alınamaz. Duyuru tüm kullanıcılardan ve sistemden kalıcı olarak silinecektir.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>İptal</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteNotification(notification.id)} className="bg-destructive hover:bg-destructive/90">Evet, Sil</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                               )}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-sm text-muted-foreground ml-12 pl-1 border-l border-border space-y-4">
-                                <p>{notification.body}</p>
-                                {profile?.role === 'admin' && notification.author && (
-                                     <div className='flex items-center gap-2 text-xs pt-2 border-t'>
-                                        <Avatar className='h-5 w-5'>
-                                            <AvatarImage src={notification.author.avatarUrl} data-ai-hint="teacher portrait" />
-                                            <AvatarFallback>{notification.author.name.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <span>Gönderen: <strong>{notification.author.name}</strong></span>
+        <div className="grid gap-6 md:grid-cols-5">
+            <div className="space-y-6 md:col-span-3">
+                 <h3 className="text-xl font-semibold border-b pb-2">Geçmiş Duyurular</h3>
+                {notifications.length > 0 ? (
+                    notifications.map(notification => (
+                        <Card 
+                            key={notification.id}
+                            className={cn(
+                                "transition-all",
+                                profile?.role !== 'admin' && (notification.isRead ? "border-transparent bg-card/50" : "border-primary/20 bg-primary/5")
+                            )}
+                        >
+                            <CardHeader className='pb-4'>
+                                <div className="flex items-start justify-between gap-4">
+                                <div className='flex items-center gap-3'>
+                                    <div className={cn(
+                                        "h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0",
+                                        profile?.role === 'admin' ? 'bg-muted text-muted-foreground' : (notification.isRead ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground')
+                                    )}>
+                                        <BellRing className="h-5 w-5" />
                                     </div>
+                                    <div>
+                                        <CardTitle className='text-base leading-tight'>{notification.title}</CardTitle>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: tr })}
+                                        </p>
+                                    </div>
+                                </div>
+                                {profile?.role === 'admin' && (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className='text-destructive/70 hover:text-destructive'>
+                                                <Trash2 className='h-4 w-4' />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Bu Duyuruyu Silmek İstediğinizden Emin misiniz?</AlertDialogTitle>
+                                                <AlertDialogDescription>Bu işlem geri alınamaz. Duyuru tüm kullanıcılardan ve sistemden kalıcı olarak silinecektir.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteNotification(notification.id)} className="bg-destructive hover:bg-destructive/90">Evet, Sil</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 )}
-                            </div>
-                        </CardContent>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-sm text-muted-foreground ml-12 pl-1 border-l border-border space-y-4">
+                                    <p>{notification.body}</p>
+                                    {profile?.role === 'admin' && notification.author && (
+                                        <div className='flex items-center gap-2 text-xs pt-2 border-t'>
+                                            <Avatar className='h-5 w-5'>
+                                                <AvatarImage src={notification.author.avatarUrl} data-ai-hint="teacher portrait" />
+                                                <AvatarFallback>{notification.author.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <span>Gönderen: <strong>{notification.author.name}</strong></span>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : (
+                    <div className="text-center py-20 border-2 border-dashed rounded-lg">
+                        <Bell className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <h3 className="mt-4 text-lg font-medium">Henüz duyuru yok</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                           {profile?.role === 'admin' ? "Yeni bir duyuru gönderdiğinizde burada görünecektir." : "Yöneticiniz yeni bir duyuru gönderdiğinde burada görünecektir."}
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {profile?.role === 'admin' && (
+                 <div className="md:col-span-2">
+                    <Card className="sticky top-4">
+                        <CardHeader>
+                            <CardTitle>Yeni Duyuru Gönder</CardTitle>
+                            <CardDescription>Bu araç ile sisteme kayıtlı ve bildirim izni vermiş tüm kullanıcılara anlık bildirim gönderebilirsiniz.</CardDescription>
+                        </CardHeader>
+                        <form onSubmit={handleSendNotification}>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="notif-title">Duyuru Başlığı</Label>
+                                    <Input 
+                                        id="notif-title" 
+                                        placeholder="Örn: Yeni Özellik Eklendi!"
+                                        value={notificationTitle}
+                                        onChange={(e) => setNotificationTitle(e.target.value)} 
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="notif-body">Mesaj İçeriği</Label>
+                                    <Textarea 
+                                        id="notif-body" 
+                                        placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın."
+                                        value={notificationBody}
+                                        onChange={(e) => setNotificationBody(e.target.value)}
+                                    />
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button type="submit" className="w-full" disabled={isSending}>
+                                    {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                                    {isSending ? 'Gönderiliyor...' : 'Duyuruyu Gönder'}
+                                </Button>
+                            </CardFooter>
+                        </form>
                     </Card>
-                ))
-            ) : (
-                <div className="text-center py-20 border-2 border-dashed rounded-lg">
-                     <Bell className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-medium">Henüz bildirim yok</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Yöneticiniz yeni bir duyuru gönderdiğinde burada görünecektir.
-                    </p>
-                </div>
+                 </div>
             )}
         </div>
       </main>

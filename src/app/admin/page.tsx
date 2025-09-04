@@ -37,12 +37,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { deleteUserAction, updateUserRoleAction, sendNotificationToAllUsersAction } from './actions';
+import { deleteUserAction, updateUserRoleAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole, ForumAuthor } from '@/lib/types';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import type { UserRole } from '@/lib/types';
+
 
 function AdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -54,10 +52,6 @@ function AdminPage() {
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState<UserData | null>(null);
   
-  const [notificationTitle, setNotificationTitle] = React.useState('');
-  const [notificationBody, setNotificationBody] = React.useState('');
-  const [isSending, setIsSending] = React.useState(false);
-
   React.useEffect(() => {
     if (!authLoading && !profileLoading) {
       if (!user || profile?.role !== 'admin') {
@@ -90,36 +84,6 @@ function AdminPage() {
         toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
     }
   };
-
-  const handleSendNotification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!notificationTitle || !notificationBody) {
-        toast({ title: 'Eksik Bilgi', description: 'Lütfen bildirim başlığı ve içeriğini girin.', variant: 'destructive'});
-        return;
-    }
-    if (!user || !profile) {
-        toast({ title: 'Giriş Gerekli', description: 'Bildirim göndermek için admin olarak giriş yapmalısınız.', variant: 'destructive'});
-        return;
-    }
-
-    setIsSending(true);
-
-    const author: ForumAuthor = {
-      uid: user.uid,
-      name: profile.fullName,
-      avatarUrl: profile.avatarUrl,
-    }
-
-    const result = await sendNotificationToAllUsersAction(notificationTitle, notificationBody, author);
-    if (result.success) {
-        toast({ title: 'Gönderim Raporu', description: result.message });
-        setNotificationTitle('');
-        setNotificationBody('');
-    } else {
-        toast({ title: 'Gönderim Hatası', description: result.message, variant: 'destructive' });
-    }
-    setIsSending(false);
-  }
 
   const openDeleteConfirm = (user: UserData) => {
     setSelectedUser(user);
@@ -166,7 +130,7 @@ function AdminPage() {
             </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4">
             <Card>
                 <CardHeader>
                     <CardTitle>Kullanıcı Listesi</CardTitle>
@@ -263,38 +227,6 @@ function AdminPage() {
                     </div>
                 </CardContent>
             </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle>Tüm Kullanıcılara Bildirim Gönder</CardTitle>
-                    <CardDescription>Bu araç ile sisteme kayıtlı ve bildirim izni vermiş tüm kullanıcılara anlık bildirim gönderebilirsiniz.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSendNotification} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="notif-title">Bildirim Başlığı</Label>
-                            <Input 
-                                id="notif-title" 
-                                placeholder="Örn: Yeni Özellik Eklendi!"
-                                value={notificationTitle}
-                                onChange={(e) => setNotificationTitle(e.target.value)} 
-                            />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="notif-body">Mesaj İçeriği</Label>
-                            <Textarea 
-                                id="notif-body" 
-                                placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın."
-                                value={notificationBody}
-                                onChange={(e) => setNotificationBody(e.target.value)}
-                            />
-                        </div>
-                        <Button type="submit" className="w-full" disabled={isSending}>
-                            {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                            {isSending ? 'Gönderiliyor...' : 'Bildirimi Gönder'}
-                        </Button>
-                    </form>
-                </CardContent>
-             </Card>
         </div>
       </main>
 
