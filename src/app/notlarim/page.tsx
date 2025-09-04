@@ -339,8 +339,7 @@ function NotlarimPageContent() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => setNewNoteType(newNoteType === 'text' ? 'checklist' : 'text')}
-                                    className={cn(newNoteType === 'checklist' && 'bg-black/10')}
-                                    style={{color: newNoteTextColor}}
+                                    className={cn('text-muted-foreground hover:text-foreground', newNoteType === 'checklist' && 'bg-black/10 text-foreground')}
                                 >
                                     <CheckSquare/>
                                 </Button>
@@ -357,8 +356,7 @@ function NotlarimPageContent() {
                                     size="icon"
                                     onClick={() => handleToggleRecording(onVoiceNoteReceived)}
                                     disabled={isTranscribing}
-                                    className={cn(isRecording && "text-red-500 animate-pulse")}
-                                    style={{color: newNoteTextColor}}
+                                    className={cn('text-muted-foreground hover:text-foreground', isRecording && "text-red-500 animate-pulse")}
                                 >
                                     {isRecording ? <MicOff /> : isTranscribing ? <Loader2 className='animate-spin' /> : <Mic />}
                                 </Button>
@@ -369,7 +367,7 @@ function NotlarimPageContent() {
                   <TooltipProvider>
                       <Tooltip>
                           <TooltipTrigger asChild>
-                              <Button type="button" variant="ghost" size="icon" onClick={() => setIsCameraOpen(true)} style={{color: newNoteTextColor}} >
+                              <Button type="button" variant="ghost" size="icon" onClick={() => setIsCameraOpen(true)} className='text-muted-foreground hover:text-foreground' >
                                   <Camera />
                               </Button>
                           </TooltipTrigger>
@@ -381,7 +379,7 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" style={{color: newNoteTextColor}}>
+                                <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
                                     <Palette />
                                 </Button>
                             </TooltipTrigger>
@@ -402,7 +400,7 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" style={{color: newNoteTextColor}}>
+                                <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
                                     <TypeIcon />
                                 </Button>
                             </TooltipTrigger>

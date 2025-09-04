@@ -217,14 +217,13 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                         variant="ghost"
                         size="icon"
                         onClick={() => form.setValue('type', watchType === 'text' ? 'checklist' : 'text')}
-                        className={cn(watchType === 'checklist' && 'bg-black/10')}
-                        style={{color: watchTextColor}}
+                        className={cn('text-muted-foreground hover:text-foreground', watchType === 'checklist' && 'bg-black/10 text-foreground')}
                     >
                         <CheckSquare />
                     </Button>
                    <Popover>
                       <PopoverTrigger asChild>
-                          <Button type="button" variant="ghost" size="icon" style={{color: watchTextColor}}>
+                          <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
                               <Palette />
                           </Button>
                       </PopoverTrigger>
@@ -238,7 +237,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                    </Popover>
                     <Popover>
                       <PopoverTrigger asChild>
-                          <Button type="button" variant="ghost" size="icon" style={{color: watchTextColor}}>
+                          <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
                               <TypeIcon />
                           </Button>
                       </PopoverTrigger>
