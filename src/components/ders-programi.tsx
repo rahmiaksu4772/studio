@@ -56,7 +56,7 @@ export default function DersProgrami() {
 
   const [viewingPlanContent, setViewingPlanContent] = React.useState<LessonPlanEntry[] | null>(null);
   const [viewingPlanTitle, setViewingPlanTitle] = React.useState<string>('');
-  const [currentWeekNumber, setCurrentWeekNumber] = React.useState<number>(getWeek(new Date()));
+  const [currentWeekNumber, setCurrentWeekNumber] = React.useState<number>(1);
 
   const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -70,6 +70,8 @@ export default function DersProgrami() {
     if (todayIndex >= 0 && todayIndex < 5) {
         setSelectedDay(dayOrder[todayIndex]);
     }
+    // Set the current week number when the component mounts
+    setCurrentWeekNumber(getWeek(new Date(), { weekStartsOn: 1 }));
   }, []);
 
   const openEditLessonModal = (day: Day, lessonSlot: number, lesson: Lesson | null) => {

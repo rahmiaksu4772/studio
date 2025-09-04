@@ -30,17 +30,26 @@ type PlanViewerProps = {
 type ViewMode = 'kazanim' | 'konu' | 'aciklamalar' | 'yontem-teknik' | 'olcme-degerlendirme';
 
 export function PlanViewer({ isOpen, onClose, title, entries, startWeek = 1 }: PlanViewerProps) {
-    const [currentWeekIndex, setCurrentWeekIndex] = React.useState(startWeek - 1);
+    const [currentWeekIndex, setCurrentWeekIndex] = React.useState(0);
     const [viewMode, setViewMode] = React.useState<ViewMode>('kazanim');
     const [activeTab, setActiveTab] = React.useState<string>('kazanim');
 
     React.useEffect(() => {
-        if(isOpen) {
-            setCurrentWeekIndex(Math.max(0, startWeek - 1));
+        if(isOpen && entries.length > 0) {
+            // Find the index that corresponds to the startWeek.
+            // This is a naive search, assuming week numbers are somewhat in order.
+            const initialIndex = entries.findIndex(entry => 
+                entry.week && (
+                    entry.week.toString() === startWeek.toString() ||
+                    entry.week.toString().startsWith(`${startWeek}.`)
+                )
+            );
+            
+            setCurrentWeekIndex(initialIndex !== -1 ? initialIndex : Math.min(startWeek -1, entries.length -1));
             setViewMode('kazanim');
             setActiveTab('kazanim');
         }
-    }, [isOpen, startWeek]);
+    }, [isOpen, startWeek, entries]);
 
     if (!isOpen || !entries.length) return null;
     
