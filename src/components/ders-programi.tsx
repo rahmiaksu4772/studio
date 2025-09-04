@@ -58,6 +58,9 @@ export default function DersProgrami() {
   const [viewingPlanTitle, setViewingPlanTitle] = React.useState<string>('');
   const [currentWeekNumber, setCurrentWeekNumber] = React.useState<number>(getWeek(new Date()));
 
+  const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+
   React.useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
@@ -69,7 +72,7 @@ export default function DersProgrami() {
     }
   }, []);
 
-  const handleLessonClick = (day: Day, lessonSlot: number, lesson: Lesson | null) => {
+  const openEditLessonModal = (day: Day, lessonSlot: number, lesson: Lesson | null) => {
     setEditingLesson({ day, lessonSlot, lesson });
   };
   
@@ -207,6 +210,35 @@ export default function DersProgrami() {
     if (!lesson?.grade) return null;
     return plans.find(p => p.grade === lesson.grade && p.type === 'annual') || null;
   }
+
+  const handleLessonClick = (day: Day, slotIndex: number, lesson: Lesson | null) => {
+    if (clickTimeoutRef.current) {
+      // DOUBLE CLICK
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+      openEditLessonModal(day, slotIndex, lesson);
+    } else {
+      // SINGLE CLICK
+      clickTimeoutRef.current = setTimeout(() => {
+        if (lesson) {
+          const relatedPlan = findRelatedPlan(lesson);
+          if (relatedPlan) {
+            viewFile(relatedPlan);
+          } else {
+            toast({
+              title: 'Yıllık Plan Bulunamadı',
+              description: 'Bu ders için bir yıllık plan yüklenmemiş.',
+              variant: 'default',
+            });
+          }
+        } else {
+          // If the slot is empty, open edit modal on single click
+          openEditLessonModal(day, slotIndex, lesson);
+        }
+        clickTimeoutRef.current = null;
+      }, 250); // 250ms delay to differentiate clicks
+    }
+  };
 
   if (isLoading || isLoadingPlans) {
     return (
