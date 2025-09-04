@@ -152,11 +152,11 @@ function PlanlarimPageContent() {
         return;
     }
 
-    if (plan.fileType.includes('pdf')) {
+    if (plan.fileType.includes('pdf') || plan.fileType.includes('word')) {
       const url = URL.createObjectURL(blob);
       const newWindow = window.open(url, '_blank');
       if(!newWindow) {
-        toast({ title: 'Hata', description: 'PDF yeni sekmede açılamadı. Lütfen pop-up engelleyicinizi kontrol edin.', variant: 'destructive' });
+        toast({ title: 'Hata', description: 'Dosya yeni sekmede açılamadı. Lütfen pop-up engelleyicinizi kontrol edin.', variant: 'destructive' });
       }
       // No need for onload revoke for _blank for better browser support
     } else if (plan.fileType.includes('sheet') || plan.fileType.includes('excel')) {
@@ -302,3 +302,4 @@ export default function PlanlarimPage() {
       </AuthGuard>
     );
   }
+
