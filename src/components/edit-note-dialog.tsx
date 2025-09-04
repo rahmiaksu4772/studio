@@ -214,16 +214,16 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                 <div className='flex items-center gap-1'>
                     <Button
                         type="button"
-                        variant="ghost"
+                        variant="secondary"
                         size="icon"
                         onClick={() => form.setValue('type', watchType === 'text' ? 'checklist' : 'text')}
-                        className={cn('text-muted-foreground hover:text-foreground', watchType === 'checklist' && 'bg-black/10 text-foreground')}
+                        className={cn('text-muted-foreground hover:text-foreground rounded-full', watchType === 'checklist' && 'bg-primary/20 text-primary')}
                     >
                         <CheckSquare />
                     </Button>
                    <Popover>
                       <PopoverTrigger asChild>
-                          <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
+                          <Button type="button" variant="secondary" size="icon" className='text-muted-foreground hover:text-foreground rounded-full'>
                               <Palette />
                           </Button>
                       </PopoverTrigger>
@@ -237,7 +237,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                    </Popover>
                     <Popover>
                       <PopoverTrigger asChild>
-                          <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
+                          <Button type="button" variant="secondary" size="icon" className='text-muted-foreground hover:text-foreground rounded-full'>
                               <TypeIcon />
                           </Button>
                       </PopoverTrigger>

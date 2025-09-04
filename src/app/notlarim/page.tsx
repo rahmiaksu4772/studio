@@ -336,10 +336,10 @@ function NotlarimPageContent() {
                             <TooltipTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="secondary"
                                     size="icon"
                                     onClick={() => setNewNoteType(newNoteType === 'text' ? 'checklist' : 'text')}
-                                    className={cn('text-muted-foreground hover:text-foreground', newNoteType === 'checklist' && 'bg-black/10 text-foreground')}
+                                    className={cn('text-muted-foreground hover:text-foreground rounded-full', newNoteType === 'checklist' && 'bg-primary/20 text-primary')}
                                 >
                                     <CheckSquare/>
                                 </Button>
@@ -352,11 +352,11 @@ function NotlarimPageContent() {
                             <TooltipTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="secondary"
                                     size="icon"
                                     onClick={() => handleToggleRecording(onVoiceNoteReceived)}
                                     disabled={isTranscribing}
-                                    className={cn('text-muted-foreground hover:text-foreground', isRecording && "text-red-500 animate-pulse")}
+                                    className={cn('text-muted-foreground hover:text-foreground rounded-full', isRecording && "text-red-500 animate-pulse")}
                                 >
                                     {isRecording ? <MicOff /> : isTranscribing ? <Loader2 className='animate-spin' /> : <Mic />}
                                 </Button>
@@ -367,7 +367,7 @@ function NotlarimPageContent() {
                   <TooltipProvider>
                       <Tooltip>
                           <TooltipTrigger asChild>
-                              <Button type="button" variant="ghost" size="icon" onClick={() => setIsCameraOpen(true)} className='text-muted-foreground hover:text-foreground' >
+                              <Button type="button" variant="secondary" size="icon" onClick={() => setIsCameraOpen(true)} className='text-muted-foreground hover:text-foreground rounded-full' >
                                   <Camera />
                               </Button>
                           </TooltipTrigger>
@@ -379,7 +379,7 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
+                                <Button type="button" variant="secondary" size="icon" className='text-muted-foreground hover:text-foreground rounded-full'>
                                     <Palette />
                                 </Button>
                             </TooltipTrigger>
@@ -400,7 +400,7 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" className='text-muted-foreground hover:text-foreground'>
+                                <Button type="button" variant="secondary" size="icon" className='text-muted-foreground hover:text-foreground rounded-full'>
                                     <TypeIcon />
                                 </Button>
                             </TooltipTrigger>
