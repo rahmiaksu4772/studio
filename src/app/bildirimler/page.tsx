@@ -103,7 +103,7 @@ function NotificationsPageContent() {
 
   return (
     <AppLayout>
-      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <main className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <div>
             <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -116,8 +116,45 @@ function NotificationsPageContent() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-5">
-            <div className="space-y-6 md:col-span-3">
+        <div className="space-y-6">
+            {profile?.role === 'admin' && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Yeni Duyuru Gönder</CardTitle>
+                        <CardDescription>Bu araç ile sisteme kayıtlı ve bildirim izni vermiş tüm kullanıcılara anlık bildirim gönderebilirsiniz.</CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleSendNotification}>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="notif-title">Duyuru Başlığı</Label>
+                                <Input 
+                                    id="notif-title" 
+                                    placeholder="Örn: Yeni Özellik Eklendi!"
+                                    value={notificationTitle}
+                                    onChange={(e) => setNotificationTitle(e.target.value)} 
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="notif-body">Mesaj İçeriği</Label>
+                                <Textarea 
+                                    id="notif-body" 
+                                    placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın."
+                                    value={notificationBody}
+                                    onChange={(e) => setNotificationBody(e.target.value)}
+                                />
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button type="submit" className="w-full sm:w-auto" disabled={isSending}>
+                                {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                                {isSending ? 'Gönderiliyor...' : 'Duyuruyu Gönder'}
+                            </Button>
+                        </CardFooter>
+                    </form>
+                </Card>
+            )}
+
+            <div className="space-y-6">
                  <h3 className="text-xl font-semibold border-b pb-2">Geçmiş Duyurular</h3>
                 {notifications.length > 0 ? (
                     notifications.map(notification => (
@@ -191,45 +228,6 @@ function NotificationsPageContent() {
                     </div>
                 )}
             </div>
-
-            {profile?.role === 'admin' && (
-                 <div className="md:col-span-2">
-                    <Card className="sticky top-4">
-                        <CardHeader>
-                            <CardTitle>Yeni Duyuru Gönder</CardTitle>
-                            <CardDescription>Bu araç ile sisteme kayıtlı ve bildirim izni vermiş tüm kullanıcılara anlık bildirim gönderebilirsiniz.</CardDescription>
-                        </CardHeader>
-                        <form onSubmit={handleSendNotification}>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="notif-title">Duyuru Başlığı</Label>
-                                    <Input 
-                                        id="notif-title" 
-                                        placeholder="Örn: Yeni Özellik Eklendi!"
-                                        value={notificationTitle}
-                                        onChange={(e) => setNotificationTitle(e.target.value)} 
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="notif-body">Mesaj İçeriği</Label>
-                                    <Textarea 
-                                        id="notif-body" 
-                                        placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın."
-                                        value={notificationBody}
-                                        onChange={(e) => setNotificationBody(e.target.value)}
-                                    />
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" className="w-full" disabled={isSending}>
-                                    {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                                    {isSending ? 'Gönderiliyor...' : 'Duyuruyu Gönder'}
-                                </Button>
-                            </CardFooter>
-                        </form>
-                    </Card>
-                 </div>
-            )}
         </div>
       </main>
     </AppLayout>
