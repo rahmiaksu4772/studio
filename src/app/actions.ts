@@ -46,12 +46,15 @@ export async function parseStudentListAction(input: StudentListParserInput): Pro
 export async function speechToNoteAction(input: SpeechToNoteInput): Promise<{ note: string } | { error: string }> {
   try {
     const result = await speechToNote(input);
+    // If the AI provides a refined note, use it.
     if (result?.note) {
       return { note: result.note };
     }
-    return { error: 'Yapay zeka notu işleyemedi.' };
+    // Otherwise, fallback gracefully to the original transcript without showing an error.
+    return { note: input.transcript };
   } catch (error) {
     console.error('Speech-to-note processing failed:', error);
-    return { error: 'Sesli not işlenirken bir hata oluştu.' };
+    // If an actual error occurs, return the original transcript as a fallback.
+    return { note: input.transcript, error: 'Sesli not işlenirken bir hata oluştu.' };
   }
 }
