@@ -10,6 +10,7 @@ import {
   Loader2,
   FileSearch,
   ChevronDown,
+  AlertTriangle,
 } from 'lucide-react';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -557,7 +558,7 @@ function RaporlarPageContent() {
                             <TableBody>
                                 {classReportData.studentSummaries.map(student => (
                                     <Collapsible key={student.id} asChild>
-                                        <React.Fragment key={student.id}>
+                                        <React.Fragment>
                                             <TableRow>
                                                 <TableCell className="font-medium">{student.studentNumber}</TableCell>
                                                 <TableCell>{student.firstName} {student.lastName}</TableCell>
@@ -722,3 +723,5 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
+
+    
