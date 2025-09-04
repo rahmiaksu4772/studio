@@ -155,8 +155,8 @@ function AdminPage() {
             </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="lg:col-span-4">
+        <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
                 <CardHeader>
                     <CardTitle>Kullanıcı Listesi</CardTitle>
                     <CardDescription>{usersData.length} kullanıcı sisteme kayıtlı.</CardDescription>
@@ -252,7 +252,7 @@ function AdminPage() {
                     </div>
                 </CardContent>
             </Card>
-             <Card className="lg:col-span-3">
+             <Card>
                 <CardHeader>
                     <CardTitle>Tüm Kullanıcılara Bildirim Gönder</CardTitle>
                     <CardDescription>Bu araç ile sisteme kayıtlı ve bildirim izni vermiş tüm kullanıcılara anlık bildirim gönderebilirsiniz.</CardDescription>
