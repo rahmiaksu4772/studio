@@ -67,7 +67,10 @@ function NotlarimPageContent() {
   const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
   const [newNoteColor, setNewNoteColor] = React.useState(noteColors[0]);
   const [newNoteType, setNewNoteType] = React.useState<'text' | 'checklist'>('text');
-  const [newNoteItems, setNewNoteItems] = React.useState<NoteChecklistItem[]>([]);
+  
+  // For checklist type, we'll now use a single string and parse it.
+  const [checklistText, setChecklistText] = React.useState('');
+
 
   const [isRecording, setIsRecording] = React.useState(false);
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
@@ -110,8 +113,16 @@ function NotlarimPageContent() {
     setNewNoteImage(null);
     setNewNoteColor(noteColors[0]);
     setNewNoteType('text');
-    setNewNoteItems([]);
+    setChecklistText('');
   };
+  
+  const parseChecklistText = (text: string): NoteChecklistItem[] => {
+    return text.split('\n').map((line, index) => ({
+      id: `${Date.now()}-${index}`,
+      text: line,
+      isChecked: false
+    })).filter(item => item.text.trim() !== ''); // Keep empty lines visually, but don't save them if they are truly empty.
+  }
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +132,12 @@ function NotlarimPageContent() {
         setIsRecording(false);
     }
     
-    const isChecklistEmpty = newNoteItems.length === 0 || newNoteItems.every(item => item.text.trim() === '');
+    let items: NoteChecklistItem[] = [];
+    if (newNoteType === 'checklist') {
+        items = parseChecklistText(checklistText);
+    }
+    
+    const isChecklistEmpty = items.length === 0;
     if (newNoteTitle.trim() === '' && (newNoteType === 'text' ? newNoteContent.trim() === '' : isChecklistEmpty) && !newNoteImage) {
         toast({
             title: 'Boş Not',
@@ -133,9 +149,9 @@ function NotlarimPageContent() {
     
     const newNoteData: Omit<Note, 'id'> = {
       title: newNoteTitle,
-      content: newNoteContent,
+      content: newNoteType === 'text' ? newNoteContent : '',
       type: newNoteType,
-      items: newNoteType === 'checklist' ? newNoteItems.filter(item => item.text.trim() !== '') : [],
+      items: newNoteType === 'checklist' ? items : [],
       imageUrl: newNoteImage,
       color: newNoteColor,
       isPinned: false,
@@ -207,12 +223,18 @@ function NotlarimPageContent() {
       
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         let interimTranscript = '';
+        let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
-                setNewNoteContent(prevContent => prevContent + event.results[i][0].transcript);
+                finalTranscript += event.results[i][0].transcript;
             } else {
                 interimTranscript += event.results[i][0].transcript;
             }
+        }
+        if (newNoteType === 'text') {
+            setNewNoteContent(prev => prev + finalTranscript);
+        } else {
+            setChecklistText(prev => prev + (prev.length > 0 ? '\n' : '') + finalTranscript.trim());
         }
       };
 
@@ -229,20 +251,6 @@ function NotlarimPageContent() {
     updateNote(note.id, { isPinned: !note.isPinned });
   }
 
-  const handleAddItem = () => {
-    setNewNoteItems([...newNoteItems, { id: Date.now().toString(), text: '', isChecked: false }]);
-  };
-
-  const handleItemChange = (index: number, text: string) => {
-    const items = [...newNoteItems];
-    items[index].text = text;
-    setNewNoteItems(items);
-  };
-  
-  const handleRemoveItem = (index: number) => {
-    setNewNoteItems(newNoteItems.filter((_, i) => i !== index));
-  };
-  
    if (isLoading) {
     return (
       <AppLayout>
@@ -297,34 +305,17 @@ function NotlarimPageContent() {
                     rows={newNoteImage || newNoteTitle ? 3 : 1}
                 />
               ) : (
-                <div className='p-4 pt-0 space-y-2'>
-                    {newNoteItems.map((item, index) => (
-                        <div key={index} className='flex items-center gap-2 group'>
-                             <Checkbox disabled className={cn(isDarkColorSelected && "border-white/50")}/>
-                             <Input 
-                                placeholder='Liste öğesi'
-                                value={item.text}
-                                onChange={(e) => handleItemChange(index, e.target.value)}
-                                className={cn(
-                                    "bg-transparent border-0 shadow-none focus-visible:ring-0 h-auto p-0",
-                                     isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
-                                )}
-                             />
-                             <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveItem(index)}
-                                className={cn("h-8 w-8 opacity-0 group-hover:opacity-100", isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}
-                             >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    ))}
-                    <Button type='button' variant='ghost' onClick={handleAddItem} className={cn('w-full justify-start', isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
-                        <Plus className='h-4 w-4 mr-2' />
-                        Öğe Ekle
-                    </Button>
+                <div className='p-4 pt-0'>
+                    <Textarea
+                        placeholder="Yapılacakları listeleyin..."
+                        className={cn(
+                            "border-0 focus-visible:ring-0 shadow-none bg-transparent",
+                            isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
+                        )}
+                        value={checklistText}
+                        onChange={(e) => setChecklistText(e.target.value)}
+                        rows={3}
+                    />
                 </div>
               )}
             </CardContent>
@@ -414,7 +405,7 @@ function NotlarimPageContent() {
                       </PopoverContent>
                    </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn(isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700')}>Ekle</Button>
+              <Button type="submit" variant="ghost" className={cn(isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-black')}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>

@@ -16,7 +16,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import type { Note } from '@/lib/types';
+import type { Note, NoteChecklistItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Palette, Trash2, Plus, CheckSquare } from 'lucide-react';
@@ -60,8 +60,27 @@ type EditNoteDialogProps = {
   isOpen: boolean;
 };
 
+const itemsToString = (items: NoteChecklistItem[] = []) => {
+    return items.map(item => item.text).join('\n');
+}
+
+const stringToItems = (text: string, existingItems: NoteChecklistItem[] = []): NoteChecklistItem[] => {
+    const existingMap = new Map(existingItems.map(item => [item.text, item]));
+    return text.split('\n').map((line, index) => {
+        const existing = existingMap.get(line);
+        return {
+            id: existing?.id || `${Date.now()}-${index}`,
+            text: line,
+            isChecked: existing?.isChecked || false
+        };
+    });
+}
+
+
 export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDialogProps) {
   const { toast } = useToast();
+  const [checklistText, setChecklistText] = React.useState(itemsToString(note.items));
+
   const form = useForm<EditNoteFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,7 +94,6 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
 
   const watchColor = form.watch('color');
   const watchType = form.watch('type');
-  const watchItems = form.watch('items');
 
   React.useEffect(() => {
     if (note) {
@@ -86,15 +104,23 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
         type: note.type || 'text',
         items: note.items || []
       });
+      setChecklistText(itemsToString(note.items));
     }
   }, [note, form]);
 
   const handleSubmit = (values: EditNoteFormValues) => {
     const finalValues = {
         ...values,
-        items: values.items?.filter(item => item.text.trim() !== '') || []
+        items: watchType === 'checklist' ? stringToItems(checklistText, note.items) : []
     };
-
+    
+    // Clear content if it's a checklist, and items if it's text
+    if (finalValues.type === 'checklist') {
+        finalValues.content = '';
+    } else {
+        finalValues.items = [];
+    }
+    
     if (finalValues.type === 'text' && !finalValues.title && !finalValues.content) {
         toast({ title: "Boş Not", description: "Lütfen bir başlık veya içerik girin.", variant: "destructive" });
         return;
@@ -108,28 +134,19 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     onUpdate(note.id, finalValues);
   };
   
-  const handleAddItem = () => {
-    const currentItems = form.getValues('items') || [];
-    form.setValue('items', [...currentItems, { id: new Date().toISOString(), text: '', isChecked: false }]);
-  }
-  
-  const handleRemoveItem = (index: number) => {
-    const currentItems = form.getValues('items') || [];
-    form.setValue('items', currentItems.filter((_, i) => i !== index));
-  }
+  const handleToggleItem = (textLine: string) => {
+      const items = stringToItems(checklistText, note.items);
+      const targetItem = items.find(item => item.text === textLine);
+      if (!targetItem) return;
 
-  const handleItemCheckChange = (index: number, checked: boolean) => {
-    const currentItems = form.getValues('items') || [];
-    const newItems = [...currentItems];
-    newItems[index].isChecked = checked;
-    form.setValue('items', newItems);
-  };
-  
-  const sortedItems = React.useMemo(() => {
-    const items = watchItems || [];
-    return [...items].sort((a,b) => a.isChecked === b.isChecked ? 0 : a.isChecked ? 1 : -1)
-  }, [watchItems])
-
+      targetItem.isChecked = !targetItem.isChecked;
+      
+      const updatedText = items.map(item => item.text).join('\n');
+      setChecklistText(updatedText); // Update local state to re-render
+      
+      // Also update the form state for submission
+      form.setValue('items', items, { shouldDirty: true });
+  }
 
   const isDarkColor = watchColor && (
     watchColor.startsWith('bg-gray-800') || 
@@ -174,38 +191,21 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                 />
               ) : (
                 <div className='space-y-2'>
-                    {sortedItems.map((item, index) => {
-                        // Find original index before sorting to register the correct form field
-                        const originalIndex = form.getValues('items')?.findIndex(formItem => formItem.id === item.id) ?? -1;
-                        if(originalIndex === -1) return null;
-                        
-                        return (
-                        <div key={item.id} className="flex items-center gap-2 group">
-                            <Checkbox
-                                checked={item.isChecked}
-                                onCheckedChange={(checked) => handleItemCheckChange(originalIndex, Boolean(checked))}
-                                className={cn(isDarkColor && "border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-background")}
-                            />
-                            <Input
-                                {...form.register(`items.${originalIndex}.text`)}
-                                className={cn(
-                                    "bg-transparent border-0 shadow-none focus-visible:ring-0",
-                                    item.isChecked && "line-through text-muted-foreground",
-                                    isDarkColor 
-                                        ? "text-white placeholder:text-white/60"
-                                        : "text-black placeholder:text-zinc-500",
-                                    item.isChecked && isDarkColor && "text-white/50"
-                                )}
-                            />
-                            <Button variant="ghost" size="icon" type="button" onClick={() => handleRemoveItem(originalIndex)} className={cn("h-8 w-8 opacity-0 group-hover:opacity-100", isDarkColor ? "text-white/70 hover:text-white" : "text-zinc-500")}>
-                                <Trash2 className="h-4 w-4"/>
-                            </Button>
-                        </div>
-                    )})}
-                    <Button variant="ghost" type="button" onClick={handleAddItem} className={cn("w-full justify-start", isDarkColor ? "text-white/70 hover:text-white" : "text-zinc-500")}>
-                        <Plus className="h-4 w-4 mr-2"/>
-                        Madde Ekle
-                    </Button>
+                   <Textarea
+                        placeholder="Yapılacakları listeleyin..."
+                        value={checklistText}
+                        onChange={(e) => {
+                            setChecklistText(e.target.value);
+                            form.setValue('items', stringToItems(e.target.value, form.getValues('items')), { shouldDirty: true });
+                        }}
+                        rows={8}
+                        className={cn(
+                            "w-full border-0 shadow-none focus-visible:ring-0 bg-transparent",
+                            isDarkColor 
+                                ? "text-white placeholder:text-white/60"
+                                : "text-black placeholder:text-zinc-500"
+                        )}
+                    />
                 </div>
               )}
             </div>
