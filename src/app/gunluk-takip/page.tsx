@@ -144,7 +144,7 @@ function GunlukTakipPageContent() {
     const newEvent: RecordEvent = { id: new Date().toISOString(), type: 'status', value: status };
     updateLocalRecord(studentId, record => ({
         ...record,
-        events: record.events.filter(e => e.type !== 'status').concat(newEvent)
+        events: record.events.concat(newEvent)
     }));
   };
 
@@ -541,3 +541,6 @@ export default function GunlukTakipPage() {
 
     
 
+
+
+    
