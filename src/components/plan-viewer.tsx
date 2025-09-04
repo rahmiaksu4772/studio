@@ -96,14 +96,14 @@ export function PlanViewer({ isOpen, onClose, title, entries, startWeek }: PlanV
                    )}
                 </div>
 
-                <DialogFooter className="p-4 border-t flex flex-col sm:flex-row items-center justify-between w-full gap-2">
-                    <Button className='w-full sm:w-auto' variant="outline" onClick={goToPreviousWeek} disabled={currentWeekIndex === 0}>
+                <DialogFooter className="p-4 border-t flex flex-row items-center justify-between w-full">
+                    <Button variant="outline" onClick={goToPreviousWeek} disabled={currentWeekIndex === 0}>
                         <ArrowLeft className="mr-2 h-4 w-4" /> Önceki Hafta
                     </Button>
-                     <p className='text-sm text-muted-foreground order-first sm:order-none'>
+                     <p className='text-sm text-muted-foreground'>
                         {currentWeekIndex + 1} / {entries.length}
                      </p>
-                    <Button className='w-full sm:w-auto' variant="outline" onClick={goToNextWeek} disabled={currentWeekIndex === entries.length - 1}>
+                    <Button variant="outline" onClick={goToNextWeek} disabled={currentWeekIndex === entries.length - 1}>
                         Sonraki Hafta <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </DialogFooter>
