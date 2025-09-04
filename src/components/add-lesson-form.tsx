@@ -155,12 +155,12 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                 Dersin sınıf seviyesini belirtmek, ilgili yıllık planın otomatik olarak bulunmasını sağlar.
              </FormDescription>
 
-            <DialogFooter className='sm:justify-between pt-4 gap-2'>
-                <div className='flex gap-2'>
+            <DialogFooter className='flex-col sm:flex-row sm:justify-between pt-4 gap-2'>
+                <div className='flex gap-2 w-full sm:w-auto'>
                 {lesson && (
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button type="button" variant="destructive">
+                            <Button type="button" variant="destructive" className="w-full">
                                 <Trash2 className='mr-2 h-4 w-4' /> Dersi Temizle
                             </Button>
                         </AlertDialogTrigger>
@@ -181,16 +181,16 @@ export function AddLessonForm({ isOpen, onClose, day, lessonSlot, lesson, onSave
                     </AlertDialog>
                 )}
                 {relatedPlan && (
-                    <Button type='button' variant='outline' onClick={() => onViewPlan(relatedPlan)}>
+                    <Button type='button' variant='outline' onClick={() => onViewPlan(relatedPlan)} className="w-full">
                         <BookOpen className='mr-2 h-4 w-4' /> Yıllık Planı Gör
                     </Button>
                 )}
                 </div>
-                <div className='flex gap-2'>
+                <div className='flex gap-2 w-full sm:w-auto'>
                     <DialogClose asChild>
-                        <Button type="button" variant="secondary">İptal</Button>
+                        <Button type="button" variant="secondary" className="w-full">İptal</Button>
                     </DialogClose>
-                    <Button type="submit">Dersi Kaydet</Button>
+                    <Button type="submit" className="w-full">Dersi Kaydet</Button>
                 </div>
             </DialogFooter>
           </form>
