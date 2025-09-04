@@ -3,6 +3,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getMessaging } from 'firebase/messaging';
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -14,12 +15,13 @@ const firebaseConfig = {
   projectId: "takip-k0hdb",
   storageBucket: "takip-k0hdb.appspot.com",
   messagingSenderId: "1093335320755",
-  appId: "1:1093335320755:web:b029a206cb0fe66f7408c6"
+  appId: "1:1093335320755:web:b029_a206cb0fe66f7408c6"
 };
 
 // Initialize Firebase
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const messaging = (typeof window !== 'undefined') ? getMessaging(app) : null;
 
-export { app, db, auth };
+export { app, db, auth, messaging };

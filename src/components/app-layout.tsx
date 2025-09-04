@@ -35,6 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useAuth } from '@/hooks/use-auth';
+import { useFCM } from '@/hooks/use-fcm';
 
 
 const menuItems = [
@@ -157,6 +158,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const { profile } = useUserProfile(user?.uid);
     const [open, setOpen] = React.useState(false);
+    
+    // Initialize FCM
+    useFCM();
 
     return (
         <div className="grid min-h-screen w-full md:grid-cols-[280px_1fr]">
