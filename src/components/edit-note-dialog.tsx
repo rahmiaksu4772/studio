@@ -19,7 +19,7 @@ import {
 import type { Note, NoteChecklistItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Palette, Trash2, Plus, CheckSquare } from 'lucide-react';
+import { Palette, Trash2, Plus, CheckSquare, ClipboardPaste } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Checkbox } from './ui/checkbox';
 
@@ -60,26 +60,9 @@ type EditNoteDialogProps = {
   isOpen: boolean;
 };
 
-const itemsToString = (items: NoteChecklistItem[] = []) => {
-    return items.map(item => item.text).join('\n');
-}
-
-const stringToItems = (text: string, existingItems: NoteChecklistItem[] = []): NoteChecklistItem[] => {
-    const existingMap = new Map(existingItems.map(item => [item.text, item]));
-    return text.split('\n').map((line, index) => {
-        const existing = existingMap.get(line);
-        return {
-            id: existing?.id || `${Date.now()}-${index}`,
-            text: line,
-            isChecked: existing?.isChecked || false
-        };
-    });
-}
-
 
 export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDialogProps) {
   const { toast } = useToast();
-  const [checklistText, setChecklistText] = React.useState(itemsToString(note.items));
 
   const form = useForm<EditNoteFormValues>({
     resolver: zodResolver(formSchema),
@@ -94,6 +77,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
 
   const watchColor = form.watch('color');
   const watchType = form.watch('type');
+  const watchItems = form.watch('items');
 
   React.useEffect(() => {
     if (note) {
@@ -104,49 +88,64 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
         type: note.type || 'text',
         items: note.items || []
       });
-      setChecklistText(itemsToString(note.items));
     }
   }, [note, form]);
 
   const handleSubmit = (values: EditNoteFormValues) => {
-    const finalValues = {
-        ...values,
-        items: watchType === 'checklist' ? stringToItems(checklistText, note.items) : []
-    };
-    
     // Clear content if it's a checklist, and items if it's text
-    if (finalValues.type === 'checklist') {
-        finalValues.content = '';
+    if (values.type === 'checklist') {
+        values.content = '';
     } else {
-        finalValues.items = [];
+        values.items = [];
     }
     
-    if (finalValues.type === 'text' && !finalValues.title && !finalValues.content) {
+    if (values.type === 'text' && !values.title && !values.content) {
         toast({ title: "Boş Not", description: "Lütfen bir başlık veya içerik girin.", variant: "destructive" });
         return;
     }
-    const isChecklistEmpty = !finalValues.items || finalValues.items.every(item => !item.text.trim());
-    if (finalValues.type === 'checklist' && !finalValues.title && isChecklistEmpty) {
+    const isChecklistEmpty = !values.items || values.items.every(item => !item.text.trim());
+    if (values.type === 'checklist' && !values.title && isChecklistEmpty) {
         toast({ title: "Boş Not", description: "Lütfen bir başlık veya en az bir liste öğesi girin.", variant: "destructive" });
         return;
     }
 
-    onUpdate(note.id, finalValues);
+    onUpdate(note.id, values);
   };
   
-  const handleToggleItem = (textLine: string) => {
-      const items = stringToItems(checklistText, note.items);
-      const targetItem = items.find(item => item.text === textLine);
-      if (!targetItem) return;
+  const handleItemChange = (id: string, newText: string) => {
+    form.setValue('items', watchItems?.map(item => item.id === id ? { ...item, text: newText } : item), { shouldDirty: true });
+  };
+  
+  const handleItemCheckedChange = (id: string, isChecked: boolean) => {
+    form.setValue('items', watchItems?.map(item => item.id === id ? { ...item, isChecked } : item), { shouldDirty: true });
+  };
 
-      targetItem.isChecked = !targetItem.isChecked;
-      
-      const updatedText = items.map(item => item.text).join('\n');
-      setChecklistText(updatedText); // Update local state to re-render
-      
-      // Also update the form state for submission
-      form.setValue('items', items, { shouldDirty: true });
+  const handleAddNewItem = () => {
+    form.setValue('items', [...(watchItems || []), { id: Date.now().toString(), text: '', isChecked: false }], { shouldDirty: true });
+  };
+  
+  const handleRemoveItem = (id: string) => {
+      form.setValue('items', watchItems?.filter(item => item.id !== id), { shouldDirty: true });
   }
+
+  const handlePasteList = async () => {
+    try {
+        const text = await navigator.clipboard.readText();
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        const newItems: NoteChecklistItem[] = lines.map(line => ({
+            id: Date.now().toString() + Math.random(),
+            text: line,
+            isChecked: false
+        }));
+        
+        form.setValue('items', [...(watchItems || []).filter(i => i.text.trim() !== ''), ...newItems], { shouldDirty: true });
+
+    } catch (err) {
+        console.error('Failed to read clipboard contents: ', err);
+        toast({ title: "Hata", description: "Pano içeriği okunamadı.", variant: "destructive" });
+    }
+  };
+
 
   const isDarkColor = watchColor && (
     watchColor.startsWith('bg-gray-800') || 
@@ -191,21 +190,47 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                 />
               ) : (
                 <div className='space-y-2'>
-                   <Textarea
-                        placeholder="Yapılacakları listeleyin..."
-                        value={checklistText}
-                        onChange={(e) => {
-                            setChecklistText(e.target.value);
-                            form.setValue('items', stringToItems(e.target.value, form.getValues('items')), { shouldDirty: true });
-                        }}
-                        rows={8}
-                        className={cn(
-                            "w-full border-0 shadow-none focus-visible:ring-0 bg-transparent",
-                            isDarkColor 
-                                ? "text-white placeholder:text-white/60"
-                                : "text-black placeholder:text-zinc-500"
-                        )}
-                    />
+                    {(watchItems || []).map(item => (
+                        <div key={item.id} className="flex items-center gap-2 group">
+                            <Checkbox 
+                                id={`item-edit-${item.id}`} 
+                                checked={item.isChecked}
+                                onCheckedChange={(checked) => handleItemCheckedChange(item.id, !!checked)}
+                                className={cn(isDarkColor && 'border-white/50')}
+                            />
+                            <Input 
+                                value={item.text} 
+                                onChange={(e) => handleItemChange(item.id, e.target.value)}
+                                className={cn(
+                                    "flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent px-1",
+                                    item.isChecked && "line-through text-muted-foreground",
+                                     isDarkColor ? 'text-white placeholder:text-white/60' : 'text-black placeholder:text-zinc-500',
+                                    isDarkColor && item.isChecked && 'text-white/50'
+                                )}
+                                placeholder='Liste öğesi'
+                            />
+                             <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveItem(item.id)}
+                                className={cn(
+                                    "h-7 w-7 rounded-full opacity-0 group-hover:opacity-100",
+                                    isDarkColor ? "text-white/70 hover:text-white hover:bg-white/20" : "text-muted-foreground hover:text-destructive"
+                                )}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                    <div className='flex items-center gap-2 border-t pt-2'>
+                        <Button type="button" variant="ghost" onClick={handleAddNewItem} className={cn('w-full justify-start', isDarkColor ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                            <Plus className='mr-2 h-4 w-4'/> Öğe Ekle
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={handlePasteList} className={cn('w-full justify-start', isDarkColor ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                            <ClipboardPaste className='mr-2 h-4 w-4'/> Yapıştır
+                        </Button>
+                    </div>
                 </div>
               )}
             </div>

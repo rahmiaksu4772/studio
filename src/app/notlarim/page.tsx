@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, Palette, CheckSquare } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, Palette, CheckSquare, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -67,9 +67,7 @@ function NotlarimPageContent() {
   const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
   const [newNoteColor, setNewNoteColor] = React.useState(noteColors[0]);
   const [newNoteType, setNewNoteType] = React.useState<'text' | 'checklist'>('text');
-  
-  // For checklist type, we'll now use a single string and parse it.
-  const [checklistText, setChecklistText] = React.useState('');
+  const [newNoteItems, setNewNoteItems] = React.useState<NoteChecklistItem[]>([{ id: '1', text: '', isChecked: false }]);
 
 
   const [isRecording, setIsRecording] = React.useState(false);
@@ -113,16 +111,9 @@ function NotlarimPageContent() {
     setNewNoteImage(null);
     setNewNoteColor(noteColors[0]);
     setNewNoteType('text');
-    setChecklistText('');
+    setNewNoteItems([{ id: '1', text: '', isChecked: false }]);
   };
   
-  const parseChecklistText = (text: string): NoteChecklistItem[] => {
-    return text.split('\n').map((line, index) => ({
-      id: `${Date.now()}-${index}`,
-      text: line,
-      isChecked: false
-    })).filter(item => item.text.trim() !== ''); // Keep empty lines visually, but don't save them if they are truly empty.
-  }
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,12 +123,7 @@ function NotlarimPageContent() {
         setIsRecording(false);
     }
     
-    let items: NoteChecklistItem[] = [];
-    if (newNoteType === 'checklist') {
-        items = parseChecklistText(checklistText);
-    }
-    
-    const isChecklistEmpty = items.length === 0;
+    const isChecklistEmpty = newNoteItems.length === 0 || newNoteItems.every(item => item.text.trim() === '');
     if (newNoteTitle.trim() === '' && (newNoteType === 'text' ? newNoteContent.trim() === '' : isChecklistEmpty) && !newNoteImage) {
         toast({
             title: 'Boş Not',
@@ -151,7 +137,7 @@ function NotlarimPageContent() {
       title: newNoteTitle,
       content: newNoteType === 'text' ? newNoteContent : '',
       type: newNoteType,
-      items: newNoteType === 'checklist' ? items : [],
+      items: newNoteType === 'checklist' ? newNoteItems.filter(item => item.text.trim() !== '') : [],
       imageUrl: newNoteImage,
       color: newNoteColor,
       isPinned: false,
@@ -222,19 +208,28 @@ function NotlarimPageContent() {
       };
       
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let interimTranscript = '';
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
                 finalTranscript += event.results[i][0].transcript;
-            } else {
-                interimTranscript += event.results[i][0].transcript;
             }
         }
+
         if (newNoteType === 'text') {
             setNewNoteContent(prev => prev + finalTranscript);
         } else {
-            setChecklistText(prev => prev + (prev.length > 0 ? '\n' : '') + finalTranscript.trim());
+             setNewNoteItems(prevItems => {
+                const lastItem = prevItems[prevItems.length - 1];
+                if (lastItem && lastItem.text.trim() === '') {
+                    // Fill the last empty item
+                    const updatedItems = [...prevItems];
+                    updatedItems[updatedItems.length - 1] = { ...lastItem, text: finalTranscript.trim() };
+                    return updatedItems;
+                } else {
+                    // Add a new item
+                    return [...prevItems, { id: Date.now().toString(), text: finalTranscript.trim(), isChecked: false }];
+                }
+            });
         }
       };
 
@@ -250,6 +245,45 @@ function NotlarimPageContent() {
     e.stopPropagation();
     updateNote(note.id, { isPinned: !note.isPinned });
   }
+
+  const handleItemChange = (id: string, newText: string) => {
+    setNewNoteItems(items => items.map(item => item.id === id ? { ...item, text: newText } : item));
+  };
+  
+  const handleItemCheckedChange = (id: string, isChecked: boolean) => {
+    setNewNoteItems(items => items.map(item => item.id === id ? { ...item, isChecked } : item));
+  };
+
+  const handleAddNewItem = () => {
+    setNewNoteItems(items => [...items, { id: Date.now().toString(), text: '', isChecked: false }]);
+  };
+  
+  const handleRemoveItem = (id: string) => {
+      setNewNoteItems(items => items.filter(item => item.id !== id));
+  }
+  
+  const handlePasteList = async () => {
+    try {
+        const text = await navigator.clipboard.readText();
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        const newItems: NoteChecklistItem[] = lines.map(line => ({
+            id: Date.now().toString() + Math.random(),
+            text: line,
+            isChecked: false
+        }));
+        
+        // Remove the initial empty item if it exists and we're adding new ones
+        setNewNoteItems(prevItems => {
+            const filteredOldItems = prevItems.filter(item => item.text.trim() !== '');
+            return [...filteredOldItems, ...newItems];
+        });
+
+    } catch (err) {
+        console.error('Failed to read clipboard contents: ', err);
+        toast({ title: "Hata", description: "Pano içeriği okunamadı.", variant: "destructive" });
+    }
+  };
+
 
    if (isLoading) {
     return (
@@ -305,17 +339,48 @@ function NotlarimPageContent() {
                     rows={newNoteImage || newNoteTitle ? 3 : 1}
                 />
               ) : (
-                <div className='p-4 pt-0'>
-                    <Textarea
-                        placeholder="Yapılacakları listeleyin..."
-                        className={cn(
-                            "border-0 focus-visible:ring-0 shadow-none bg-transparent",
-                            isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
-                        )}
-                        value={checklistText}
-                        onChange={(e) => setChecklistText(e.target.value)}
-                        rows={3}
-                    />
+                <div className='p-4 pt-0 space-y-2'>
+                    {newNoteItems.map(item => (
+                        <div key={item.id} className="flex items-center gap-2 group">
+                            <Checkbox 
+                                id={`item-new-${item.id}`} 
+                                checked={item.isChecked}
+                                onCheckedChange={(checked) => handleItemCheckedChange(item.id, !!checked)}
+                                className={cn(isDarkColorSelected && 'border-white/50')}
+                            />
+                            <Input 
+                                value={item.text} 
+                                onChange={(e) => handleItemChange(item.id, e.target.value)}
+                                className={cn(
+                                    "flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent px-1",
+                                    item.isChecked && "line-through text-muted-foreground",
+                                    isDarkColorSelected ? 'text-white placeholder:text-white/60' : 'text-black placeholder:text-zinc-500',
+                                    isDarkColorSelected && item.isChecked && 'text-white/50'
+                                )}
+                                placeholder='Liste öğesi'
+                            />
+                             <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveItem(item.id)}
+                                className={cn(
+                                    "h-7 w-7 rounded-full opacity-0 group-hover:opacity-100",
+                                    isDarkColorSelected ? "text-white/70 hover:text-white hover:bg-white/20" : "text-muted-foreground hover:text-destructive"
+                                )}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                    <div className='flex items-center gap-2 border-t pt-2'>
+                        <Button type="button" variant="ghost" onClick={handleAddNewItem} className={cn('w-full justify-start', isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                            <Plus className='mr-2 h-4 w-4'/> Öğe Ekle
+                        </Button>
+                         <Button type="button" variant="ghost" onClick={handlePasteList} className={cn('w-full justify-start', isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                            <ClipboardPaste className='mr-2 h-4 w-4'/> Yapıştır
+                        </Button>
+                    </div>
                 </div>
               )}
             </CardContent>
