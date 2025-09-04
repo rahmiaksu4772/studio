@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Plus, Trash2, Pencil, Users, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Pencil, Users, Loader2, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import AppLayout from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
@@ -27,11 +27,12 @@ import { useClassesAndStudents } from '@/hooks/use-daily-records';
 import { EditClassForm } from '@/components/edit-class-form';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/auth-guard';
+import { ImportClassesAndStudentsDialog } from '@/components/import-classes-and-students-dialog';
 
 function SiniflarimPageContent() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { classes, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, updateClass, deleteClass, isLoading } = useClassesAndStudents(user?.uid);
+  const { classes, addClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, updateClass, deleteClass, isLoading, bulkAddClassesAndStudents } = useClassesAndStudents(user?.uid);
   const [editingStudent, setEditingStudent] = React.useState<Student | null>(null);
   const [editingClass, setEditingClass] = React.useState<ClassInfo | null>(null);
 
@@ -97,6 +98,19 @@ function SiniflarimPageContent() {
         toast({ title: 'Hata', description: error.message, variant: 'destructive'});
     }
   };
+  
+  const handleBulkImport = async (data: { className: string, students: Omit<Student, 'id'|'classId'>[] }[]) => {
+    if (!user?.uid) return;
+    try {
+        const result = await bulkAddClassesAndStudents(user.uid, data);
+        toast({
+            title: 'Toplu Aktarım Başarılı!',
+            description: `${result.classesAdded} yeni sınıf ve ${result.studentsAdded} yeni öğrenci eklendi. ${result.classesSkipped} sınıf ve ${result.studentsSkipped} öğrenci zaten mevcut olduğu için atlandı.`,
+        });
+    } catch (error: any) {
+         toast({ title: 'Hata', description: error.message, variant: 'destructive'});
+    }
+  }
 
   const handleUpdateStudent = async (updatedStudent: Student) => {
     if (!user?.uid) return;
@@ -141,7 +155,10 @@ function SiniflarimPageContent() {
       <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Sınıflarım</h2>
-          <AddClassForm onAddClass={handleAddClass} existingClasses={classes} />
+          <div className='flex items-center gap-2'>
+            <ImportClassesAndStudentsDialog onImport={handleBulkImport} />
+            <AddClassForm onAddClass={handleAddClass} existingClasses={classes} />
+          </div>
         </div>
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {sortedClasses.map((c) => (

@@ -234,5 +234,48 @@ export function useClassesAndStudents(userId?: string) {
         await deleteDoc(studentRef);
     };
 
-    return { classes, isLoading, addClass, updateClass, deleteClass, addStudent, addMultipleStudents, updateStudent, deleteStudent };
+    const bulkAddClassesAndStudents = async (userId: string, data: { className: string, students: Omit<Student, 'id'|'classId'>[] }[]) => {
+        const batch = writeBatch(db);
+        const userClassesRef = collection(db, 'users', userId, 'classes');
+        const existingClassesSnapshot = await getDocs(userClassesRef);
+        const existingClassesMap = new Map(existingClassesSnapshot.docs.map(d => [d.data().name, d.id]));
+
+        let classesAdded = 0;
+        let studentsAdded = 0;
+        let classesSkipped = 0;
+        let studentsSkipped = 0;
+
+        for (const classData of data) {
+            let classId = existingClassesMap.get(classData.className);
+
+            if (!classId) {
+                // Class doesn't exist, create it
+                const newClassRef = doc(userClassesRef);
+                batch.set(newClassRef, { name: classData.className });
+                classId = newClassRef.id;
+                classesAdded++;
+            } else {
+                classesSkipped++;
+            }
+
+            const studentsRef = collection(db, `users/${userId}/classes/${classId}/students`);
+            const existingStudentsSnapshot = await getDocs(query(studentsRef));
+            const existingStudentNumbers = new Set(existingStudentsSnapshot.docs.map(s => s.data().studentNumber));
+
+            for (const student of classData.students) {
+                if (!existingStudentNumbers.has(student.studentNumber)) {
+                    const newStudentRef = doc(studentsRef);
+                    batch.set(newStudentRef, { ...student, classId });
+                    studentsAdded++;
+                } else {
+                    studentsSkipped++;
+                }
+            }
+        }
+
+        await batch.commit();
+        return { classesAdded, studentsAdded, classesSkipped, studentsSkipped };
+    };
+
+    return { classes, isLoading, addClass, updateClass, deleteClass, addStudent, addMultipleStudents, updateStudent, deleteStudent, bulkAddClassesAndStudents };
 }
