@@ -40,7 +40,7 @@ import { useFCM } from '@/hooks/use-fcm';
 import { useNotifications } from '@/hooks/use-notifications';
 
 
-const menuItems = [
+const baseMenuItems = [
     { href: '/anasayfa', label: 'Ana Sayfa', icon: Home },
     { href: '/gunluk-takip', label: 'Günlük Takip', icon: Users },
     { href: '/siniflarim', label: 'Sınıflarım', icon: GraduationCap },
@@ -48,7 +48,6 @@ const menuItems = [
     { href: '/planlarim', label: 'Planlarım', icon: Calendar },
     { href: '/notlarim', label: 'Notlarım', icon: StickyNote },
     { href: '/forum', label: 'Forum', icon: MessageSquare },
-    { href: '/bildirimler', label: 'Bildirimler', icon: Bell },
 ];
 
 const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
@@ -59,6 +58,14 @@ const NavContent = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     const { logOut } = useAuth();
     const { toast } = useToast();
     const { unreadCount } = useNotifications(user?.uid);
+    
+    const menuItems = React.useMemo(() => {
+        const items = [...baseMenuItems];
+        if(profile?.role !== 'admin') {
+            items.push({ href: '/bildirimler', label: 'Bildirimler', icon: Bell });
+        }
+        return items;
+    }, [profile?.role]);
 
     const handleLogout = async () => {
         try {
@@ -203,17 +210,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </SheetContent>
                     </Sheet>
                     <div className="w-full flex-1" />
-                     <Link href="/bildirimler" className="relative">
-                        <Button variant="ghost" size="icon">
-                            <Bell className="h-5 w-5" />
-                            {unreadCount > 0 && (
-                                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                                    {unreadCount}
-                                </span>
-                            )}
-                            <span className="sr-only">Bildirimler</span>
-                        </Button>
-                    </Link>
+                    {profile?.role !== 'admin' && (
+                        <Link href="/bildirimler" className="relative">
+                            <Button variant="ghost" size="icon">
+                                <Bell className="h-5 w-5" />
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                                <span className="sr-only">Bildirimler</span>
+                            </Button>
+                        </Link>
+                    )}
                     <Link href="/ayarlar">
                         <Avatar>
                             <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName} data-ai-hint="teacher portrait" />
