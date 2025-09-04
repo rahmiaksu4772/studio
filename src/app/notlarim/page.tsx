@@ -60,7 +60,16 @@ const noteColors = [
 function NotlarimPageContent() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { notes, isLoading, addNote, deleteNote, updateNote } = useNotes(user?.uid);
+  const { 
+    notes, 
+    isLoading, 
+    addNote, 
+    deleteNote, 
+    updateNote,
+    isRecording,
+    isTranscribing,
+    handleToggleRecording 
+  } = useNotes(user?.uid);
   
   const [newNoteTitle, setNewNoteTitle] = React.useState('');
   const [newNoteContent, setNewNoteContent] = React.useState('');
@@ -70,12 +79,10 @@ function NotlarimPageContent() {
   const [newNoteItems, setNewNoteItems] = React.useState<NoteChecklistItem[]>([{ id: '1', text: '', isChecked: false }]);
 
 
-  const [isRecording, setIsRecording] = React.useState(false);
   const [isCameraOpen, setIsCameraOpen] = React.useState(false);
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
   
-  const recognitionRef = React.useRef<any>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [editingNote, setEditingNote] = React.useState<Note | null>(null);
@@ -118,9 +125,9 @@ function NotlarimPageContent() {
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        setIsRecording(false);
+    // Stop recording if it's active
+    if (isRecording) {
+      await handleToggleRecording(() => {});
     }
     
     const isChecklistEmpty = newNoteItems.length === 0 || newNoteItems.every(item => item.text.trim() === '');
@@ -169,72 +176,23 @@ function NotlarimPageContent() {
     }
   };
 
-  const handleToggleRecording = () => {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-          toast({ title: 'Desteklenmiyor', description: 'Tarayıcınız sesle yazmayı desteklemiyor.', variant: 'destructive' });
-          return;
-      }
-
-      if (isRecording && recognitionRef.current) {
-          recognitionRef.current.stop();
-          return;
-      }
-
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      recognition.lang = 'tr-TR';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-
-      recognition.onstart = () => {
-          setIsRecording(true);
-          toast({ title: 'Kayıt başladı...', description: 'Konuşmaya başlayabilirsiniz.' });
-      };
-
-      recognition.onend = () => {
-          setIsRecording(false);
-          recognitionRef.current = null;
-          toast({ title: 'Kayıt durduruldu.' });
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          if (event.error === 'not-allowed') {
-              toast({ title: 'Mikrofon İzni Gerekli', description: 'Sesle not almak için mikrofon izni vermelisiniz.', variant: 'destructive' });
-          } else {
-              toast({ title: 'Bir hata oluştu', description: `Ses tanıma hatası: ${event.error}`, variant: 'destructive' });
-          }
-          setIsRecording(false);
-      };
-      
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
+  const onVoiceNoteReceived = (noteText: string) => {
+     if (newNoteType === 'text') {
+        setNewNoteContent(prev => (prev ? prev + ' ' : '') + noteText);
+    } else {
+         setNewNoteItems(prevItems => {
+            const lastItem = prevItems[prevItems.length - 1];
+            if (lastItem && lastItem.text.trim() === '') {
+                const updatedItems = [...prevItems];
+                updatedItems[updatedItems.length - 1] = { ...lastItem, text: noteText.trim() };
+                return updatedItems;
+            } else {
+                return [...prevItems, { id: Date.now().toString(), text: noteText.trim(), isChecked: false }];
             }
-        }
+        });
+    }
+  }
 
-        if (newNoteType === 'text') {
-            setNewNoteContent(prev => prev + finalTranscript);
-        } else {
-             setNewNoteItems(prevItems => {
-                const lastItem = prevItems[prevItems.length - 1];
-                if (lastItem && lastItem.text.trim() === '') {
-                    // Fill the last empty item
-                    const updatedItems = [...prevItems];
-                    updatedItems[updatedItems.length - 1] = { ...lastItem, text: finalTranscript.trim() };
-                    return updatedItems;
-                } else {
-                    // Add a new item
-                    return [...prevItems, { id: Date.now().toString(), text: finalTranscript.trim(), isChecked: false }];
-                }
-            });
-        }
-      };
-
-      recognition.start();
-  };
 
   const handleUpdateNote = (noteId: string, data: Partial<Note>) => {
     updateNote(noteId, data);
@@ -414,17 +372,18 @@ function NotlarimPageContent() {
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    onClick={handleToggleRecording}
+                                    onClick={() => handleToggleRecording(onVoiceNoteReceived)}
+                                    disabled={isTranscribing}
                                     className={cn(
                                         isRecording && "text-red-500 animate-pulse",
                                         isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700'
                                     )}
                                 >
-                                    {isRecording ? <MicOff /> : <Mic />}
+                                    {isRecording ? <MicOff /> : isTranscribing ? <Loader2 className='animate-spin' /> : <Mic />}
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>{isRecording ? 'Kaydı Durdur' : 'Sesle Not Al'}</p>
+                                <p>{isRecording ? 'Kaydı Durdur' : isTranscribing ? 'İşleniyor...' : 'Sesle Not Al'}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

@@ -4,6 +4,8 @@ import { descriptionAutoFill } from '@/ai/flows/description-auto-fill';
 import type { DescriptionAutoFillInput } from '@/ai/flows/description-auto-fill';
 import { parseStudentList } from '@/ai/flows/student-list-parser';
 import type { StudentListParserOutput } from '@/ai/flows/student-list-parser';
+import { speechToNote } from '@/ai/flows/speech-to-note';
+import type { SpeechToNoteInput } from '@/ai/flows/speech-to-note';
 
 
 export async function generateDescriptionAction(input: DescriptionAutoFillInput) {
@@ -39,4 +41,17 @@ export async function parseStudentListAction(input: StudentListParserInput): Pro
       console.error('Student list parsing failed:', error);
       return { error: 'Dosya ayrıştırılırken bir hata oluştu.' };
     }
+}
+
+export async function speechToNoteAction(input: SpeechToNoteInput): Promise<{ note: string } | { error: string }> {
+  try {
+    const result = await speechToNote(input);
+    if (result?.note) {
+      return { note: result.note };
+    }
+    return { error: 'Yapay zeka notu işleyemedi.' };
+  } catch (error) {
+    console.error('Speech-to-note processing failed:', error);
+    return { error: 'Sesli not işlenirken bir hata oluştu.' };
+  }
 }
