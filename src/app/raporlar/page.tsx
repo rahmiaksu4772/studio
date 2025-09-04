@@ -53,7 +53,7 @@ import type { DateRange } from 'react-day-picker';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { statusOptions, AttendanceStatus } from '@/lib/types';
-import type { Student, ClassInfo, DailyRecord } from '@/lib/types';
+import type { Student, ClassInfo, DailyRecord, RecordEvent } from '@/lib/types';
 import { useClassesAndStudents } from '@/hooks/use-daily-records';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -166,8 +166,7 @@ function RaporlarPageContent() {
         return acc;
     }, {} as any);
 
-    const statusEvents: { date: string; type: 'status'; value: string }[] = [];
-    const noteEvents: { date: string; type: 'note'; value: string }[] = [];
+    const allEvents: (RecordEvent & { date: string })[] = [];
     const scoresByDate: { [date: string]: number } = {};
     const scoreValues: { [key in AttendanceStatus]: number } = {
         '+': 10, 'Y': -5, '-': -10, 'D': 0, 'G': 0,
@@ -175,6 +174,7 @@ function RaporlarPageContent() {
     
     studentRecords.forEach(record => {
         record.events.forEach(event => {
+            allEvents.push({ ...event, date: record.date });
             if (event.type === 'status') {
                 const status = event.value as AttendanceStatus;
                 if (summary[status]) {
@@ -182,9 +182,6 @@ function RaporlarPageContent() {
                 }
                 const score = scoresByDate[record.date] || 0;
                 scoresByDate[record.date] = score + scoreValues[status];
-                statusEvents.push({ date: record.date, type: 'status', value: String(event.value) });
-            } else if (event.type === 'note' && event.value) {
-                noteEvents.push({ date: record.date, type: 'note', value: String(event.value) });
             }
         });
     });
@@ -200,7 +197,7 @@ function RaporlarPageContent() {
         };
     });
 
-    return { summary, statusEvents, noteEvents, chartData };
+    return { summary, allEvents, chartData };
   }, [filteredData, selectedReportType, selectedStudentId, dateRange]);
 
 
@@ -329,16 +326,21 @@ function RaporlarPageContent() {
         doc.setFont('PT Sans', 'normal');
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
+        
+        const allEvents = individualReportData.allEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        if (individualReportData.statusEvents.length > 0) {
+        if (allEvents.length > 0) {
             (doc as any).autoTable({
                 startY: 65,
-                head: [[normalizeTurkishChars('Tarih'), normalizeTurkishChars('Durum')]],
-                body: individualReportData.statusEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => {
+                head: [[normalizeTurkishChars('Tarih'), normalizeTurkishChars('Olay'), normalizeTurkishChars('Detay/Gorus')]],
+                body: allEvents.map(e => {
                     const statusKey = e.type === 'status' ? e.value : e.type;
+                    const eventType = e.type === 'status' ? 'Durum Degerlendirmesi' : 'Ogretmen Gorusu';
+                    const eventDetail = e.type === 'status' ? (statusToTurkish[statusKey] || 'Belirtilmemis') : e.value;
                     return [
                         normalizeTurkishChars(format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr })),
-                        normalizeTurkishChars(statusToTurkish[statusKey] || 'Belirtilmemis'),
+                        normalizeTurkishChars(eventType),
+                        normalizeTurkishChars(String(eventDetail))
                     ];
                 }),
                 theme: 'striped',
@@ -349,33 +351,11 @@ function RaporlarPageContent() {
                     pageFooter(data);
                 }
             });
-        } 
-        
-        if (individualReportData.noteEvents.length > 0) {
-            const lastTable = (doc as any).lastAutoTable;
-            const startY = lastTable ? lastTable.finalY + 10 : 65;
-            (doc as any).autoTable({
-                startY: startY,
-                head: [[normalizeTurkishChars('Tarih'), normalizeTurkishChars('Ogretmen Gorusleri')]],
-                body: individualReportData.noteEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(e => [
-                    normalizeTurkishChars(format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr })),
-                    normalizeTurkishChars(e.value)
-                ]),
-                theme: 'striped',
-                headStyles: { fillColor: [33, 150, 243], textColor: 255, ...tableStyles },
-                styles: tableStyles,
-                didDrawPage: (data: any) => {
-                    if(!lastTable) pageHeader(data);
-                    pageFooter(data);
-                }
-            });
+        } else {
+             pageHeader({ settings: { margin: { left: 14 } } });
+             pageFooter({ pageNumber: 1, settings: { margin: { right: 14 } } });
         }
         
-        if (individualReportData.statusEvents.length === 0 && individualReportData.noteEvents.length === 0) {
-            pageHeader({ settings: { margin: { left: 14 } } });
-            pageFooter({ pageNumber: 1, settings: { margin: { right: 14 } } });
-        }
-
         doc.save(normalizeTurkishChars(`bireysel_rapor_${selectedStudent?.firstName}_${selectedStudent?.lastName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`));
     }
   };
@@ -412,7 +392,7 @@ function RaporlarPageContent() {
     }
     
     if(selectedReportType === 'bireysel' && individualReportData){
-      const { summary, statusEvents, noteEvents, chartData } = individualReportData;
+      const { summary, allEvents, chartData } = individualReportData;
       const selectedStudent = students.find(s => s.id === selectedStudentId);
 
       return (
@@ -469,58 +449,39 @@ function RaporlarPageContent() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Değerlendirme Geçmişi</CardTitle>
-                        <CardDescription>Seçilen tarih aralığındaki durum işaretlemeleri.</CardDescription>
+                        <CardTitle>Olay Geçmişi</CardTitle>
+                        <CardDescription>Seçilen tarih aralığındaki tüm değerlendirmeler ve notlar.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                                {statusEvents.length > 0 ? statusEvents.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => {
+                                {allEvents.length > 0 ? allEvents.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => {
                                     const statusKey = event.type === 'status' ? event.value : event.type;
                                     const statusOption = statusOptions.find(o => o.value === statusKey);
 
                                     return (
-                                    <div key={`${event.date}-${index}`} className="flex items-center gap-4">
-                                        <div className="font-semibold text-left w-24">
-                                            <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
-                                            <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
-                                        </div>
-                                        <div className="border-l pl-4 flex-1">
-                                            <p className="font-medium flex items-center gap-2">
-                                            {event.type === 'status' && statusOption?.icon &&
-                                                    React.createElement(statusOption.icon, {
-                                                        className: cn("h-5 w-5", statusOption.color)
-                                                    })
-                                            }
-                                                <span>{statusToTurkish[statusKey] || 'Belirtilmemiş'}</span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}) : <p className="text-muted-foreground">Bu tarih aralığında durum değerlendirmesi bulunmuyor.</p>}
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Öğretmen Görüşleri</CardTitle>
-                        <CardDescription>Seçilen tarih aralığında eklenen öğretmen notları.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                                {noteEvents.length > 0 ? noteEvents.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => (
-                                    <div key={`${event.date}-${index}`} className="flex items-start gap-4">
+                                    <div key={`${event.id}-${index}`} className="flex items-start gap-4">
                                         <div className="font-semibold text-left w-24 flex-shrink-0">
                                             <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
                                             <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
                                         </div>
                                         <div className="border-l pl-4 flex-1">
-                                            <p className="text-sm text-foreground">{event.value}</p>
+                                            {event.type === 'status' && statusOption ? (
+                                                <p className="font-medium flex items-center gap-2">
+                                                    {React.createElement(statusOption.icon!, {
+                                                        className: cn("h-5 w-5", statusOption.color)
+                                                    })}
+                                                    <span>{statusOption.label}</span>
+                                                </p>
+                                            ) : event.type === 'note' ? (
+                                                 <p className="text-sm text-foreground">{String(event.value)}</p>
+                                            ): null}
                                         </div>
                                     </div>
-                                )) : <p className="text-muted-foreground">Bu tarih aralığında öğretmen görüşü bulunmuyor.</p>}
+                                )}) : <p className="text-muted-foreground">Bu tarih aralığında herhangi bir olay bulunmuyor.</p>}
                         </div>
                     </CardContent>
                 </Card>
+
             </CardContent>
         </Card>
       )
