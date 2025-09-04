@@ -137,7 +137,7 @@ export function PlanViewer({ isOpen, onClose, title, entries, startWeek = 1 }: P
                 </div>
 
 
-                <DialogFooter className="pt-4 border-t flex flex-row items-center justify-between w-full">
+                <DialogFooter className="pt-4 border-t flex flex-row items-center justify-center w-full">
                     <div className='flex items-center gap-2'>
                         <Button variant="outline" size="sm" onClick={handlePrevWeek} disabled={currentWeekIndex === 0}>
                             <ChevronLeft className="mr-1 h-4 w-4" /> Önceki
@@ -149,9 +149,6 @@ export function PlanViewer({ isOpen, onClose, title, entries, startWeek = 1 }: P
                            Sonraki <ChevronRight className="ml-1 h-4 w-4" />
                         </Button>
                     </div>
-                    <Button variant="secondary" onClick={onClose}>
-                        Kapat
-                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
