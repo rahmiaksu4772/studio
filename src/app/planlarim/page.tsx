@@ -152,7 +152,7 @@ function PlanlarimPageContent() {
         return;
     }
 
-    if (plan.fileType.includes('pdf') || plan.fileType.includes('word')) {
+    if (plan.fileType.includes('pdf')) {
       const url = URL.createObjectURL(blob);
       const newWindow = window.open(url, '_blank');
       if(!newWindow) {
@@ -302,4 +302,3 @@ export default function PlanlarimPage() {
       </AuthGuard>
     );
   }
-
