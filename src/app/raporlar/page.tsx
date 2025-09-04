@@ -556,28 +556,28 @@ function RaporlarPageContent() {
                             </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {classReportData.studentSummaries.map(student => (
-                                    <Collapsible key={student.id} asChild>
-                                        <React.Fragment>
-                                            <TableRow>
-                                                <TableCell className="font-medium">{student.studentNumber}</TableCell>
-                                                <TableCell>{student.firstName} {student.lastName}</TableCell>
-                                                {statusOptions.map(opt => (
-                                                    <TableCell key={opt.value} className="text-center">{student.summary[opt.value as AttendanceStatus]}</TableCell>
-                                                ))}
-                                                <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
-                                                <TableCell className="text-center">
+                            {classReportData.studentSummaries.map(student => (
+                                <Collapsible asChild key={student.id}>
+                                    <React.Fragment>
+                                        <TableRow>
+                                            <TableCell className="font-medium">{student.studentNumber}</TableCell>
+                                            <TableCell>{student.firstName} {student.lastName}</TableCell>
+                                            {statusOptions.map(opt => (
+                                                <TableCell key={opt.value} className="text-center">{student.summary[opt.value as AttendanceStatus]}</TableCell>
+                                            ))}
+                                            <TableCell className="text-right font-bold">{student.totalScore}</TableCell>
+                                            <TableCell className="text-center">
+                                                {student.notes.length > 0 ? (
                                                     <CollapsibleTrigger asChild>
-                                                        {student.notes.length > 0 ? (
-                                                            <Button variant="ghost" size="sm">
-                                                                <ChevronDown className="h-4 w-4" />
-                                                                <span className='ml-1'>{student.notes.length}</span>
-                                                            </Button>
-                                                        ) : null}
+                                                        <Button variant="ghost" size="sm">
+                                                            <ChevronDown className="h-4 w-4" />
+                                                            <span className='ml-1'>{student.notes.length}</span>
+                                                        </Button>
                                                     </CollapsibleTrigger>
-                                                </TableCell>
-                                            </TableRow>
-                                            <CollapsibleContent asChild>
+                                                ) : null}
+                                            </TableCell>
+                                        </TableRow>
+                                        <CollapsibleContent asChild>
                                             <TableRow>
                                                 <TableCell colSpan={9}>
                                                     <div className='p-4 bg-muted/50 rounded-md'>
@@ -592,10 +592,10 @@ function RaporlarPageContent() {
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                            </CollapsibleContent>
-                                        </React.Fragment>
-                                    </Collapsible>
-                                ))}
+                                        </CollapsibleContent>
+                                    </React.Fragment>
+                                </Collapsible>
+                            ))}
                             </TableBody>
                         </Table>
                     </div>
@@ -723,5 +723,3 @@ export default function RaporlarPage() {
       </AuthGuard>
     );
   }
-
-    
