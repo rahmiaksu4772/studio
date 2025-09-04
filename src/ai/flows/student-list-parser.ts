@@ -44,20 +44,24 @@ export async function parseStudentList(input: StudentListParserInput): Promise<S
       name: 'studentListParserPrompt',
       input: { schema: StudentListParserInputSchema },
       output: { schema: StudentListParserOutputSchema },
-      prompt: `You are an expert document parser. Your task is to analyze the provided file and extract student list information for one or more classes.
+      prompt: `You are an expert document parser specializing in Turkish school (e-Okul) student lists. Your task is to analyze the provided file (PDF or Excel) and extract class and student information.
 
-    The user has provided a file that contains a list of students. This file could be a PDF or an Excel sheet generated from a system like e-Okul.
+The user has provided a file that contains a list of students.
 
-    Your tasks are:
-    1.  Identify the main class name from the document title or header. For example, "5. Sınıf / D Şubesi Sınıf Listesi" should result in a class name of "5/D".
-    2.  Scan the document for a table of students.
-    3.  For each row in the table, extract the student's number ("Öğrenci No"), first name ("Adı"), and last name ("Soyadı").
-    4.  The "Adı" (first name) column might contain multiple words (e.g., 'AHMET KEREM'). The last word in the full name is the "Soyadı" (last name). All preceding words constitute the "Adı" (first name). For example, if the name is 'AHMET KEREM ONUS', the first name is 'AHMET KEREM' and the last name is 'ONUS'.
-    5.  Compile all the extracted students under the identified class name.
-    6.  If the document contains lists for multiple classes, create a separate class object for each.
-    7.  Return the data in the specified JSON format. Ensure all student numbers are parsed as numbers, not strings.
+Your tasks are:
+1.  **Identify Class Name:** Find the class name, which is usually in the header like "5. Sınıf / D Şubesi Sınıf Listesi". Extract and normalize it to "5/D".
+2.  **Scan for Student Table:** Locate the table containing the student list. The columns might be labeled "No", "Okul No", "Adı Soyadı", "Adı", "Soyadı", etc.
+3.  **Extract Student Data:** For each student row, extract:
+    -   **Student Number:** From the "No" or "Okul No" column. This must be a number.
+    -   **Full Name:** From the "Adı Soyadı" or "Adı" and "Soyadı" columns.
+4.  **Parse Full Names:** The full name is often in a single column.
+    -   The **last word** of the full name is ALWAYS the "Soyadı" (last name).
+    -   All preceding words make up the "Adı" (first name).
+    -   Example 1: 'AHMET KEREM ONUS' -> firstName: 'AHMET KEREM', lastName: 'ONUS'.
+    -   Example 2: 'AYŞE YILMAZ' -> firstName: 'AYŞE', lastName: 'YILMAZ'.
+5.  **Compile and Format:** Group all extracted students under the correct class. If the document has multiple classes, create a separate class object for each. Return the data in the specified JSON format. Ensure all student numbers are parsed as numbers, not strings.
 
-    File to analyze: {{media url=fileDataUri}}`,
+File to analyze: {{media url=fileDataUri}}`,
   });
 
   const studentListParserFlow = ai.defineFlow(
@@ -74,3 +78,4 @@ export async function parseStudentList(input: StudentListParserInput): Promise<S
 
   return studentListParserFlow(input);
 }
+
