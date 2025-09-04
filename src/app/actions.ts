@@ -3,7 +3,7 @@
 import { descriptionAutoFill } from '@/ai/flows/description-auto-fill';
 import type { DescriptionAutoFillInput } from '@/ai/flows/description-auto-fill';
 import { parseStudentList } from '@/ai/flows/student-list-parser';
-import type { StudentListParserInput } from '@/ai/flows/student-list-parser';
+import type { StudentListParserOutput } from '@/ai/flows/student-list-parser';
 
 
 export async function generateDescriptionAction(input: DescriptionAutoFillInput) {
@@ -22,7 +22,13 @@ export async function generateDescriptionAction(input: DescriptionAutoFillInput)
   }
 }
 
-export async function parseStudentListAction(input: StudentListParserInput) {
+// Define the input type for parseStudentListAction locally
+// as it's no longer exported from the flow file.
+type StudentListParserInput = {
+    fileDataUri: string;
+};
+
+export async function parseStudentListAction(input: StudentListParserInput): Promise<{ classes: StudentListParserOutput['classes'] } | { error: string }> {
     try {
       const result = await parseStudentList(input);
       if (result?.classes) {

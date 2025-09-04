@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const StudentSchema = z.object({
     studentNumber: z.number().describe("Öğrencinin okul numarası"),
@@ -21,16 +21,16 @@ const ClassSchema = z.object({
     students: z.array(StudentSchema).describe("Sınıftaki öğrencilerin listesi"),
 });
 
-export const StudentListParserInputSchema = z.object({
+const StudentListParserInputSchema = z.object({
   fileDataUri: z
     .string()
     .describe(
       "A student list file (PDF or Excel), as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
-export type StudentListParserInput = z.infer<typeof StudentListParserInputSchema>;
+type StudentListParserInput = z.infer<typeof StudentListParserInputSchema>;
 
-export const StudentListParserOutputSchema = z.object({
+const StudentListParserOutputSchema = z.object({
   classes: z.array(ClassSchema).describe("Dosyadan ayrıştırılan sınıfların listesi"),
 });
 export type StudentListParserOutput = z.infer<typeof StudentListParserOutputSchema>;

@@ -14,11 +14,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import type { Student } from '@/lib/types';
 import { parseStudentListAction } from '@/app/actions';
+import type { StudentListParserOutput } from '@/ai/flows/student-list-parser';
 
-type StudentImportData = Omit<Student, 'id' | 'classId'>;
-type ClassImportData = { className: string; students: StudentImportData[] };
+type ClassImportData = StudentListParserOutput['classes'][0];
 
 type ImportClassesAndStudentsDialogProps = {
   onImport: (data: ClassImportData[]) => void;
