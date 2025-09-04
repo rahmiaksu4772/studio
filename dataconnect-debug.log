@@ -1,13 +1,13 @@
-I0830 12:14:35.295845   28574 load.go:31] Reloading schema and connectors...
-I0830 12:14:35.443741   28574 control.go:94] [/emulator/studio 71c4] UpdateResources(): done
+I0904 20:32:37.545670    2269 load.go:31] Reloading schema and connectors...
+I0904 20:32:37.710732    2269 control.go:94] [/emulator/studio 2015] UpdateResources(): done
 Schema: sources: schema/schema.gql [1992B] 
-Connector "example": sources: example/queries.gql [1801B] example/mutations.gql [1243B] 
-I0830 12:14:35.593120   28574 codegen.go:82] [connector "example" javascriptSdk] Generating sources into "/home/user/studio/src/dataconnect-generated"
-I0830 12:14:35.640752   28574 collector.go:107] schema extensions wrote into "/home/user/studio/dataconnect/.dataconnect/schema"
-Generated sources: main/relation.gql [13742B] prelude.gql [73251B] main/query.gql [5099B] main/mutation.gql [13679B] main/implicit.gql [1261B] main/input.gql [28173B] 
-I0830 12:14:35.647556   28574 collector.go:107] connector "example" javascriptSdk wrote into "/home/user/studio/src/dataconnect-generated"
-Generated sources: react/index.cjs.js [3439B] react/esm/index.esm.js [3269B] react/README.md [48299B] esm/package.json [17B] index.cjs.js [4046B] react/index.d.ts [3961B] react/package.json [460B] index.d.ts [8025B] esm/index.esm.js [3556B] package.json [852B] README.md [40931B] react/esm/package.json [17B] 
-I0830 12:14:35.657001   28574 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation
-I0830 12:14:35.657074   28574 load.go:109] Finished reloading
-I0830 12:14:35.669805   28574 dev.go:102] Listening on address (HTTP + gRPC): 127.0.0.1:50001
-I0830 12:14:36.043849   28574 engine.go:171] [/emulator/studio 71c4] ExecuteGraphqlRead IntrospectionQuery: succeeded. 
+Connector "example": sources: example/mutations.gql [1243B] example/queries.gql [1801B] 
+I0904 20:32:37.856368    2269 codegen.go:82] [connector "example" javascriptSdk] Generating sources into "/home/user/studio/src/dataconnect-generated"
+I0904 20:32:37.912420    2269 collector.go:107] schema extensions wrote into "/home/user/studio/dataconnect/.dataconnect/schema"
+Generated sources: main/input.gql [28173B] main/relation.gql [13742B] main/query.gql [5099B] main/mutation.gql [13679B] prelude.gql [73251B] main/implicit.gql [1261B] 
+I0904 20:32:37.916755    2269 collector.go:107] connector "example" javascriptSdk wrote into "/home/user/studio/src/dataconnect-generated"
+Generated sources: index.d.ts [8025B] esm/package.json [17B] package.json [852B] README.md [40931B] react/index.d.ts [3961B] react/index.cjs.js [3439B] react/README.md [48299B] esm/index.esm.js [3556B] index.cjs.js [4046B] react/package.json [460B] react/esm/package.json [17B] react/esm/index.esm.js [3269B] 
+I0904 20:32:37.925243    2269 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation
+I0904 20:32:37.926738    2269 load.go:109] Finished reloading
+I0904 20:32:37.938747    2269 dev.go:102] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+I0904 20:32:38.042679    2269 engine.go:171] [/emulator/studio 2015] ExecuteGraphqlRead IntrospectionQuery: succeeded. 
