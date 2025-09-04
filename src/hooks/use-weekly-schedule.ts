@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useToast } from './use-toast';
 import type { WeeklyScheduleItem, Day, Lesson, ScheduleSettings } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
@@ -132,8 +132,44 @@ export function useWeeklySchedule(userId?: string) {
   const updateSettings = async (newSettings: Partial<ScheduleSettings>) => {
     if (!userId) return;
     const scheduleDocRef = doc(db, `users/${userId}/schedules`, scheduleDocId);
+    
     try {
-        await updateDoc(scheduleDocRef, newSettings);
+        const batch = writeBatch(db);
+
+        // If timeSlots are changing, we need to clean up lessons
+        if (newSettings.timeSlots) {
+            const oldTimeSlots = settings.timeSlots;
+            const newTimeSlots = newSettings.timeSlots;
+
+            // Find removed slots
+            const removedSlotsIndices = oldTimeSlots
+                .map((_, index) => index)
+                .filter(index => !newTimeSlots[index]);
+
+            if (removedSlotsIndices.length > 0) {
+                const docSnap = await getDoc(scheduleDocRef);
+                if (docSnap.exists()) {
+                    const currentData = docSnap.data();
+                    const updates: { [key: string]: any } = {};
+
+                    dayOrder.forEach(day => {
+                        const dayLessons: Lesson[] = currentData[day] || [];
+                        const cleanedLessons = dayLessons
+                            .filter(l => l.lessonSlot < newTimeSlots.length)
+                            .map((l, index) => ({ ...l, lessonSlot: index }));
+                            
+                        updates[day] = cleanedLessons;
+                    });
+                     batch.update(scheduleDocRef, updates);
+                }
+            }
+        }
+        
+        // Update the settings
+        batch.update(scheduleDocRef, newSettings);
+
+        await batch.commit();
+
     } catch (error) {
          console.error("Error updating settings:", error);
          toast({

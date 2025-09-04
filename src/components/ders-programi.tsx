@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Calendar, Settings, BookOpen } from 'lucide-react';
+import { Loader2, Calendar, Settings, BookOpen, Trash2 } from 'lucide-react';
 import type { Lesson, Day, WeeklyScheduleItem, ScheduleSettings, Plan, LessonPlanEntry } from '@/lib/types';
 import { useWeeklySchedule } from '@/hooks/use-weekly-schedule';
 import { useAuth } from '@/hooks/use-auth';
@@ -20,6 +20,8 @@ import { usePlans } from '@/hooks/use-plans';
 import { PlanViewer } from './plan-viewer';
 import * as XLSX from 'xlsx';
 import { getWeek } from 'date-fns';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 const dayOrder: Day[] = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const dayShort: { [key in Day]: string } = {
@@ -177,6 +179,11 @@ export default function DersProgrami() {
        handleSettingsBlur('timeSlots', newTimeSlots);
   }
 
+  const handleRemoveTimeSlot = (indexToRemove: number) => {
+      const newTimeSlots = localSettings.timeSlots.filter((_, index) => index !== indexToRemove);
+      handleSettingsBlur('timeSlots', newTimeSlots);
+  }
+
   const handleSettingsBlur = async (field: keyof ScheduleSettings, value?: any) => {
     if (!user) return;
     const valueToUpdate = value ?? localSettings[field];
@@ -319,17 +326,39 @@ export default function DersProgrami() {
                     <Label>Ders Saatleri</Label>
                     <div className='grid grid-cols-2 sm:grid-cols-3 gap-2'>
                     {localSettings.timeSlots.map((time, index) => (
-                        <Input
-                            key={index}
-                            type="time"
-                            value={time}
-                            onChange={(e) => handleTimeSlotChange(index, e.target.value)}
-                            onBlur={() => handleSettingsBlur('timeSlots')}
-                            className="w-full"
-                        />
+                        <div key={index} className="flex items-center gap-1">
+                            <Input
+                                type="time"
+                                value={time}
+                                onChange={(e) => handleTimeSlotChange(index, e.target.value)}
+                                onBlur={() => handleSettingsBlur('timeSlots')}
+                                className="w-full"
+                            />
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className='h-9 w-9 text-destructive/70 hover:text-destructive hover:bg-destructive/10 flex-shrink-0'>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Ders Saatini Sil</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Bu işlem geri alınamaz. "{time}" ders saatini ve bu saate ait tüm haftalık dersleri kalıcı olarak silecektir. Emin misiniz?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleRemoveTimeSlot(index)} className="bg-destructive hover:bg-destructive/90">
+                                            Evet, Sil
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                     ))}
                      <Button variant='outline' onClick={handleAddNewTimeSlot} className='flex items-center gap-2'>
-                        <Plus className='h-4 w-4'/> Yeni
+                        <Plus className='h-4 w-4'/> Yeni Ekle
                     </Button>
                     </div>
                 </div>
