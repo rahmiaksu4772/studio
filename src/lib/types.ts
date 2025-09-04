@@ -166,5 +166,6 @@ export type Notification = {
     title: string;
     body: string;
     createdAt: string; // ISO String
+    author?: ForumAuthor;
     isRead?: boolean;
 };

@@ -4,27 +4,49 @@
 import * as React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Bell, BellRing, Loader2 } from 'lucide-react';
+import { Bell, BellRing, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotifications } from '@/hooks/use-notifications';
 import AppLayout from '@/components/app-layout';
 import AuthGuard from '@/components/auth-guard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { deleteNotificationAction } from '../admin/actions';
+import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 function NotificationsPageContent() {
   const { user } = useAuth();
-  const { notifications, isLoading, markAsRead } = useNotifications(user?.uid);
+  const { profile } = useUserProfile(user?.uid);
+  const { notifications, isLoading, markAsRead, setNotifications } = useNotifications(user?.uid);
+  const { toast } = useToast();
 
   React.useEffect(() => {
-    // When the component mounts, mark all currently unread notifications as read.
-    const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
-    if (unreadIds.length > 0) {
-      markAsRead(unreadIds);
+    // For non-admins, mark notifications as read on visit.
+    if (profile?.role !== 'admin') {
+        const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+        if (unreadIds.length > 0) {
+        markAsRead(unreadIds);
+        }
     }
     // We only want this to run when the component mounts and notifications are loaded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notifications]);
+  }, [notifications, profile?.role]);
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    const result = await deleteNotificationAction(notificationId);
+    if (result.success) {
+        toast({ title: 'Başarılı!', description: result.message, variant: 'destructive'});
+        // Optimistically update the UI
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    } else {
+        toast({ title: 'Hata!', description: result.message, variant: 'destructive'});
+    }
+  }
 
 
   if (isLoading) {
@@ -36,6 +58,11 @@ function NotificationsPageContent() {
       </AppLayout>
     );
   }
+  
+  const pageTitle = profile?.role === 'admin' ? "Gönderilen Duyurular" : "Bildirimler";
+  const pageDescription = profile?.role === 'admin' 
+    ? "Tüm kullanıcılara gönderdiğiniz duyuruları buradan yönetebilirsiniz."
+    : "Yönetici tarafından gönderilen en son duyurular.";
 
   return (
     <AppLayout>
@@ -44,10 +71,10 @@ function NotificationsPageContent() {
           <div>
             <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
                 <Bell className="h-8 w-8 text-primary" />
-                Bildirimler
+                {pageTitle}
             </h2>
             <p className="text-muted-foreground">
-              Yönetici tarafından gönderilen en son duyurular.
+              {pageDescription}
             </p>
           </div>
         </div>
@@ -59,7 +86,7 @@ function NotificationsPageContent() {
                         key={notification.id}
                         className={cn(
                             "transition-all",
-                            notification.isRead ? "border-transparent bg-card/50" : "border-primary/20 bg-primary/5"
+                            profile?.role !== 'admin' && (notification.isRead ? "border-transparent bg-card/50" : "border-primary/20 bg-primary/5")
                         )}
                     >
                         <CardHeader className='pb-4'>
@@ -67,7 +94,7 @@ function NotificationsPageContent() {
                                <div className='flex items-center gap-3'>
                                  <div className={cn(
                                     "h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0",
-                                    notification.isRead ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground'
+                                    profile?.role === 'admin' ? 'bg-muted text-muted-foreground' : (notification.isRead ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground')
                                  )}>
                                     <BellRing className="h-5 w-5" />
                                  </div>
@@ -78,10 +105,40 @@ function NotificationsPageContent() {
                                     </p>
                                  </div>
                                </div>
+                               {profile?.role === 'admin' && (
+                                 <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className='text-destructive/70 hover:text-destructive'>
+                                            <Trash2 className='h-4 w-4' />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Bu Duyuruyu Silmek İstediğinizden Emin misiniz?</AlertDialogTitle>
+                                            <AlertDialogDescription>Bu işlem geri alınamaz. Duyuru tüm kullanıcılardan ve sistemden kalıcı olarak silinecektir.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteNotification(notification.id)} className="bg-destructive hover:bg-destructive/90">Evet, Sil</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                               )}
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground ml-12 pl-1 border-l border-border">{notification.body}</p>
+                            <div className="text-sm text-muted-foreground ml-12 pl-1 border-l border-border space-y-4">
+                                <p>{notification.body}</p>
+                                {profile?.role === 'admin' && notification.author && (
+                                     <div className='flex items-center gap-2 text-xs pt-2 border-t'>
+                                        <Avatar className='h-5 w-5'>
+                                            <AvatarImage src={notification.author.avatarUrl} data-ai-hint="teacher portrait" />
+                                            <AvatarFallback>{notification.author.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span>Gönderen: <strong>{notification.author.name}</strong></span>
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 ))

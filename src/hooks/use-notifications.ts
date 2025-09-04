@@ -25,7 +25,7 @@ export function useNotifications(userId?: string) {
   const { profile } = useUserProfile(userId);
 
   React.useEffect(() => {
-    if (!userId || !profile) {
+    if (!userId) {
       setIsLoading(false);
       return;
     }
@@ -35,14 +35,17 @@ export function useNotifications(userId?: string) {
     const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
       const allNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
       
-      const readIds = new Set(profile.readNotificationIds || []);
+      const readIds = new Set(profile?.readNotificationIds || []);
       
       const processedNotifications = allNotifications.map(n => ({
         ...n,
         isRead: readIds.has(n.id),
       }));
 
-      const newUnreadCount = processedNotifications.filter(n => !n.isRead).length;
+      // Unread count is only relevant for non-admins
+      const newUnreadCount = profile?.role !== 'admin' 
+        ? processedNotifications.filter(n => !n.isRead).length
+        : 0;
 
       setNotifications(processedNotifications);
       setUnreadCount(newUnreadCount);
@@ -61,7 +64,7 @@ export function useNotifications(userId?: string) {
   }, [userId, profile, toast]);
 
   const markAsRead = async (notificationIds: string[]) => {
-    if (!userId || notificationIds.length === 0) return;
+    if (!userId || notificationIds.length === 0 || profile?.role === 'admin') return;
     const userDocRef = doc(db, 'users', userId);
     try {
         // We use arrayUnion to safely add new IDs without creating duplicates.
@@ -74,5 +77,5 @@ export function useNotifications(userId?: string) {
     }
   }
 
-  return { notifications, unreadCount, isLoading, markAsRead };
+  return { notifications, unreadCount, isLoading, markAsRead, setNotifications };
 }

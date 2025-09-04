@@ -4,9 +4,9 @@
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeAdmin } from '@/lib/firebase-admin';
-import type { UserRole } from '@/lib/types';
+import type { UserRole, ForumAuthor } from '@/lib/types';
 import { getMessaging } from 'firebase-admin/messaging';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -49,7 +49,7 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole) {
 }
 
 
-export async function sendNotificationToAllUsersAction(title: string, body: string) {
+export async function sendNotificationToAllUsersAction(title: string, body: string, author: ForumAuthor) {
     try {
         // Instead of sending from the server, we write to a Firestore collection
         // that a Cloud Function will listen to.
@@ -57,6 +57,7 @@ export async function sendNotificationToAllUsersAction(title: string, body: stri
         await addDoc(notificationsRef, {
             title,
             body,
+            author,
             createdAt: new Date().toISOString(),
         });
 
@@ -68,5 +69,16 @@ export async function sendNotificationToAllUsersAction(title: string, body: stri
     } catch (error: any) {
         console.error('Error queueing notification:', error);
         return { success: false, message: error.message || 'Bildirim sıraya alınırken bir hata oluştu.' };
+    }
+}
+
+export async function deleteNotificationAction(notificationId: string) {
+    try {
+        const notificationRef = doc(db, 'notifications', notificationId);
+        await deleteDoc(notificationRef);
+        return { success: true, message: 'Bildirim başarıyla silindi.' };
+    } catch(error: any) {
+        console.error('Error deleting notification: ', error);
+        return { success: false, message: 'Bildirim silinirken bir hata oluştu.'}
     }
 }

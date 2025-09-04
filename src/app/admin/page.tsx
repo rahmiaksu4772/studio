@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteUserAction, updateUserRoleAction, sendNotificationToAllUsersAction } from './actions';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole } from '@/lib/types';
+import type { UserRole, ForumAuthor } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -97,9 +97,20 @@ function AdminPage() {
         toast({ title: 'Eksik Bilgi', description: 'Lütfen bildirim başlığı ve içeriğini girin.', variant: 'destructive'});
         return;
     }
+    if (!user || !profile) {
+        toast({ title: 'Giriş Gerekli', description: 'Bildirim göndermek için admin olarak giriş yapmalısınız.', variant: 'destructive'});
+        return;
+    }
 
     setIsSending(true);
-    const result = await sendNotificationToAllUsersAction(notificationTitle, notificationBody);
+
+    const author: ForumAuthor = {
+      uid: user.uid,
+      name: profile.fullName,
+      avatarUrl: profile.avatarUrl,
+    }
+
+    const result = await sendNotificationToAllUsersAction(notificationTitle, notificationBody, author);
     if (result.success) {
         toast({ title: 'Gönderim Raporu', description: result.message });
         setNotificationTitle('');
