@@ -158,17 +158,19 @@ function GunlukTakipPageContent() {
         studentIds.forEach(studentId => {
             const newEvent: RecordEvent = { id: new Date().toISOString() + studentId, type: 'status', value: status };
             const existingRecord = recordsMap.get(studentId);
-            if (existingRecord) {
-                recordsMap.set(studentId, { ...existingRecord, events: existingRecord.events.filter(e => e.type !== 'status').concat(newEvent) });
-            } else {
-                 recordsMap.set(studentId, {
-                    id: `${selectedClass.id}-${dateStr}-${studentId}`,
-                    classId: selectedClass.id,
-                    studentId,
-                    date: dateStr,
-                    events: [newEvent]
-                });
-            }
+            
+            // Start with note events from the existing record, or an empty array
+            const noteEvents = existingRecord ? existingRecord.events.filter(e => e.type === 'note') : [];
+            
+            // Create the updated record with only note events and the new status event
+            const updatedRecord: DailyRecord = {
+                id: existingRecord?.id || `${selectedClass.id}-${dateStr}-${studentId}`,
+                classId: selectedClass.id,
+                date: dateStr,
+                studentId,
+                events: [...noteEvents, newEvent]
+            };
+            recordsMap.set(studentId, updatedRecord);
         });
 
         return Array.from(recordsMap.values());
