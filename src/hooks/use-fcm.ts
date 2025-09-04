@@ -24,7 +24,7 @@ export function useFCM() {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted' && user?.uid) {
                     const currentToken = await getToken(messaging, {
-                        vapidKey: 'BBRD-BGDLp88LJGzT92D8uSg9RxiwBqEvT9b9PMQae5Wk8y4g2I5rA8eX3xIeFUKo81g3H3A3sYV8zogY6D1_N0',
+                        vapidKey: 'BDU-LEhWMpSeC9Y6d0_9VCquLhl5qtu8Uvwt97e2wp0yo2mGg0qLLpXjh_hB9w9d6MAwV6WAWMcR4OAyuUsGdAM',
                     });
                     
                     if (currentToken) {
