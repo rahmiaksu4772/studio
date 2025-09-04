@@ -96,9 +96,11 @@ export function useNotes(userId?: string) {
         const result = await speechToNoteAction({ transcript: finalTranscript });
         if (result.note) {
           onResult(result.note);
-        } else {
-          toast({ title: 'Çeviri Hatası', description: result.error || 'Yapay zeka metni işleyemedi.', variant: 'destructive' });
+        } else if (result.error) {
+          toast({ title: 'Çeviri Hatası', description: result.error, variant: 'destructive' });
           onResult(finalTranscript); // Fallback to raw transcript
+        } else {
+           onResult(finalTranscript); // Fallback to raw transcript if AI gives no response
         }
         setIsTranscribing(false);
       }
@@ -130,6 +132,7 @@ export function useNotes(userId?: string) {
     const dataToSave: { [key: string]: any } = { 
         ...noteData,
         isPinned: noteData.isPinned || false, // Ensure isPinned is never undefined
+        textColor: noteData.textColor || '#000000',
     };
 
     if (!dataToSave.imageUrl) {

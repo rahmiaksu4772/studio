@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import AppLayout from '@/components/app-layout';
-import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, Palette, CheckSquare, ClipboardPaste } from 'lucide-react';
+import { Plus, Trash2, StickyNote, Loader2, Mic, MicOff, Camera, X as CloseIcon, Pin, PinOff, Palette, CheckSquare, ClipboardPaste, Type as TypeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -42,20 +42,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 
 const noteColors = [
-  'bg-card',
-  'bg-red-100/50 dark:bg-red-900/20 border-red-200/50 dark:border-red-900/30',
-  'bg-yellow-100/50 dark:bg-yellow-900/20 border-yellow-200/50 dark:border-yellow-900/30',
-  'bg-green-100/50 dark:bg-green-900/20 border-green-200/50 dark:border-green-900/30',
-  'bg-blue-100/50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-900/30',
-  'bg-purple-100/50 dark:bg-purple-900/20 border-purple-200/50 dark:border-purple-900/30',
-  'bg-pink-100/50 dark:bg-pink-900/20 border-pink-200/50 dark:border-pink-900/30',
-  'bg-gray-800 dark:bg-gray-700 border-gray-700 dark:border-gray-600',
-  'bg-red-900 dark:bg-red-800 border-red-800 dark:border-red-700',
-  'bg-green-900 dark:bg-green-800 border-green-800 dark:border-green-700',
-  'bg-blue-900 dark:bg-blue-800 border-blue-800 dark:border-blue-700',
-  'bg-purple-900 dark:bg-purple-800 border-purple-800 dark:border-purple-700',
-  'bg-yellow-900 dark:bg-yellow-800 border-yellow-800 dark:border-yellow-700',
+  'bg-card', 'bg-red-100 dark:bg-red-900/20', 'bg-yellow-100 dark:bg-yellow-900/20', 
+  'bg-green-100 dark:bg-green-900/20', 'bg-blue-100 dark:bg-blue-900/20', 'bg-purple-100 dark:bg-purple-900/20',
+  'bg-pink-100 dark:bg-pink-900/20',
 ];
+const textColors = ['#000000', '#FFFFFF', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
+
 
 function NotlarimPageContent() {
   const { user } = useAuth();
@@ -75,6 +67,7 @@ function NotlarimPageContent() {
   const [newNoteContent, setNewNoteContent] = React.useState('');
   const [newNoteImage, setNewNoteImage] = React.useState<string | null>(null);
   const [newNoteColor, setNewNoteColor] = React.useState(noteColors[0]);
+  const [newNoteTextColor, setNewNoteTextColor] = React.useState(textColors[0]);
   const [newNoteType, setNewNoteType] = React.useState<'text' | 'checklist'>('text');
   const [newNoteItems, setNewNoteItems] = React.useState<NoteChecklistItem[]>([{ id: '1', text: '', isChecked: false }]);
 
@@ -117,6 +110,7 @@ function NotlarimPageContent() {
     setNewNoteContent('');
     setNewNoteImage(null);
     setNewNoteColor(noteColors[0]);
+    setNewNoteTextColor(textColors[0]);
     setNewNoteType('text');
     setNewNoteItems([{ id: '1', text: '', isChecked: false }]);
   };
@@ -125,7 +119,6 @@ function NotlarimPageContent() {
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Stop recording if it's active
     if (isRecording) {
       await handleToggleRecording(() => {});
     }
@@ -147,6 +140,7 @@ function NotlarimPageContent() {
       items: newNoteType === 'checklist' ? newNoteItems.filter(item => item.text.trim() !== '') : [],
       imageUrl: newNoteImage,
       color: newNoteColor,
+      textColor: newNoteTextColor,
       isPinned: false,
       date: new Date().toISOString(),
     };
@@ -230,7 +224,6 @@ function NotlarimPageContent() {
             isChecked: false
         }));
         
-        // Remove the initial empty item if it exists and we're adding new ones
         setNewNoteItems(prevItems => {
             const filteredOldItems = prevItems.filter(item => item.text.trim() !== '');
             return [...filteredOldItems, ...newItems];
@@ -253,8 +246,6 @@ function NotlarimPageContent() {
     );
   }
   
-  const isDarkColorSelected = newNoteColor.includes('800') || newNoteColor.includes('900') || newNoteColor.includes('700');
-
   return (
     <AppLayout>
       <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -278,20 +269,16 @@ function NotlarimPageContent() {
               )}
               <Input
                 placeholder="Başlık"
-                className={cn(
-                    "text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent",
-                     isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
-                )}
+                className={cn("text-base font-semibold border-0 focus-visible:ring-0 shadow-none px-4 bg-transparent placeholder:text-muted-foreground")}
+                style={{ color: newNoteTextColor }}
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
               />
               {newNoteType === 'text' ? (
                 <Textarea
                     placeholder="Bir not alın..."
-                    className={cn(
-                        "border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent",
-                        isDarkColorSelected ? "text-white placeholder:text-white/60" : "text-black placeholder:text-zinc-500"
-                    )}
+                    className={cn("border-0 focus-visible:ring-0 shadow-none p-4 pt-0 bg-transparent placeholder:text-muted-foreground")}
+                    style={{ color: newNoteTextColor }}
                     value={newNoteContent}
                     onChange={(e) => setNewNoteContent(e.target.value)}
                     rows={newNoteImage || newNoteTitle ? 3 : 1}
@@ -304,17 +291,19 @@ function NotlarimPageContent() {
                                 id={`item-new-${item.id}`} 
                                 checked={item.isChecked}
                                 onCheckedChange={(checked) => handleItemCheckedChange(item.id, !!checked)}
-                                className={cn(isDarkColorSelected && 'border-white/50')}
+                                style={{borderColor: newNoteTextColor}}
                             />
                             <Input 
                                 value={item.text} 
                                 onChange={(e) => handleItemChange(item.id, e.target.value)}
                                 className={cn(
-                                    "flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent px-1",
-                                    item.isChecked && "line-through text-muted-foreground",
-                                    isDarkColorSelected ? 'text-white placeholder:text-white/60' : 'text-black placeholder:text-zinc-500',
-                                    isDarkColorSelected && item.isChecked && 'text-white/50'
+                                    "flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent px-1 placeholder:text-muted-foreground",
+                                    item.isChecked && "line-through"
                                 )}
+                                style={{ 
+                                    color: newNoteTextColor,
+                                    textDecorationColor: newNoteTextColor
+                                }}
                                 placeholder='Liste öğesi'
                             />
                              <Button
@@ -322,20 +311,18 @@ function NotlarimPageContent() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleRemoveItem(item.id)}
-                                className={cn(
-                                    "h-7 w-7 rounded-full opacity-0 group-hover:opacity-100",
-                                    isDarkColorSelected ? "text-white/70 hover:text-white hover:bg-white/20" : "text-muted-foreground hover:text-destructive"
-                                )}
+                                className={cn("h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/10")}
+                                style={{color: newNoteTextColor}}
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
                     ))}
-                    <div className='flex items-center gap-2 border-t pt-2'>
-                        <Button type="button" variant="ghost" onClick={handleAddNewItem} className={cn('w-full justify-start', isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                    <div className='flex items-center gap-2 border-t pt-2' style={{borderColor: `${newNoteTextColor}40`}}>
+                        <Button type="button" variant="ghost" onClick={handleAddNewItem} style={{color: newNoteTextColor}} className="opacity-70 hover:opacity-100 w-full justify-start">
                             <Plus className='mr-2 h-4 w-4'/> Öğe Ekle
                         </Button>
-                         <Button type="button" variant="ghost" onClick={handlePasteList} className={cn('w-full justify-start', isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                         <Button type="button" variant="ghost" onClick={handlePasteList} style={{color: newNoteTextColor}} className="opacity-70 hover:opacity-100 w-full justify-start">
                             <ClipboardPaste className='mr-2 h-4 w-4'/> Yapıştır
                         </Button>
                     </div>
@@ -352,17 +339,13 @@ function NotlarimPageContent() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => setNewNoteType(newNoteType === 'text' ? 'checklist' : 'text')}
-                                    className={cn(
-                                        newNoteType === 'checklist' && 'bg-primary/20 text-primary',
-                                        isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700'
-                                    )}
+                                    className={cn(newNoteType === 'checklist' && 'bg-black/10')}
+                                    style={{color: newNoteTextColor}}
                                 >
                                     <CheckSquare/>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Yapılacaklar Listesi</p>
-                            </TooltipContent>
+                            <TooltipContent><p>Yapılacaklar Listesi</p></TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
                     <TooltipProvider>
@@ -374,35 +357,23 @@ function NotlarimPageContent() {
                                     size="icon"
                                     onClick={() => handleToggleRecording(onVoiceNoteReceived)}
                                     disabled={isTranscribing}
-                                    className={cn(
-                                        isRecording && "text-red-500 animate-pulse",
-                                        isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700'
-                                    )}
+                                    className={cn(isRecording && "text-red-500 animate-pulse")}
+                                    style={{color: newNoteTextColor}}
                                 >
                                     {isRecording ? <MicOff /> : isTranscribing ? <Loader2 className='animate-spin' /> : <Mic />}
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{isRecording ? 'Kaydı Durdur' : isTranscribing ? 'İşleniyor...' : 'Sesle Not Al'}</p>
-                            </TooltipContent>
+                            <TooltipContent><p>{isRecording ? 'Kaydı Durdur' : isTranscribing ? 'İşleniyor...' : 'Sesle Not Al'}</p></TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
                   <TooltipProvider>
                       <Tooltip>
                           <TooltipTrigger asChild>
-                              <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setIsCameraOpen(true)}
-                                  className={cn(isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700')}
-                              >
+                              <Button type="button" variant="ghost" size="icon" onClick={() => setIsCameraOpen(true)} style={{color: newNoteTextColor}} >
                                   <Camera />
                               </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                              <p>Resim Ekle</p>
-                          </TooltipContent>
+                          <TooltipContent><p>Resim Ekle</p></TooltipContent>
                       </Tooltip>
                   </TooltipProvider>
                    <Popover>
@@ -410,14 +381,12 @@ function NotlarimPageContent() {
                       <Tooltip>
                         <PopoverTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button type="button" variant="ghost" size="icon" className={cn(isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:text-zinc-700')}>
+                                <Button type="button" variant="ghost" size="icon" style={{color: newNoteTextColor}}>
                                     <Palette />
                                 </Button>
                             </TooltipTrigger>
                         </PopoverTrigger>
-                          <TooltipContent>
-                              <p>Renk Değiştir</p>
-                          </TooltipContent>
+                          <TooltipContent><p>Arkaplan Rengi</p></TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                       <PopoverContent className="w-auto p-2">
@@ -428,8 +397,29 @@ function NotlarimPageContent() {
                         </div>
                       </PopoverContent>
                    </Popover>
+                   <Popover>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <PopoverTrigger asChild>
+                            <TooltipTrigger asChild>
+                                <Button type="button" variant="ghost" size="icon" style={{color: newNoteTextColor}}>
+                                    <TypeIcon />
+                                </Button>
+                            </TooltipTrigger>
+                        </PopoverTrigger>
+                          <TooltipContent><p>Yazı Rengi</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                      <PopoverContent className="w-auto p-2">
+                        <div className="grid grid-cols-7 gap-1">
+                            {textColors.map(color => (
+                                <button key={color} type="button" onClick={() => setNewNoteTextColor(color)} className={cn("h-8 w-8 rounded-full border")} style={{backgroundColor: color}} />
+                            ))}
+                        </div>
+                      </PopoverContent>
+                   </Popover>
               </div>
-              <Button type="submit" variant="ghost" className={cn(isDarkColorSelected ? 'text-white/70 hover:text-white' : 'text-black')}>Ekle</Button>
+              <Button type="submit" variant="ghost" style={{color: newNoteTextColor}}>Ekle</Button>
             </CardFooter>
           </form>
         </Card>
@@ -437,9 +427,7 @@ function NotlarimPageContent() {
         {notes.length > 0 ? (
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4 mt-8">
             {notes.map((note) => {
-              const isDarkNote = note.color && (note.color.includes('800') || note.color.includes('900') || note.color.includes('700'));
               const sortedItems = note.items ? [...note.items].sort((a, b) => a.isChecked === b.isChecked ? 0 : a.isChecked ? 1 : -1) : [];
-
               return (
               <Card
                 key={note.id}
@@ -449,15 +437,15 @@ function NotlarimPageContent() {
                 <CardHeader className="p-0">
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover max-h-60" />}
                 </CardHeader>
-                <CardContent className={cn("p-4 flex-grow", !note.title && !note.content && (!note.items || note.items.length === 0) ? 'hidden' : 'block', note.imageUrl && "pt-4", isDarkNote ? 'text-white' : 'text-black')}>
-                  {note.title && <h3 className={cn('font-bold mb-2', isDarkNote ? 'text-white' : 'text-black')}>{note.title}</h3>}
+                <CardContent className={cn("p-4 flex-grow", !note.title && !note.content && (!note.items || note.items.length === 0) ? 'hidden' : 'block', note.imageUrl && "pt-4")} style={{color: note.textColor}}>
+                  {note.title && <h3 className='font-bold mb-2'>{note.title}</h3>}
                   
                   {note.type === 'checklist' && note.items && note.items.length > 0 ? (
                     <ul className='space-y-2'>
                         {sortedItems.map(item => (
                             <li key={item.id} className='flex items-start gap-3'>
-                                <Checkbox id={`item-${item.id}`} checked={item.isChecked} className={cn('mt-1', isDarkNote && 'border-white/50')} />
-                                <label htmlFor={`item-${item.id}`} className={cn('flex-1 text-sm break-all', item.isChecked && 'line-through text-muted-foreground', isDarkNote && item.isChecked && 'text-white/50')}>{item.text}</label>
+                                <Checkbox id={`item-${item.id}`} checked={item.isChecked} style={{borderColor: note.textColor}} />
+                                <label htmlFor={`item-${item.id}`} className={cn('flex-1 text-sm break-all', item.isChecked && 'line-through opacity-60')}>{item.text}</label>
                             </li>
                         ))}
                     </ul>
@@ -465,13 +453,13 @@ function NotlarimPageContent() {
                     <p className='text-sm whitespace-pre-wrap break-all'>{note.content}</p>
                   )}
                 </CardContent>
-                <CardFooter className="flex justify-between items-center text-xs text-muted-foreground p-2">
-                  <span className={cn('pl-2', isDarkNote && 'text-white/70')}>{format(new Date(note.date), 'dd MMM')}</span>
+                <CardFooter className="flex justify-between items-center text-xs p-2" style={{color: note.textColor}}>
+                  <span className='pl-2 opacity-70'>{format(new Date(note.date), 'dd MMM')}</span>
                   <div className='flex items-center opacity-0 group-hover:opacity-100 transition-opacity'>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={(e) => handleTogglePin(e, note)} className={cn(isDarkNote ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                                <Button variant="ghost" size="icon" onClick={(e) => handleTogglePin(e, note)} style={{color: note.textColor}} className="opacity-70 hover:opacity-100">
                                     {note.isPinned ? <PinOff className='h-4 w-4 text-primary'/> : <Pin className='h-4 w-4'/>}
                                 </Button>
                             </TooltipTrigger>
@@ -486,7 +474,8 @@ function NotlarimPageContent() {
                               variant="ghost" 
                               size="icon"
                               onClick={(e) => e.stopPropagation()}
-                              className={cn(isDarkNote ? 'text-white/70 hover:text-white' : 'text-zinc-500')}
+                              style={{color: note.textColor}}
+                              className="opacity-70 hover:opacity-100"
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>

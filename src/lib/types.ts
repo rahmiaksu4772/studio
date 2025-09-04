@@ -71,6 +71,7 @@ export type Note = {
   items?: NoteChecklistItem[];
   date: string; // ISO string for proper date handling
   color: string;
+  textColor: string;
   imageUrl?: string;
   isPinned?: boolean;
 };

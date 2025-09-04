@@ -19,30 +19,22 @@ import {
 import type { Note, NoteChecklistItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Palette, Trash2, Plus, CheckSquare, ClipboardPaste } from 'lucide-react';
+import { Palette, Trash2, Plus, CheckSquare, ClipboardPaste, Type as TypeIcon } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Checkbox } from './ui/checkbox';
 
 const noteColors = [
-  'bg-card',
-  'bg-red-100/50 dark:bg-red-900/20 border-red-200/50 dark:border-red-900/30',
-  'bg-yellow-100/50 dark:bg-yellow-900/20 border-yellow-200/50 dark:border-yellow-900/30',
-  'bg-green-100/50 dark:bg-green-900/20 border-green-200/50 dark:border-green-900/30',
-  'bg-blue-100/50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-900/30',
-  'bg-purple-100/50 dark:bg-purple-900/20 border-purple-200/50 dark:border-purple-900/30',
-  'bg-pink-100/50 dark:bg-pink-900/20 border-pink-200/50 dark:border-pink-900/30',
-  'bg-gray-800 dark:bg-gray-700 border-gray-700 dark:border-gray-600',
-  'bg-red-900 dark:bg-red-800 border-red-800 dark:border-red-700',
-  'bg-green-900 dark:bg-green-800 border-green-800 dark:border-green-700',
-  'bg-blue-900 dark:bg-blue-800 border-blue-800 dark:border-blue-700',
-  'bg-purple-900 dark:bg-purple-800 border-purple-800 dark:border-purple-700',
-  'bg-yellow-900 dark:bg-yellow-800 border-yellow-800 dark:border-yellow-700',
+  'bg-card', 'bg-red-100 dark:bg-red-900/20', 'bg-yellow-100 dark:bg-yellow-900/20', 
+  'bg-green-100 dark:bg-green-900/20', 'bg-blue-100 dark:bg-blue-900/20', 'bg-purple-100 dark:bg-purple-900/20',
+  'bg-pink-100 dark:bg-pink-900/20',
 ];
+const textColors = ['#000000', '#FFFFFF', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
 
 const formSchema = z.object({
   title: z.string(),
   content: z.string().optional(),
   color: z.string(),
+  textColor: z.string(),
   type: z.enum(['text', 'checklist']),
   items: z.array(z.object({
       id: z.string(),
@@ -70,12 +62,14 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
       title: note.title,
       content: note.content,
       color: note.color,
+      textColor: note.textColor || textColors[0],
       type: note.type,
       items: note.items || [],
     },
   });
 
   const watchColor = form.watch('color');
+  const watchTextColor = form.watch('textColor');
   const watchType = form.watch('type');
   const watchItems = form.watch('items');
 
@@ -85,6 +79,7 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
         title: note.title,
         content: note.content,
         color: note.color,
+        textColor: note.textColor || textColors[0],
         type: note.type || 'text',
         items: note.items || []
       });
@@ -146,9 +141,6 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
     }
   };
 
-  const isDarkColor = watchColor && (watchColor.includes('800') || watchColor.includes('900') || watchColor.includes('700'));
-
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={cn("max-w-xl p-0", watchColor)}>
@@ -161,24 +153,16 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
               <input
                 {...form.register('title')}
                 placeholder="Başlık"
-                className={cn(
-                    "w-full text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent",
-                    isDarkColor 
-                        ? "text-white placeholder:text-white/60"
-                        : "text-black placeholder:text-zinc-500"
-                )}
+                className={cn("w-full text-lg font-semibold border-0 shadow-none focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground")}
+                style={{ color: watchTextColor }}
               />
               {watchType === 'text' ? (
                 <Textarea
                     {...form.register('content')}
                     placeholder="Bir not alın..."
                     rows={8}
-                    className={cn(
-                        "w-full border-0 shadow-none focus-visible:ring-0 bg-transparent",
-                        isDarkColor 
-                            ? "text-white placeholder:text-white/60"
-                            : "text-black placeholder:text-zinc-500"
-                    )}
+                    className={cn("w-full border-0 shadow-none focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground")}
+                    style={{ color: watchTextColor }}
                 />
               ) : (
                 <div className='space-y-2'>
@@ -188,17 +172,19 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                                 id={`item-edit-${item.id}`} 
                                 checked={item.isChecked}
                                 onCheckedChange={(checked) => handleItemCheckedChange(item.id, !!checked)}
-                                className={cn(isDarkColor && 'border-white/50')}
+                                style={{borderColor: watchTextColor}}
                             />
                             <Input 
                                 value={item.text} 
                                 onChange={(e) => handleItemChange(item.id, e.target.value)}
                                 className={cn(
-                                    "flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent px-1",
-                                    item.isChecked && "line-through text-muted-foreground",
-                                     isDarkColor ? 'text-white placeholder:text-white/60' : 'text-black placeholder:text-zinc-500',
-                                    isDarkColor && item.isChecked && 'text-white/50'
+                                    "flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent px-1 placeholder:text-muted-foreground",
+                                    item.isChecked && "line-through"
                                 )}
+                                style={{ 
+                                    color: watchTextColor,
+                                    textDecorationColor: watchTextColor
+                                }}
                                 placeholder='Liste öğesi'
                             />
                              <Button
@@ -206,20 +192,18 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleRemoveItem(item.id)}
-                                className={cn(
-                                    "h-7 w-7 rounded-full opacity-0 group-hover:opacity-100",
-                                    isDarkColor ? "text-white/70 hover:text-white hover:bg-white/20" : "text-muted-foreground hover:text-destructive"
-                                )}
+                                className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/10"
+                                style={{color: watchTextColor}}
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
                     ))}
-                    <div className='flex items-center gap-2 border-t pt-2'>
-                        <Button type="button" variant="ghost" onClick={handleAddNewItem} className={cn('w-full justify-start', isDarkColor ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                    <div className='flex items-center gap-2 border-t pt-2' style={{borderColor: `${watchTextColor}40`}}>
+                        <Button type="button" variant="ghost" onClick={handleAddNewItem} style={{color: watchTextColor}} className="opacity-70 hover:opacity-100 w-full justify-start">
                             <Plus className='mr-2 h-4 w-4'/> Öğe Ekle
                         </Button>
-                        <Button type="button" variant="ghost" onClick={handlePasteList} className={cn('w-full justify-start', isDarkColor ? 'text-white/70 hover:text-white' : 'text-zinc-500')}>
+                        <Button type="button" variant="ghost" onClick={handlePasteList} style={{color: watchTextColor}} className="opacity-70 hover:opacity-100 w-full justify-start">
                             <ClipboardPaste className='mr-2 h-4 w-4'/> Yapıştır
                         </Button>
                     </div>
@@ -233,16 +217,14 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                         variant="ghost"
                         size="icon"
                         onClick={() => form.setValue('type', watchType === 'text' ? 'checklist' : 'text')}
-                        className={cn(
-                            watchType === 'checklist' && 'bg-primary/20 text-primary',
-                            isDarkColor ? 'text-white/70 hover:text-white' : 'text-zinc-500'
-                        )}
+                        className={cn(watchType === 'checklist' && 'bg-black/10')}
+                        style={{color: watchTextColor}}
                     >
                         <CheckSquare />
                     </Button>
                    <Popover>
                       <PopoverTrigger asChild>
-                          <Button type="button" variant="ghost" size="icon" className={cn(isDarkColor ? "text-white/70 hover:text-white" : "text-zinc-500")}>
+                          <Button type="button" variant="ghost" size="icon" style={{color: watchTextColor}}>
                               <Palette />
                           </Button>
                       </PopoverTrigger>
@@ -254,9 +236,23 @@ export function EditNoteDialog({ note, onUpdate, onClose, isOpen }: EditNoteDial
                         </div>
                       </PopoverContent>
                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                          <Button type="button" variant="ghost" size="icon" style={{color: watchTextColor}}>
+                              <TypeIcon />
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-2">
+                        <div className="grid grid-cols-7 gap-1">
+                            {textColors.map(color => (
+                                <button key={color} type="button" onClick={() => form.setValue('textColor', color)} className={cn("h-8 w-8 rounded-full border")} style={{backgroundColor: color}} />
+                            ))}
+                        </div>
+                      </PopoverContent>
+                   </Popover>
                </div>
                <div>
-                  <Button type="button" variant="ghost" onClick={onClose} className={cn(isDarkColor ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-zinc-500 hover:text-zinc-700')}>
+                  <Button type="button" variant="ghost" onClick={onClose} style={{color: watchTextColor}} className="opacity-70 hover:opacity-100">
                     Kapat
                   </Button>
                   <Button type="submit">Değişiklikleri Kaydet</Button>
