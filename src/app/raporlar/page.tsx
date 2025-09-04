@@ -707,7 +707,7 @@ function RaporlarPageContent() {
           </CardFooter>
         </Card>
         
-        <div className="mt-6 max-w-full lg:max-w-6xl mx-auto">
+        <div className="mt-6 max-w-full lg:max-w-4xl mx-auto">
             {renderReportContent()}
         </div>
       </main>
