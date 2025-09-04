@@ -540,8 +540,8 @@ function RaporlarPageContent() {
                         PDF İndir
                     </Button>
                 </CardHeader>
-                <CardContent className="overflow-x-auto no-scrollbar">
-                    <Table className="min-w-[800px]">
+                <CardContent>
+                    <Table>
                         <TableHeader>
                         <TableRow>
                             <TableHead className="w-[50px]">No</TableHead>
@@ -729,3 +729,6 @@ export default function RaporlarPage() {
     
 
 
+
+
+    
