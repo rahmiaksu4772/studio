@@ -617,7 +617,7 @@ function RaporlarPageContent() {
             <CardDescription>Rapor oluşturmak için aşağıdaki kriterleri seçin.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end flex-wrap">
               <div className="space-y-1">
                 <Label htmlFor="class-select">Sınıf</Label>
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
@@ -727,3 +727,4 @@ export default function RaporlarPage() {
     
 
     
+
