@@ -165,16 +165,18 @@ function RaporlarPageContent() {
         acc[option.value] = { count: 0, label: option.label, icon: option.icon };
         return acc;
     }, {} as any);
-
-    const allEvents: (RecordEvent & { date: string })[] = [];
+    
+    const eventsByDate: { [date: string]: { statuses: RecordEvent[], note: string } } = {};
     const scoresByDate: { [date: string]: number } = {};
     const scoreValues: { [key in AttendanceStatus]: number } = {
         '+': 10, 'Y': -5, '-': -10, 'D': 0, 'G': 0,
     };
     
     studentRecords.forEach(record => {
+        if (!eventsByDate[record.date]) {
+            eventsByDate[record.date] = { statuses: [], note: '' };
+        }
         record.events.forEach(event => {
-            allEvents.push({ ...event, date: record.date });
             if (event.type === 'status') {
                 const status = event.value as AttendanceStatus;
                 if (summary[status]) {
@@ -182,6 +184,10 @@ function RaporlarPageContent() {
                 }
                 const score = scoresByDate[record.date] || 0;
                 scoresByDate[record.date] = score + scoreValues[status];
+                eventsByDate[record.date].statuses.push(event);
+
+            } else if (event.type === 'note') {
+                eventsByDate[record.date].note = String(event.value);
             }
         });
     });
@@ -197,7 +203,7 @@ function RaporlarPageContent() {
         };
     });
 
-    return { summary, allEvents, chartData };
+    return { summary, eventsByDate, chartData };
   }, [filteredData, selectedReportType, selectedStudentId, dateRange]);
 
 
@@ -327,20 +333,19 @@ function RaporlarPageContent() {
         doc.setFontSize(10);
         doc.text(summaryText, 14, 56);
         
-        const allEvents = individualReportData.allEvents.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const allEvents = Object.entries(individualReportData.eventsByDate).sort((a,b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
 
         if (allEvents.length > 0) {
             (doc as any).autoTable({
                 startY: 65,
-                head: [[normalizeTurkishChars('Tarih'), normalizeTurkishChars('Olay'), normalizeTurkishChars('Detay/Gorus')]],
-                body: allEvents.map(e => {
-                    const statusKey = e.type === 'status' ? e.value : e.type;
-                    const eventType = e.type === 'status' ? 'Durum Degerlendirmesi' : 'Ogretmen Gorusu';
-                    const eventDetail = e.type === 'status' ? (statusToTurkish[statusKey] || 'Belirtilmemis') : e.value;
+                head: [[normalizeTurkishChars('Tarih'), normalizeTurkishChars('Durum'), normalizeTurkishChars('Gorus')]],
+                body: allEvents.map(([date, data]) => {
+                    const statusText = data.statuses.map(s => statusOptions.find(o => o.value === s.value)?.label || '').join(', ');
+
                     return [
-                        normalizeTurkishChars(format(parseISO(e.date), 'd MMMM yyyy, cccc', { locale: tr })),
-                        normalizeTurkishChars(eventType),
-                        normalizeTurkishChars(String(eventDetail))
+                        normalizeTurkishChars(format(parseISO(date), 'd MMMM yyyy, cccc', { locale: tr })),
+                        normalizeTurkishChars(statusText),
+                        normalizeTurkishChars(data.note)
                     ];
                 }),
                 theme: 'striped',
@@ -392,7 +397,7 @@ function RaporlarPageContent() {
     }
     
     if(selectedReportType === 'bireysel' && individualReportData){
-      const { summary, allEvents, chartData } = individualReportData;
+      const { summary, eventsByDate, chartData } = individualReportData;
       const selectedStudent = students.find(s => s.id === selectedStudentId);
 
       return (
@@ -453,32 +458,49 @@ function RaporlarPageContent() {
                         <CardDescription>Seçilen tarih aralığındaki tüm değerlendirmeler ve notlar.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                                {allEvents.length > 0 ? allEvents.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event, index) => {
-                                    const statusKey = event.type === 'status' ? event.value : event.type;
-                                    const statusOption = statusOptions.find(o => o.value === statusKey);
-
-                                    return (
-                                    <div key={`${event.id}-${index}`} className="flex items-start gap-4">
-                                        <div className="font-semibold text-left w-24 flex-shrink-0">
-                                            <p>{format(parseISO(event.date), 'dd MMMM', { locale: tr })}</p>
-                                            <p className="text-xs text-muted-foreground">{format(parseISO(event.date), 'cccc', { locale: tr })}</p>
-                                        </div>
-                                        <div className="border-l pl-4 flex-1">
-                                            {event.type === 'status' && statusOption ? (
-                                                <p className="font-medium flex items-center gap-2">
-                                                    {React.createElement(statusOption.icon!, {
-                                                        className: cn("h-5 w-5", statusOption.color)
-                                                    })}
-                                                    <span>{statusOption.label}</span>
-                                                </p>
-                                            ) : event.type === 'note' ? (
-                                                 <p className="text-sm text-foreground">{String(event.value)}</p>
-                                            ): null}
-                                        </div>
-                                    </div>
-                                )}) : <p className="text-muted-foreground">Bu tarih aralığında herhangi bir olay bulunmuyor.</p>}
-                        </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className='w-1/4'>Tarih</TableHead>
+                                    <TableHead className='w-1/4'>Değerlendirme</TableHead>
+                                    <TableHead>Öğretmen Görüşü</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {Object.keys(eventsByDate).length > 0 ? (
+                                    Object.entries(eventsByDate)
+                                    .sort((a,b) => parseISO(b[0]).getTime() - parseISO(a[0]).getTime())
+                                    .map(([date, data]) => (
+                                    <TableRow key={date}>
+                                        <TableCell className="font-medium align-top">
+                                            {format(parseISO(date), 'd MMMM yyyy, EEEE', { locale: tr })}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-wrap gap-2">
+                                                {data.statuses.map(statusEvent => {
+                                                    const option = statusOptions.find(o => o.value === statusEvent.value);
+                                                    if (!option) return null;
+                                                    return (
+                                                        <span key={statusEvent.id} className="inline-flex items-center gap-1.5 p-1 rounded-md" style={{ backgroundColor: option.bgColor }}>
+                                                            {React.createElement(option.icon!, { className: cn("h-4 w-4", option.color)})}
+                                                        </span>
+                                                    )
+                                                })}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {data.note}
+                                        </TableCell>
+                                    </TableRow>
+                                ))) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center text-muted-foreground h-24">
+                                            Bu tarih aralığında kayıt bulunmuyor.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
 
