@@ -36,7 +36,8 @@ function AnaSayfaPageContent() {
   React.useEffect(() => {
     if (!isRecordsLoading && records) {
       const today = format(new Date(), 'yyyy-MM-dd');
-      const todayRecordsCount = records.filter(r => r.date === today).length;
+      // Only count records for today that actually have events in them
+      const todayRecordsCount = records.filter(r => r.date === today && r.events && r.events.length > 0).length;
       setTodaysRecords(todayRecordsCount);
     }
   }, [records, isRecordsLoading]);
