@@ -1,23 +1,19 @@
 
 import admin from 'firebase-admin';
 
-const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-
 let adminApp: admin.app.App;
 
+/**
+ * Initializes the Firebase Admin SDK, ensuring it's only done once.
+ * In a Google Cloud environment (like App Hosting), calling initializeApp() 
+ * without arguments allows the SDK to automatically find the service account credentials.
+ * @returns The initialized Firebase admin app instance.
+ */
 export function initializeAdmin() {
   if (admin.apps.length > 0) {
     return admin.app();
   }
 
-  const credential = serviceAccountJson
-    ? admin.credential.cert(JSON.parse(serviceAccountJson))
-    : admin.credential.applicationDefault();
-
-  adminApp = admin.initializeApp({
-    credential,
-    projectId: 'takip-k0hdb', 
-  });
-
+  adminApp = admin.initializeApp();
   return adminApp;
 }
