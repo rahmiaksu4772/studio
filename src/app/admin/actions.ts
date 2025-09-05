@@ -1,40 +1,39 @@
 
 'use server';
 
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { getApp } from "firebase/app";
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import { app, db } from '@/lib/firebase';
 
-const functions = getFunctions(getApp(), 'europe-west1');
 
-// This function now calls a Cloud Function to set a custom claim and also updates the Firestore document.
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
-    const setAdminClaim = httpsCallable(functions, 'setAdminClaim');
-    await setAdminClaim({ uid: userId, isAdmin: newRole === 'admin' });
-
-    // Also update the role in Firestore for UI purposes
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, { role: newRole });
 
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
+    if (error.code === 'permission-denied') {
+        return { success: false, message: 'Bu işlemi yapmak için yönetici yetkiniz bulunmuyor.' };
+    }
     return { success: false, message: 'Kullanıcı rolü güncellenirken bir hata oluştu: ' + error.message };
   }
 }
 
-// This function now calls a Cloud Function to delete the user from Auth and their Firestore doc.
+
 export async function deleteUserAction(userId: string) {
     try {
-        const deleteUserFunction = httpsCallable(functions, 'deleteUser');
-        await deleteUserFunction({ uid: userId });
-        return { success: true, message: 'Kullanıcı Auth ve Firestore veritabanından tamamen silindi.' };
+        // This only deletes the Firestore document. Deleting from Auth requires a Cloud Function (Admin SDK).
+        // This is a limitation of the client-side only approach.
+        await deleteDoc(doc(db, 'users', userId));
+        return { success: true, message: 'Kullanıcı veritabanından başarıyla silindi.' };
     } catch (error: any) {
-        console.error('Error deleting user:', error);
+        console.error('Error deleting user from Firestore:', error);
+        if (error.code === 'permission-denied') {
+            return { success: false, message: 'Bu işlemi yapmak için yönetici yetkiniz bulunmuyor.' };
+        }
         return { success: false, message: 'Kullanıcı silinirken bir hata oluştu: ' + error.message };
     }
 }

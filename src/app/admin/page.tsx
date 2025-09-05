@@ -253,7 +253,7 @@ function AdminPage() {
                 <AlertDialogHeader>
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Bu işlem geri alınamaz. "{selectedUser?.fullName}" adlı kullanıcıyı ve tüm verilerini (sınıflar, öğrenciler, kayıtlar, forum gönderileri vb.) kalıcı olarak sileceksiniz.
+                    Bu işlem geri alınamaz. "{selectedUser?.fullName}" adlı kullanıcının veritabanı kaydını kalıcı olarak sileceksiniz.
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
