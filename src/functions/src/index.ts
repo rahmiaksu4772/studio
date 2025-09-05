@@ -1,9 +1,11 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { Lesson, Day } from "../../src/lib/types";
+import type { Lesson, Day } from "../../src/lib/types";
+import { initializeAdmin } from "../../src/lib/firebase-admin";
 
-admin.initializeApp();
+// Initialize the SDK only once using the centralized function.
+initializeAdmin();
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -65,23 +67,40 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
         try {
             const response = await messaging.sendEachForMulticast(message);
             console.log(`${response.successCount} messages were sent successfully.`);
+            
             if (response.failureCount > 0) {
                 console.log(`${response.failureCount} messages failed to send.`);
                 
-                // Optional: Clean up invalid tokens
-                const tokensToDelete: Promise<any>[] = [];
+                const invalidTokens: string[] = [];
                 response.responses.forEach((resp, idx) => {
                     if (!resp.success && resp.error) {
                        const errorCode = resp.error.code;
                        if (errorCode === 'messaging/invalid-registration-token' ||
                            errorCode === 'messaging/registration-token-not-registered') {
                            const failedToken = uniqueTokens[idx];
+                           invalidTokens.push(failedToken);
                            console.log('Invalid token found:', failedToken, 'Error:', errorCode);
-                           // Here you would implement logic to find which user has this token and remove it.
-                           // This is complex, so for now we'll just log it.
                        }
                     }
                 });
+
+                // Clean up invalid tokens from Firestore
+                if (invalidTokens.length > 0) {
+                    const allUsers = await db.collection('users').get();
+                    const batch = db.batch();
+                    allUsers.forEach(userDoc => {
+                        const userData = userDoc.data();
+                        const userTokens = userData.fcmTokens || [];
+                        const tokensToKeep = userTokens.filter((token: string) => !invalidTokens.includes(token));
+
+                        // If the token array has changed, update the document
+                        if (tokensToKeep.length < userTokens.length) {
+                             batch.update(userDoc.ref, { fcmTokens: tokensToKeep });
+                        }
+                    });
+                    await batch.commit();
+                    console.log(`Cleaned up ${invalidTokens.length} invalid tokens from user profiles.`);
+                }
             }
         } catch (error) {
             console.error("Error sending notifications:", error);
