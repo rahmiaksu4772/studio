@@ -124,11 +124,17 @@ export const sendLessonStartNotifications = functions.region('europe-west1').pub
             }
             
             const scheduleData = scheduleDoc.data();
-            const todaysLessons: Lesson[] = scheduleData?.[currentDayName] || [];
+            if (!scheduleData) {
+                // console.log(`User ${user.fullName} has an empty schedule document. Skipping.`);
+                continue;
+            }
+
+            const todaysLessons: Lesson[] = scheduleData[currentDayName] || [];
 
             for (const lesson of todaysLessons) {
+                // Only send notification if the lesson start time matches the current time exactly.
                 if (lesson.time === currentTime) {
-                    console.log(`Found a lesson for ${user.fullName}: ${lesson.subject} at ${lesson.time}`);
+                    console.log(`MATCH FOUND: Sending notification to ${user.fullName} for lesson ${lesson.subject} at ${lesson.time}`);
 
                     const message = {
                         notification: {
@@ -145,7 +151,7 @@ export const sendLessonStartNotifications = functions.region('europe-west1').pub
                     
                     try {
                         await messaging.sendEachForMulticast(message);
-                        console.log(`Notification sent to ${user.fullName} for lesson ${lesson.subject}`);
+                        console.log(`Notification sent successfully to ${user.fullName} for lesson ${lesson.subject}.`);
                     } catch (error) {
                         console.error(`Error sending notification to ${user.fullName}:`, error);
                     }
@@ -156,3 +162,4 @@ export const sendLessonStartNotifications = functions.region('europe-west1').pub
         console.log("Finished lesson notification job.");
         return null;
     });
+
