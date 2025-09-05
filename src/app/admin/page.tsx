@@ -5,7 +5,7 @@ import * as React from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, Search, Plus, MoreHorizontal, Pencil, Trash2, UserPlus, ShieldCheck, Users } from 'lucide-react';
+import { Loader2, Search, Plus, MoreHorizontal, Pencil, Trash2, UserPlus, ShieldCheck, Users, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,6 +22,11 @@ import AppLayout from '@/components/app-layout';
 import AuthGuard from '@/components/auth-guard';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useRouter } from 'next/navigation';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 type User = {
   id: string;
@@ -49,6 +54,9 @@ function AdminPanelPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
+  const [selectedUserForSheet, setSelectedUserForSheet] = React.useState<User | null>(null);
+
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   React.useEffect(() => {
     if (!authLoading && !profileLoading) {
@@ -105,6 +113,7 @@ function AdminPanelPage() {
       }
       setIsFormOpen(false);
       setEditingUser(null);
+      setSelectedUserForSheet(null);
     } catch (error) {
       console.error("Error saving user: ", error);
       toast({ title: "Hata", description: "Kullanıcı kaydedilirken bir hata oluştu.", variant: "destructive" });
@@ -116,6 +125,7 @@ function AdminPanelPage() {
       // Note: This only deletes the Firestore record. For full deletion, a Cloud Function for Auth is needed.
       await deleteDoc(doc(db, 'users', userId));
       toast({ title: 'Başarılı!', description: 'Kullanıcı silindi.', variant: 'destructive' });
+      setSelectedUserForSheet(null);
     } catch (error) {
       console.error("Error deleting user: ", error);
       toast({ title: "Hata", description: "Kullanıcı silinirken bir hata oluştu.", variant: "destructive" });
@@ -152,6 +162,152 @@ function AdminPanelPage() {
   if (profile?.role !== 'admin') {
       return null;
   }
+  
+  const RoleBadge = ({ role }: { role: User['role'] }) => (
+    <Badge
+      variant="secondary"
+      className={cn(
+        'text-xs font-semibold',
+        role === 'admin'
+          ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+          : role === 'teacher'
+          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+      )}
+    >
+      {role}
+    </Badge>
+  );
+
+  const renderDesktopTable = () => (
+    <div className="border rounded-md">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Ad Soyad</TableHead>
+                <TableHead>E-posta</TableHead>
+                <TableHead>Rol</TableHead>
+                <TableHead className="text-right">İşlemler</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {totalLoading ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                    </TableCell>
+                </TableRow>
+                ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.fullName}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                        <RoleBadge role={user.role} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Menüyü aç</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openFormForEdit(user)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            <span>Düzenle</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className='text-destructive' onClick={() => handleDeleteUser(user.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Sil</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                    </TableRow>
+                ))
+                ) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                    Arama kriterlerine uygun sonuç bulunamadı.
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    </div>
+  );
+
+  const renderMobileList = () => (
+    <Sheet>
+        <div className="space-y-2">
+        {filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
+            <SheetTrigger asChild key={user.id} onClick={() => setSelectedUserForSheet(user)}>
+                <Card className="hover:bg-muted/50 cursor-pointer">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <Avatar>
+                                <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-semibold">{user.fullName}</p>
+                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </CardContent>
+                </Card>
+            </SheetTrigger>
+            ))
+        ) : (
+            <div className="text-center py-10">
+                <p>Arama kriterlerine uygun sonuç bulunamadı.</p>
+            </div>
+        )}
+        </div>
+        <SheetContent>
+            {selectedUserForSheet && (
+                <>
+                    <SheetHeader>
+                        <SheetTitle>{selectedUserForSheet.fullName}</SheetTitle>
+                        <SheetDescription>{selectedUserForSheet.email}</SheetDescription>
+                        <div className='pt-2'>
+                           <RoleBadge role={selectedUserForSheet.role} />
+                        </div>
+                    </SheetHeader>
+                    <div className="py-8 flex flex-col gap-4">
+                        <Button variant="outline" onClick={() => openFormForEdit(selectedUserForSheet)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Kullanıcıyı Düzenle
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Kullanıcıyı Sil
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Bu kullanıcıyı silmek istediğinize emin misiniz?</AlertDialogTitle>
+                                    <AlertDialogDescription>Bu işlem geri alınamaz. Kullanıcı kalıcı olarak silinecektir.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>İptal</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteUser(selectedUserForSheet.id)} className="bg-destructive hover:bg-destructive/90">
+                                        Evet, Sil
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </>
+            )}
+        </SheetContent>
+    </Sheet>
+  );
 
   return (
     <AppLayout>
@@ -193,68 +349,7 @@ function AdminPanelPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ad Soyad</TableHead>
-                    <TableHead>E-posta</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead className="text-right">İşlemler</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {totalLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">
-                        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredUsers.length > 0 ? (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.fullName}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.role === 'admin' ? 'bg-red-100 text-red-800' : 
-                            user.role === 'teacher' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Menüyü aç</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openFormForEdit(user)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                <span>Düzenle</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className='text-destructive' onClick={() => handleDeleteUser(user.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>Sil</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">
-                        Arama kriterlerine uygun sonuç bulunamadı.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            {isMobile ? renderMobileList() : renderDesktopTable()}
           </CardContent>
         </Card>
 
