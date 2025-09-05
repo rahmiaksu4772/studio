@@ -1,13 +1,9 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import type { Lesson, Day } from "../../src/lib/types";
-import { initializeAdmin } from "../../src/lib/firebase-admin";
+import { adminDb } from "../../src/lib/firebase-admin"; // Merkezi SDK örneğini kullan
 
-// Initialize the SDK only once using the centralized function.
-initializeAdmin();
-
-const db = admin.firestore();
+// SDK zaten merkezi olarak başlatıldığı için burada tekrar başlatmaya gerek yok.
 const messaging = admin.messaging();
 
 // This function triggers when a new document is created in the /notifications collection.
@@ -24,7 +20,7 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
         const {title, body} = notificationData;
 
         // 1. Get all users
-        const usersSnapshot = await db.collection("users").get();
+        const usersSnapshot = await adminDb.collection("users").get();
         if (usersSnapshot.empty) {
             console.log("No users to send notifications to.");
             return;
@@ -86,8 +82,8 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
 
                 // Clean up invalid tokens from Firestore
                 if (invalidTokens.length > 0) {
-                    const allUsers = await db.collection('users').get();
-                    const batch = db.batch();
+                    const allUsers = await adminDb.collection('users').get();
+                    const batch = adminDb.batch();
                     allUsers.forEach(userDoc => {
                         const userData = userDoc.data();
                         const userTokens = userData.fcmTokens || [];
