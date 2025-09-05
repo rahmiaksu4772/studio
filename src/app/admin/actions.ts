@@ -2,8 +2,9 @@
 
 import { db, auth } from '@/lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { doc, updateDoc, writeBatch, deleteDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 /**
  * Recursively deletes a collection and all its subcollections.
@@ -51,7 +52,12 @@ export async function deleteUserAction(userId: string) {
     // Finally, delete the main user document
     await deleteDoc(doc(db, 'users', userId));
     
-    return { success: true, message: 'Kullanıcının tüm Firestore verileri başarıyla silindi.' };
+    // We also need to delete the user from auth, which requires a cloud function
+    const functions = getFunctions();
+    const deleteUserFn = httpsCallable(functions, 'deleteUser');
+    await deleteUserFn({ uid: userId });
+
+    return { success: true, message: 'Kullanıcının tüm verileri ve kimlik doğrulaması başarıyla silindi.' };
   } catch (error: any) {
     console.error('Error deleting user data:', error);
     return { success: false, message: 'Kullanıcı verileri silinirken bir hata oluştu: ' + error.message };
@@ -62,13 +68,20 @@ export async function deleteUserAction(userId: string) {
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
     const userRef = doc(db, 'users', userId);
+    
+    // First, update the role in Firestore document
     await updateDoc(userRef, { role: newRole });
+    
+    // Then, call the cloud function to set the custom claim
+    const functions = getFunctions();
+    const setAdminClaim = httpsCallable(functions, 'setAdminClaim');
+    await setAdminClaim({ uid: userId, isAdmin: newRole === 'admin' });
 
-    return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
+    return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi ve yetkileri ayarlandı.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
     // Firestore security rules will reject this if the user is not an admin.
-    if (error.code === 'permission-denied') {
+    if (error.code === 'permission-denied' || (error.details && error.details.code === 'permission-denied')) {
         return { success: false, message: 'Bu işlemi yapma yetkiniz yok. Lütfen yönetici hesabıyla giriş yaptığınızdan emin olun veya Firestore kurallarınızı kontrol edin.' };
     }
     return { success: false, message: error.message || 'Kullanıcı rolü güncellenirken bir hata oluştu.' };
