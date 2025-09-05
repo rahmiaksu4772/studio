@@ -1,18 +1,27 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
+const adminDb = admin.firestore();
 const adminAuth = admin.auth();
 
 // This function sets a custom claim on a user to grant/revoke admin privileges.
 // It can only be called by an already authenticated admin.
 export const setAdminClaim = functions.region('europe-west1').https.onCall(async (data, context) => {
-    // Check if the caller is authenticated and is an admin.
-    // The very first admin is an exception and can call this on anyone.
-    const isFirstAdmin = context.auth?.token.email === 'rahmi.aksu.47@gmail.com';
+    // Check if the caller is authenticated
+    if (!context.auth) {
+        throw new functions.https.HttpsError(
+            'unauthenticated',
+            'Bu işlemi yapmak için kimliğinizin doğrulanması gerekiyor.'
+        );
+    }
     
-    if (!context.auth || (!context.auth.token.admin && !isFirstAdmin)) {
+    // Allow the first admin to set claims without being an admin yet
+    const isFirstAdmin = context.auth.token.email === 'rahmi.aksu.47@gmail.com';
+    
+    if (context.auth.token.admin !== true && !isFirstAdmin) {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
@@ -28,10 +37,8 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
     }
 
     try {
-        // Set the custom claim on the target user.
         await adminAuth.setCustomUserClaims(uid, { admin: isAdmin });
         
-        // Return a success message.
         return { 
             message: `Başarılı! Kullanıcı ${uid} için admin yetkisi ${isAdmin ? 'verildi' : 'kaldırıldı'}.`
         };
@@ -45,10 +52,10 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
     }
 });
 
-// This function deletes a user from Firebase Authentication
+// This function deletes a user from Firebase Authentication and their Firestore document.
 // It can only be called by an authenticated admin.
 export const deleteUser = functions.region('europe-west1').https.onCall(async (data, context) => {
-    if (!context.auth?.token.admin) {
+    if (context.auth?.token.admin !== true) {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
@@ -64,13 +71,29 @@ export const deleteUser = functions.region('europe-west1').https.onCall(async (d
     }
 
     try {
+        // Attempt to delete user from Auth first
         await adminAuth.deleteUser(uid);
-        return { message: `Kullanıcı ${uid} başarıyla kimlik doğrulama sisteminden silindi.` };
     } catch (error: any) {
-        console.error(`Kullanıcı silinirken hata oluştu: uid=${uid}`, error);
+        console.error(`Kullanıcı Auth'dan silinirken hata oluştu: uid=${uid}`, error);
+        // If the user is not found in Auth, it might have been already deleted.
+        // We can proceed to delete the Firestore data.
+        if (error.code !== 'auth/user-not-found') {
+            throw new functions.https.HttpsError(
+                'internal',
+                'Kullanıcı kimliği silinirken bir sunucu hatası oluştu: ' + error.message
+            );
+        }
+    }
+
+    try {
+        // Then delete the user document from Firestore
+        await adminDb.collection('users').doc(uid).delete();
+        return { message: `Kullanıcı ${uid} ve tüm verileri başarıyla silindi.` };
+    } catch(error: any) {
+        console.error(`Kullanıcı Firestore'dan silinirken hata oluştu: uid=${uid}`, error);
         throw new functions.https.HttpsError(
             'internal',
-            'Kullanıcı silinirken bir sunucu hatası oluştu: ' + error.message
+            'Kullanıcı verileri silinirken bir sunucu hatası oluştu: ' + error.message
         );
     }
 });
