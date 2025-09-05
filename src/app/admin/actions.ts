@@ -3,15 +3,9 @@
 
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeAdmin } from '@/lib/firebase-admin';
+import { adminDb, adminAuth } from '@/lib/firebase-admin'; // Merkezi SDK örneğini kullan
 import type { UserRole } from '@/lib/types';
-import { sendPasswordResetEmail } from 'firebase/auth'; // Client auth for one specific action
-
-// Initialize Firebase Admin SDK ONCE at the module level.
-// This ensures that all functions in this file share the same initialized instance.
-const adminApp = initializeAdmin();
-const auth = getAuth(adminApp);
-const adminDb = getFirestore(adminApp);
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 /**
  * Recursively deletes a collection and all its subcollections.
@@ -102,7 +96,7 @@ export async function deleteUserAction(userId: string) {
 
     // 5. Delete user from Firebase Authentication
     // This is done last to ensure all data is cleaned up first.
-    await auth.deleteUser(userId);
+    await adminAuth.deleteUser(userId);
 
     return { success: true, message: 'Kullanıcı ve ilişkili tüm verileri başarıyla silindi.' };
   } catch (error: any) {
