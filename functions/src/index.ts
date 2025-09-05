@@ -2,11 +2,10 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import type { Lesson, Day } from "../../src/lib/types";
+import { initializeAdmin } from "../../src/lib/firebase-admin";
 
-// Initialize the SDK only once
-if (admin.apps.length === 0) {
-    admin.initializeApp();
-}
+// Initialize the SDK only once using the centralized function.
+initializeAdmin();
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -107,3 +106,4 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
             console.error("Error sending notifications:", error);
         }
     });
+
