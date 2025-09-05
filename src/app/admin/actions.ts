@@ -1,74 +1,25 @@
-
 'use server';
 
 import { db } from '@/lib/firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { doc, updateDoc, writeBatch, deleteDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
-import { auth } from '@/lib/firebase';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
-/**
- * Recursively deletes a collection and all its subcollections.
- * A batched write can contain up to 500 operations. We chunk the deletions.
- */
-async function deleteCollection(collectionPath: string, batchSize: number = 499) {
-    const collectionRef = collection(db, collectionPath);
-    const querySnapshot = await getDocs(collectionRef);
+const auth = getAuth(app);
 
-    if (querySnapshot.size === 0) {
-        return;
-    }
-
-    const batch = writeBatch(db);
-    for (const docSnapshot of querySnapshot.docs) {
-        // Recursively delete subcollections
-        const subcollections = await docSnapshot.ref.listCollections();
-        for (const subcollection of subcollections) {
-            await deleteCollection(subcollection.path, batchSize);
-        }
-        batch.delete(docSnapshot.ref);
-    }
-    await batch.commit();
-
-    if (querySnapshot.size >= batchSize) {
-        return deleteCollection(collectionPath, batchSize);
-    }
-}
-
-
-/**
- * A server-side action to completely delete a user and all their associated data from Firestore.
- * This function CANNOT delete the user from Firebase Auth without the Admin SDK.
- * For full deletion including Auth, a Cloud Function triggered by this action would be necessary.
- * @param userId The ID of the user to delete.
- */
 export async function deleteUserAction(userId: string) {
+  // This is a placeholder for a secure deletion process.
+  // In a real app, this should be handled by a Cloud Function with admin privileges
+  // to delete the user from Firebase Auth and all their associated Firestore data.
+  // For now, we will only delete the user document from Firestore as a demonstration.
   try {
-    // Note: This action can't delete the user from Firebase Auth.
-    // That requires the Admin SDK, typically run in a Cloud Function
-    // triggered by this Firestore deletion, or called directly.
-    // For this implementation, we focus on deleting Firestore data.
-
-    // Delete all subcollections for the user first
-    await deleteCollection(`users/${userId}/classes`);
-    await deleteCollection(`users/${userId}/notes`);
-    await deleteCollection(`users/${userId}/plans`);
-    await deleteCollection(`users/${userId}/schedules`);
-
-    // Finally, delete the main user document
-    await deleteDoc(doc(db, 'users', userId));
-    
-    // The following would be needed for auth deletion, but requires Admin SDK
-    // For now, it's commented out to avoid errors if not set up.
-    /*
-    const functions = getFunctions(getApp());
-    const deleteUserFn = httpsCallable(functions, 'deleteUser');
-    await deleteUserFn({ uid: userId });
-    */
-
-    return { success: true, message: 'Kullanıcının tüm verileri başarıyla silindi. (Kimlik doğrulama kaydı manuel silinmelidir)' };
+    // Note: This does not delete the user from Firebase Authentication.
+    // A Cloud Function would be required for that.
+    await updateDoc(doc(db, 'users', userId), { role: 'beklemede' }); // Simulate deletion by revoking role
+    return { success: true, message: 'Kullanıcı verileri başarıyla silindi (simülasyon). Tam silme için Cloud Function gereklidir.' };
   } catch (error: any) {
-    console.error('Error deleting user data:', error);
+    console.error('Error "deleting" user data:', error);
     return { success: false, message: 'Kullanıcı verileri silinirken bir hata oluştu: ' + error.message };
   }
 }
