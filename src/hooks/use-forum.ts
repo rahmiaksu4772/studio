@@ -144,7 +144,7 @@ export const addPost = async (postData: Omit<ForumPost, 'id' | 'date'>) => {
     }
 };
 
-export const deletePost = async (postId: string) => {
+const deletePost = async (postId: string) => {
     try {
         const batch = writeBatch(db);
         const postRef = doc(db, 'forum', postId);
@@ -272,3 +272,4 @@ export const toggleUpvote = async (postId: string, replyId: string, userId: stri
         console.error("Error toggling upvote:", error);
     }
 }
+

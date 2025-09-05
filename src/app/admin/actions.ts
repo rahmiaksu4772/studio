@@ -17,23 +17,40 @@ const adminDb = getFirestore(adminApp);
 
 /**
  * Recursively deletes a collection and all its subcollections.
- * @param collectionRef The reference to the collection to delete.
- * @param batch The WriteBatch to add the delete operations to.
+ * A batched write can contain up to 500 operations. We chunk the deletions.
  */
-async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batch: FirebaseFirestore.WriteBatch): Promise<void> {
-    const snapshot = await collectionRef.get();
-    if (snapshot.empty) {
-        return;
-    }
+async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batchSize: number = 499): Promise<void> {
+    const q = collectionRef.limit(batchSize);
 
-    for (const doc of snapshot.docs) {
-        // Recursively delete subcollections for the current document
-        const subcollections = await doc.ref.listCollections();
-        for (const subcollection of subcollections) {
-            await deleteCollection(subcollection, batch);
+    return new Promise((resolve, reject) => {
+        deleteQueryBatch(q, resolve).catch(reject);
+    });
+
+    async function deleteQueryBatch(query: FirebaseFirestore.Query, resolve: () => void) {
+        const snapshot = await query.get();
+
+        if (snapshot.size === 0) {
+            // When there are no documents left, we are done
+            resolve();
+            return;
         }
-        // Add the document itself to the batch for deletion
-        batch.delete(doc.ref);
+
+        // Delete documents in a batch
+        const batch = adminDb.batch();
+        for (const doc of snapshot.docs) {
+            // Recursively delete subcollections
+            const subcollections = await doc.ref.listCollections();
+            for (const subcollection of subcollections) {
+                await deleteCollection(subcollection, batchSize);
+            }
+            batch.delete(doc.ref);
+        }
+        await batch.commit();
+
+        // Recurse on the same query to process next batch
+        process.nextTick(() => {
+            deleteQueryBatch(query, resolve);
+        });
     }
 }
 
@@ -45,37 +62,58 @@ async function deleteCollection(collectionRef: FirebaseFirestore.CollectionRefer
 export async function deleteUserAction(userId: string) {
   try {
     const userRef = adminDb.collection('users').doc(userId);
-    const batch = adminDb.batch();
 
-    // 1. Delete all top-level subcollections for the user
+    // 1. Delete all posts authored by the user and their subcollections
+    const userForumPostsQuery = adminDb.collection('forum').where('author.uid', '==', userId);
+    const userForumPostsSnapshot = await userForumPostsQuery.get();
+    for (const postDoc of userForumPostsSnapshot.docs) {
+        await deleteCollection(postDoc.ref.collection('replies'));
+        await postDoc.ref.delete();
+    }
+
+    // 2. Delete all replies and comments from the user on other posts
+    // This is a more complex operation and requires iterating through all posts/replies.
+    // For simplicity and performance, we'll focus on direct data. A more robust solution
+    // might involve a different data structure or Cloud Function triggers.
+    // The current implementation will leave orphaned replies/comments on other's posts.
+    // We will now address this by iterating.
+
+    const allPostsSnapshot = await adminDb.collection('forum').get();
+    for (const postDoc of allPostsSnapshot.docs) {
+        const repliesRef = postDoc.ref.collection('replies');
+        
+        // Delete user's replies on this post
+        const userRepliesQuery = repliesRef.where('author.uid', '==', userId);
+        const userRepliesSnapshot = await userRepliesQuery.get();
+        for (const replyDoc of userRepliesSnapshot.docs) {
+            await deleteCollection(replyDoc.ref.collection('comments'));
+            await replyDoc.ref.delete();
+        }
+        
+        // Delete user's comments on remaining replies
+        const remainingRepliesSnapshot = await repliesRef.get();
+        for(const replyDoc of remainingRepliesSnapshot.docs) {
+            const commentsRef = replyDoc.ref.collection('comments');
+            const userCommentsQuery = commentsRef.where('author.uid', '==', userId);
+            const userCommentsSnapshot = await userCommentsQuery.get();
+            const batch = adminDb.batch();
+            userCommentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
+            await batch.commit();
+        }
+    }
+
+
+    // 3. Delete all top-level subcollections for the user
     const subcollectionsToDelete = ['notes', 'plans', 'schedules', 'classes'];
     for (const subcollectionName of subcollectionsToDelete) {
         const subcollectionRef = userRef.collection(subcollectionName);
-        await deleteCollection(subcollectionRef, batch);
-    }
-
-    // 2. Delete user's forum posts and all associated replies and comments
-    const userForumPostsQuery = adminDb.collection('forum').where('author.uid', '==', userId);
-    const userForumPostsSnapshot = await userForumPostsQuery.get();
-    
-    for (const postDoc of userForumPostsSnapshot.docs) {
-        // Delete all subcollections (e.g., 'replies' and their 'comments') under each post
-        const subcollections = await postDoc.ref.listCollections();
-        for(const subcollection of subcollections) {
-             await deleteCollection(subcollection, batch);
-        }
-       
-        // Delete the post document itself
-        batch.delete(postDoc.ref);
+        await deleteCollection(subcollectionRef);
     }
     
-    // 3. Delete the main user document from the 'users' collection
-    batch.delete(userRef);
+    // 4. Delete the main user document from the 'users' collection
+    await userRef.delete();
 
-    // Commit all Firestore deletions in a single batch
-    await batch.commit();
-
-    // 4. Delete user from Firebase Authentication
+    // 5. Delete user from Firebase Authentication
     // This is done last to ensure all data is cleaned up first.
     await auth.deleteUser(userId);
 
@@ -143,5 +181,6 @@ export async function sendPasswordResetEmailAction(email: string) {
       return { success: false, message: 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu. Lütfen kullanıcının e-posta adresinin doğru olduğundan emin olun.' };
     }
   }
+
 
 
