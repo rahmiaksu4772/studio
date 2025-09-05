@@ -5,22 +5,29 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import { app } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 
-const auth = getAuth(app);
+
+// Initialize functions for the correct region
+const functions = getFunctions(getApp(), 'europe-west1');
+
+const setAdminClaimFunction = httpsCallable(functions, 'setAdminClaim');
+const deleteUserFunction = httpsCallable(functions, 'deleteUser');
+
 
 export async function deleteUserAction(userId: string) {
-  // This is a placeholder for a secure deletion process.
-  // In a real app, this should be handled by a Cloud Function with admin privileges
-  // to delete the user from Firebase Auth and all their associated Firestore data.
-  // For now, we will only delete the user document from Firestore as a demonstration.
   try {
-    // Note: This does not delete the user from Firebase Authentication.
-    // A Cloud Function would be required for that.
-    await updateDoc(doc(db, 'users', userId), { role: 'beklemede' }); // Simulate deletion by revoking role
-    return { success: true, message: 'Kullanıcı verileri başarıyla silindi (simülasyon). Tam silme için Cloud Function gereklidir.' };
+    // This will now call the Cloud Function to delete the user from Auth
+    await deleteUserFunction({ uid: userId });
+    
+    // We should also delete their user document in Firestore
+    await doc(db, 'users', userId).delete();
+
+    return { success: true, message: 'Kullanıcı ve tüm verileri başarıyla silindi.' };
   } catch (error: any) {
-    console.error('Error "deleting" user data:', error);
-    return { success: false, message: 'Kullanıcı verileri silinirken bir hata oluştu: ' + error.message };
+    console.error('Error deleting user:', error);
+    return { success: false, message: 'Kullanıcı silinirken bir hata oluştu: ' + (error.message || 'Bilinmeyen sunucu hatası.') };
   }
 }
 
@@ -28,16 +35,24 @@ export async function deleteUserAction(userId: string) {
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
     const userRef = doc(db, 'users', userId);
+
+    // Set the role in the Firestore document
     await updateDoc(userRef, { role: newRole });
+
+    // Set a custom claim using the Cloud Function for Auth-level role
+    // We only set the 'admin' claim, other roles don't need special claims
+    await setAdminClaimFunction({ uid: userId, isAdmin: newRole === 'admin' });
+
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
-    return { success: false, message: 'Kullanıcı rolü güncellenirken bir hata oluştu: ' + error.message };
+    return { success: false, message: 'Kullanıcı rolü güncellenirken bir hata oluştu: ' + (error.message || 'Bilinmeyen sunucu hatası.') };
   }
 }
 
 
 export async function sendPasswordResetEmailAction(email: string) {
+    const auth = getAuth(app);
     try {
         await sendPasswordResetEmail(auth, email);
         return { success: true, message: `Şifre sıfırlama e-postası ${email} adresine gönderildi.` };
