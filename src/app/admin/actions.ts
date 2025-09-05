@@ -20,21 +20,23 @@ const adminDb = getFirestore(adminApp);
  * @param collectionRef The reference to the collection to delete.
  * @param batch The WriteBatch to add the delete operations to.
  */
-async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batch: FirebaseFirestore.WriteBatch) {
+async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batch: FirebaseFirestore.WriteBatch): Promise<void> {
     const snapshot = await collectionRef.get();
     if (snapshot.empty) {
         return;
     }
 
     for (const doc of snapshot.docs) {
-        // Recursively delete subcollections
+        // Recursively delete subcollections for the current document
         const subcollections = await doc.ref.listCollections();
         for (const subcollection of subcollections) {
             await deleteCollection(subcollection, batch);
         }
+        // Add the document itself to the batch for deletion
         batch.delete(doc.ref);
     }
 }
+
 
 /**
  * A server-side action to completely delete a user and all their associated data from Firestore and Auth.
@@ -45,7 +47,7 @@ export async function deleteUserAction(userId: string) {
     const userRef = adminDb.collection('users').doc(userId);
     const batch = adminDb.batch();
 
-    // 1. Delete all top-level subcollections for the user (notes, plans, schedules, classes)
+    // 1. Delete all top-level subcollections for the user
     const subcollectionsToDelete = ['notes', 'plans', 'schedules', 'classes'];
     for (const subcollectionName of subcollectionsToDelete) {
         const subcollectionRef = userRef.collection(subcollectionName);
@@ -53,24 +55,28 @@ export async function deleteUserAction(userId: string) {
     }
 
     // 2. Delete user's forum posts and all associated replies and comments
-    // CORRECTED: Use 'author.uid' instead of 'author.id'
     const userForumPostsQuery = adminDb.collection('forum').where('author.uid', '==', userId);
     const userForumPostsSnapshot = await userForumPostsQuery.get();
     
     for (const postDoc of userForumPostsSnapshot.docs) {
-        // Delete all subcollections (replies and their comments) for each post
-        await deleteCollection(postDoc.ref.collection('replies'), batch);
-        batch.delete(postDoc.ref); // Delete the post itself
+        // Delete all subcollections (e.g., 'replies' and their 'comments') under each post
+        const subcollections = await postDoc.ref.listCollections();
+        for(const subcollection of subcollections) {
+             await deleteCollection(subcollection, batch);
+        }
+       
+        // Delete the post document itself
+        batch.delete(postDoc.ref);
     }
     
-    // 3. Delete the main user document
+    // 3. Delete the main user document from the 'users' collection
     batch.delete(userRef);
 
-    // Commit all Firestore deletions
+    // Commit all Firestore deletions in a single batch
     await batch.commit();
 
     // 4. Delete user from Firebase Authentication
-    // This is done last to ensure data is cleaned up first.
+    // This is done last to ensure all data is cleaned up first.
     await auth.deleteUser(userId);
 
     return { success: true, message: 'Kullanıcı ve ilişkili tüm verileri başarıyla silindi.' };
@@ -137,4 +143,5 @@ export async function sendPasswordResetEmailAction(email: string) {
       return { success: false, message: 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu. Lütfen kullanıcının e-posta adresinin doğru olduğundan emin olun.' };
     }
   }
+
 
