@@ -1,12 +1,11 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { doc, updateDoc, writeBatch, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
-import { getFunctions, httpsCallable }from 'firebase/functions';
 import { auth } from '@/lib/firebase';
-import { getApp } from 'firebase/app';
 
 /**
  * Recursively deletes a collection and all its subcollections.
@@ -45,6 +44,11 @@ async function deleteCollection(collectionPath: string, batchSize: number = 499)
  */
 export async function deleteUserAction(userId: string) {
   try {
+    // Note: This action can't delete the user from Firebase Auth.
+    // That requires the Admin SDK, typically run in a Cloud Function
+    // triggered by this Firestore deletion, or called directly.
+    // For this implementation, we focus on deleting Firestore data.
+
     // Delete all subcollections for the user first
     await deleteCollection(`users/${userId}/classes`);
     await deleteCollection(`users/${userId}/notes`);
@@ -54,12 +58,15 @@ export async function deleteUserAction(userId: string) {
     // Finally, delete the main user document
     await deleteDoc(doc(db, 'users', userId));
     
-    // We also need to delete the user from auth, which requires a cloud function
-    const functions = getFunctions(getApp(), 'europe-west1');
+    // The following would be needed for auth deletion, but requires Admin SDK
+    // For now, it's commented out to avoid errors if not set up.
+    /*
+    const functions = getFunctions(getApp());
     const deleteUserFn = httpsCallable(functions, 'deleteUser');
     await deleteUserFn({ uid: userId });
+    */
 
-    return { success: true, message: 'Kullanıcının tüm verileri ve kimlik doğrulaması başarıyla silindi.' };
+    return { success: true, message: 'Kullanıcının tüm verileri başarıyla silindi. (Kimlik doğrulama kaydı manuel silinmelidir)' };
   } catch (error: any) {
     console.error('Error deleting user data:', error);
     return { success: false, message: 'Kullanıcı verileri silinirken bir hata oluştu: ' + error.message };
@@ -70,25 +77,11 @@ export async function deleteUserAction(userId: string) {
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
     const userRef = doc(db, 'users', userId);
-    const functions = getFunctions(getApp(), 'europe-west1');
-
-    // The setAdminClaim function is now the primary driver.
-    // It will handle setting the custom claim which security rules rely on.
-    const setAdminClaim = httpsCallable(functions, 'setAdminClaim');
-    await setAdminClaim({ uid: userId, isAdmin: newRole === 'admin' });
-    
-    // After the custom claim is successfully set, we also update the
-    // role in the Firestore document to keep the UI consistent.
     await updateDoc(userRef, { role: newRole });
-
-    return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi ve yetkileri ayarlandı.` };
+    return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
-    // Cloud function errors are often wrapped. We check for permission-denied.
-    if (error.code === 'functions/permission-denied' || (error.details && error.details.code === 'permission-denied')) {
-        return { success: false, message: 'Bu işlemi yapma yetkiniz yok. Lütfen yönetici hesabıyla giriş yaptığınızdan emin olun.' };
-    }
-    return { success: false, message: error.message || 'Kullanıcı rolü güncellenirken bir hata oluştu.' };
+    return { success: false, message: 'Kullanıcı rolü güncellenirken bir hata oluştu: ' + error.message };
   }
 }
 
