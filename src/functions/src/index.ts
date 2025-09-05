@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
@@ -6,8 +7,10 @@ admin.initializeApp();
 const adminDb = admin.firestore();
 const adminAuth = admin.auth();
 
+// This is the master admin email that can grant the first admin role.
+const MASTER_ADMIN_EMAIL = "rahmi.aksu.47@gmail.com";
+
 // This function sets a custom claim on a user to grant/revoke admin privileges.
-// It can only be called by an already authenticated admin.
 export const setAdminClaim = functions.region('europe-west1').https.onCall(async (data, context) => {
     // Check if the caller is authenticated
     if (!context.auth) {
@@ -16,9 +19,13 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
             'Bu işlemi yapmak için kimliğinizin doğrulanması gerekiyor.'
         );
     }
+    
+    // The caller must be an admin to set claims for others,
+    // UNLESS they are the master admin, who can assign the first admin role.
+    const isMasterAdmin = context.auth.token.email === MASTER_ADMIN_EMAIL;
+    const isCallerAdmin = context.auth.token.admin === true;
 
-    // The caller must be an admin to set claims for others.
-    if (context.auth.token.admin !== true) {
+    if (!isCallerAdmin && !isMasterAdmin) {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
@@ -34,7 +41,12 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
     }
 
     try {
+        // Set the custom claim on the user's Auth token
         await adminAuth.setCustomUserClaims(uid, { admin: isAdmin });
+
+        // Also update the role in the user's Firestore document for UI consistency
+        const userRef = adminDb.collection('users').doc(uid);
+        await userRef.update({ role: isAdmin ? 'admin' : 'teacher' });
 
         return {
             message: `Başarılı! Kullanıcı ${uid} için admin yetkisi ${isAdmin ? 'verildi' : 'kaldırıldı'}.`

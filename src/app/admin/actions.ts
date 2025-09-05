@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -5,7 +6,7 @@ import { getApp } from 'firebase/app';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import type { UserRole } from '@/lib/types';
 import { app, db } from '@/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 
 // Initialize functions, specifying the correct region.
@@ -13,19 +14,15 @@ const functions = getFunctions(getApp(), 'europe-west1');
 
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
-    // First, update the role in the Firestore document for display purposes.
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, { role: newRole });
-
-    // Then, call the Cloud Function to set the custom claim for security rules.
+    // Call the Cloud Function to set the custom claim for security rules.
     const setAdminClaimFunction = httpsCallable(functions, 'setAdminClaim');
     await setAdminClaimFunction({ uid: userId, isAdmin: newRole === 'admin' });
 
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
-    const message = error.details?.message || error.message || 'Bir hata oluştu.';
-    if (message.includes('PERMISSION_DENIED')) {
+    const message = error.message || 'Bir hata oluştu.';
+    if (message.includes('permission-denied') || message.includes('PERMISSION_DENIED')) {
          return { success: false, message: 'Bu işlemi yapmak için yönetici yetkiniz bulunmuyor.' };
     }
     return { success: false, message: `Kullanıcı rolü güncellenirken bir hata oluştu: ${message}` };
@@ -40,8 +37,8 @@ export async function deleteUserAction(userId: string) {
         return { success: true, message: (result.data as any).message || 'Kullanıcı başarıyla silindi.' };
     } catch (error: any) {
         console.error('Error deleting user:', error);
-        const message = error.details?.message || error.message || 'Bir hata oluştu.';
-        if (message.includes('PERMISSION_DENIED')) {
+        const message = error.message || 'Bir hata oluştu.';
+        if (message.includes('permission-denied') || message.includes('PERMISSION_DENIED')) {
             return { success: false, message: 'Bu işlemi yapmak için admin yetkiniz bulunmuyor.' };
         }
         return { success: false, message: `Kullanıcı silinirken bir hata oluştu: ${message}` };
