@@ -8,8 +8,6 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-const dayOrder: Day[] = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-
 // This function triggers when a new document is created in the /notifications collection.
 export const sendNotificationOnCreate = functions.region('europe-west1').firestore
     .document("notifications/{notificationId}")
@@ -67,99 +65,42 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
         try {
             const response = await messaging.sendEachForMulticast(message);
             console.log(`${response.successCount} messages were sent successfully.`);
+            
             if (response.failureCount > 0) {
                 console.log(`${response.failureCount} messages failed to send.`);
                 
-                // Optional: Clean up invalid tokens
-                const tokensToDelete: Promise<any>[] = [];
+                const invalidTokens: string[] = [];
                 response.responses.forEach((resp, idx) => {
                     if (!resp.success && resp.error) {
                        const errorCode = resp.error.code;
                        if (errorCode === 'messaging/invalid-registration-token' ||
                            errorCode === 'messaging/registration-token-not-registered') {
                            const failedToken = uniqueTokens[idx];
+                           invalidTokens.push(failedToken);
                            console.log('Invalid token found:', failedToken, 'Error:', errorCode);
-                           // Here you would implement logic to find which user has this token and remove it.
-                           // This is complex, so for now we'll just log it.
                        }
                     }
                 });
+
+                // Clean up invalid tokens from Firestore
+                if (invalidTokens.length > 0) {
+                    const allUsers = await db.collection('users').get();
+                    const batch = db.batch();
+                    allUsers.forEach(userDoc => {
+                        const userData = userDoc.data();
+                        const userTokens = userData.fcmTokens || [];
+                        const tokensToKeep = userTokens.filter((token: string) => !invalidTokens.includes(token));
+
+                        // If the token array has changed, update the document
+                        if (tokensToKeep.length < userTokens.length) {
+                             batch.update(userDoc.ref, { fcmTokens: tokensToKeep });
+                        }
+                    });
+                    await batch.commit();
+                    console.log(`Cleaned up ${invalidTokens.length} invalid tokens from user profiles.`);
+                }
             }
         } catch (error) {
             console.error("Error sending notifications:", error);
         }
     });
-
-// This function runs every 5 minutes to check for upcoming lessons and send notifications.
-export const sendLessonStartNotifications = functions.region('europe-west1').pubsub
-    .schedule('every 5 minutes')
-    .timeZone('Europe/Istanbul') // Set the timezone for the function
-    .onRun(async (context) => {
-        const now = new Date();
-        const currentDayName = dayOrder[now.getDay()];
-        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        console.log(`Running job for: ${currentDayName} at ${currentTime}`);
-
-        const usersSnapshot = await db.collection('users').get();
-        
-        if (usersSnapshot.empty) {
-            console.log("No users found.");
-            return;
-        }
-
-        for (const userDoc of usersSnapshot.docs) {
-            const user = userDoc.data();
-            if (!user.fcmTokens || user.fcmTokens.length === 0) {
-                // console.log(`User ${user.fullName} has no FCM tokens. Skipping.`);
-                continue;
-            }
-
-            const scheduleDocRef = db.collection(`users/${userDoc.id}/schedules`).doc('weekly-lessons-schedule');
-            const scheduleDoc = await scheduleDocRef.get();
-
-            if (!scheduleDoc.exists) {
-                // console.log(`User ${user.fullName} has no schedule. Skipping.`);
-                continue;
-            }
-            
-            const scheduleData = scheduleDoc.data();
-            if (!scheduleData) {
-                // console.log(`User ${user.fullName} has an empty schedule document. Skipping.`);
-                continue;
-            }
-
-            const todaysLessons: Lesson[] = scheduleData[currentDayName] || [];
-
-            for (const lesson of todaysLessons) {
-                // Only send notification if the lesson start time matches the current time exactly.
-                if (lesson.time === currentTime) {
-                    console.log(`MATCH FOUND: Sending notification to ${user.fullName} for lesson ${lesson.subject} at ${lesson.time}`);
-
-                    const message = {
-                        notification: {
-                            title: 'İyi Dersler',
-                            body: `${lesson.class} ${lesson.subject} dersi zamanı geldi. Kazanımlara ulaşmak için tıklayınız.`
-                        },
-                        tokens: user.fcmTokens,
-                        webpush: {
-                            notification: {
-                                icon: "https://takip-k0hdb.web.app/favicon.ico",
-                            },
-                        },
-                    };
-                    
-                    try {
-                        await messaging.sendEachForMulticast(message);
-                        console.log(`Notification sent successfully to ${user.fullName} for lesson ${lesson.subject}.`);
-                    } catch (error) {
-                        console.error(`Error sending notification to ${user.fullName}:`, error);
-                    }
-                }
-            }
-        }
-        
-        console.log("Finished lesson notification job.");
-        return null;
-    });
-

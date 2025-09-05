@@ -6,7 +6,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeAdmin } from '@/lib/firebase-admin';
 import type { UserRole, ForumAuthor } from '@/lib/types';
 import { getMessaging } from 'firebase-admin/messaging';
-import { addDoc, collection, doc, deleteDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, deleteDoc, query, getDocs, writeBatch } from 'firebase/firestore';
 import { db, auth as clientAuth } from '@/lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 
@@ -17,25 +17,57 @@ const auth = getAuth(adminApp);
 const adminDb = getFirestore(adminApp);
 const messaging = getMessaging(adminApp);
 
+async function deleteCollection(collectionPath: string, batch: FirebaseFirestore.WriteBatch) {
+    const collectionRef = adminDb.collection(collectionPath);
+    const snapshot = await collectionRef.get();
+
+    if (snapshot.empty) {
+        return;
+    }
+
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+}
+
 export async function deleteUserAction(userId: string) {
   try {
-    // Delete user from Firestore
-    // This requires a recursive delete function if there are subcollections.
-    // Firestore Admin SDK does not have a built-in recursive delete.
-    // For simplicity, we'll delete the main user doc.
-    // In a production app, you MUST implement recursive deletion for subcollections (classes, students, records, etc.)
-    // For now, let's delete the user profile doc.
+    const batch = writeBatch(db);
+
+    // --- Delete all user-related data from Firestore ---
+
+    // 1. Delete all subcollections for each class
+    const classesRef = collection(db, `users/${userId}/classes`);
+    const classesSnapshot = await getDocs(classesRef);
+    for (const classDoc of classesSnapshot.docs) {
+      // Delete records and students for each class
+      await deleteCollection(`users/${userId}/classes/${classDoc.id}/records`, batch);
+      await deleteCollection(`users/${userId}/classes/${classDoc.id}/students`, batch);
+      // Delete the class doc itself
+      batch.delete(classDoc.ref);
+    }
+    
+    // 2. Delete top-level subcollections (notes, plans, schedules)
+    await deleteCollection(`users/${userId}/notes`, batch);
+    await deleteCollection(`users/${userId}/plans`, batch);
+    await deleteCollection(`users/${userId}/schedules`, batch);
+
+    // Commit the deletions for subcollections
+    await batch.commit();
+
+    // 3. Delete the main user document after subcollections are handled
     await adminDb.collection('users').doc(userId).delete();
 
-    // Delete user from Firebase Authentication
+    // 4. Delete user from Firebase Authentication
     await auth.deleteUser(userId);
 
-    return { success: true, message: 'Kullanıcı ve verileri başarıyla silindi.' };
+    return { success: true, message: 'Kullanıcı ve ilişkili tüm verileri başarıyla silindi.' };
   } catch (error: any) {
-    console.error('Error deleting user:', error);
+    console.error('Error deleting user and their data:', error);
     return { success: false, message: error.message || 'Kullanıcı silinirken bir hata oluştu.' };
   }
 }
+
 
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
