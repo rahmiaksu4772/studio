@@ -14,9 +14,14 @@ const functions = getFunctions(getApp(), 'europe-west1');
 
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
+    const roleToSet = newRole === 'admin' ? true : (newRole === 'teacher' ? false : null);
+    if (roleToSet === null) {
+         return { success: false, message: 'Geçersiz rol ataması.' };
+    }
+
     // Call the Cloud Function to set the custom claim for security rules.
     const setAdminClaimFunction = httpsCallable(functions, 'setAdminClaim');
-    await setAdminClaimFunction({ uid: userId, isAdmin: newRole === 'admin' });
+    await setAdminClaimFunction({ uid: userId, isAdmin: roleToSet });
 
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
@@ -74,3 +79,4 @@ export const deleteNotificationAction = async (notificationId: string) => {
         return { success: false, message: "Duyuru silinirken bir hata oluştu." };
     }
 }
+
