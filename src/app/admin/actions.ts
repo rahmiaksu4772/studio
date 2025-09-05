@@ -46,13 +46,14 @@ export async function deleteUserAction(userId: string) {
     const batch = adminDb.batch();
 
     // 1. Delete all top-level subcollections for the user (notes, plans, schedules, classes)
-    const subcollections = ['notes', 'plans', 'schedules', 'classes'];
-    for (const subcollectionName of subcollections) {
+    const subcollectionsToDelete = ['notes', 'plans', 'schedules', 'classes'];
+    for (const subcollectionName of subcollectionsToDelete) {
         const subcollectionRef = userRef.collection(subcollectionName);
         await deleteCollection(subcollectionRef, batch);
     }
 
     // 2. Delete user's forum posts and all associated replies and comments
+    // CORRECTED: Use 'author.uid' instead of 'author.id'
     const userForumPostsQuery = adminDb.collection('forum').where('author.uid', '==', userId);
     const userForumPostsSnapshot = await userForumPostsQuery.get();
     
@@ -136,3 +137,4 @@ export async function sendPasswordResetEmailAction(email: string) {
       return { success: false, message: 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu. Lütfen kullanıcının e-posta adresinin doğru olduğundan emin olun.' };
     }
   }
+
