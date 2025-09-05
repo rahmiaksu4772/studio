@@ -20,5 +20,9 @@
   },
   "dataconnect": {
     "source": "dataconnect"
+  },
+  "functions": {
+    "source": "src/functions",
+    "runtime": "nodejs18"
   }
 }

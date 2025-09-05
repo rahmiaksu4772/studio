@@ -17,17 +17,19 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
             'Bu işlemi yapmak için kimliğinizin doğrulanması gerekiyor.'
         );
     }
-    
+
     // Allow the first admin to set claims without being an admin yet
-    const isFirstAdmin = context.auth.token.email === 'rahmi.aksu.47@gmail.com';
-    
-    if (context.auth.token.admin !== true && !isFirstAdmin) {
+    // This is a one-time setup for the first admin user.
+    const isFirstAdminSetup = context.auth.token.email === 'rahmi.aksu.47@gmail.com';
+
+    // The caller must be an admin to set claims for others.
+    if (context.auth.token.admin !== true && !isFirstAdminSetup) {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
         );
     }
-    
+
     const { uid, isAdmin } = data;
     if (typeof uid !== 'string' || typeof isAdmin !== 'boolean') {
         throw new functions.https.HttpsError(
@@ -38,8 +40,8 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
 
     try {
         await adminAuth.setCustomUserClaims(uid, { admin: isAdmin });
-        
-        return { 
+
+        return {
             message: `Başarılı! Kullanıcı ${uid} için admin yetkisi ${isAdmin ? 'verildi' : 'kaldırıldı'}.`
         };
 
@@ -52,6 +54,7 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
     }
 });
 
+
 // This function deletes a user from Firebase Authentication and their Firestore document.
 // It can only be called by an authenticated admin.
 export const deleteUser = functions.region('europe-west1').https.onCall(async (data, context) => {
@@ -61,7 +64,7 @@ export const deleteUser = functions.region('europe-west1').https.onCall(async (d
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
         );
     }
-    
+
     const { uid } = data;
     if (typeof uid !== 'string') {
         throw new functions.https.HttpsError(
@@ -71,7 +74,7 @@ export const deleteUser = functions.region('europe-west1').https.onCall(async (d
     }
 
     try {
-        // Attempt to delete user from Auth first
+        // Delete user from Auth first.
         await adminAuth.deleteUser(uid);
     } catch (error: any) {
         console.error(`Kullanıcı Auth'dan silinirken hata oluştu: uid=${uid}`, error);
@@ -89,7 +92,7 @@ export const deleteUser = functions.region('europe-west1').https.onCall(async (d
         // Then delete the user document from Firestore
         await adminDb.collection('users').doc(uid).delete();
         return { message: `Kullanıcı ${uid} ve tüm verileri başarıyla silindi.` };
-    } catch(error: any) {
+    } catch (error: any) {
         console.error(`Kullanıcı Firestore'dan silinirken hata oluştu: uid=${uid}`, error);
         throw new functions.https.HttpsError(
             'internal',

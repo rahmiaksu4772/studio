@@ -1,37 +1,42 @@
 
 'use server';
 
-import { db } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { getApp } from "firebase/app";
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
-import { getAuth, sendPasswordResetEmail, deleteUser as deleteAuthUser } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
+import { app, db } from '@/lib/firebase';
 
-// WARNING: This delete action only removes the user from Firestore, but not from
-// Firebase Authentication due to security restrictions on the client-side SDK.
-// For a complete deletion, you must manually delete the user from the Firebase Console's
-// Authentication tab, or implement a Cloud Function.
-export async function deleteUserAction(userId: string) {
-  try {
-    // This only deletes the Firestore document, not the Auth user.
-    await deleteDoc(doc(db, 'users', userId));
-    return { success: true, message: 'Kullanıcı kaydı Firestore veritabanından silindi. Lütfen Firebase Authentication panelinden de silmeyi unutmayın.' };
-  } catch (error: any) {
-    console.error('Error deleting user document:', error);
-    return { success: false, message: 'Kullanıcı veritabanından silinirken bir hata oluştu: ' + error.message };
-  }
-}
+const functions = getFunctions(getApp(), 'europe-west1');
 
-
+// This function now calls a Cloud Function to set a custom claim and also updates the Firestore document.
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
+    const setAdminClaim = httpsCallable(functions, 'setAdminClaim');
+    await setAdminClaim({ uid: userId, isAdmin: newRole === 'admin' });
+
+    // Also update the role in Firestore for UI purposes
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, { role: newRole });
+
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
     return { success: false, message: 'Kullanıcı rolü güncellenirken bir hata oluştu: ' + error.message };
   }
+}
+
+// This function now calls a Cloud Function to delete the user from Auth and their Firestore doc.
+export async function deleteUserAction(userId: string) {
+    try {
+        const deleteUserFunction = httpsCallable(functions, 'deleteUser');
+        await deleteUserFunction({ uid: userId });
+        return { success: true, message: 'Kullanıcı Auth ve Firestore veritabanından tamamen silindi.' };
+    } catch (error: any) {
+        console.error('Error deleting user:', error);
+        return { success: false, message: 'Kullanıcı silinirken bir hata oluştu: ' + error.message };
+    }
 }
 
 
