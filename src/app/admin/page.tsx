@@ -2,106 +2,144 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import AppLayout from '@/components/app-layout';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import { useUserProfile } from '@/hooks/use-user-profile';
-import { Loader2, ShieldCheck, User, GraduationCap, Users, MoreHorizontal, Trash2, UserCog, UserCheck, UserX, Send } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from '@/components/ui/badge';
-import { useAllUsersData, UserData } from '@/hooks/use-admin-data';
+import { Loader2, Search, Plus, MoreHorizontal, Pencil, Trash2, UserPlus, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-  } from "@/components/ui/dropdown-menu"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { deleteUserAction, updateUserRoleAction, sendPasswordResetEmailAction } from './actions';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole } from '@/lib/types';
+import AppLayout from '@/components/app-layout';
+import AuthGuard from '@/components/auth-guard';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { useRouter } from 'next/navigation';
 
+type User = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: 'admin' | 'teacher' | 'beklemede';
+};
 
-function AdminPage() {
-  const { user, loading: authLoading } = useAuth();
-  const { profile, isLoading: profileLoading } = useUserProfile(user?.uid);
-  const { usersData, isLoading: usersLoading, setUsersData } = useAllUsersData(profile?.role === 'admin');
+const userFormSchema = z.object({
+  fullName: z.string().min(3, 'İsim en az 3 karakter olmalıdır.'),
+  email: z.string().email('Lütfen geçerli bir e-posta adresi girin.'),
+  role: z.enum(['admin', 'teacher', 'beklemede'], { required_error: 'Lütfen bir rol seçin.' }),
+});
+
+type UserFormValues = z.infer<typeof userFormSchema>;
+
+function AdminPanelPage() {
+  const { user: authUser, loading: authLoading } = useAuth();
+  const { profile, isLoading: profileLoading } = useUserProfile(authUser?.uid);
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-  const [selectedUser, setSelectedUser] = React.useState<UserData | null>(null);
-  
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [editingUser, setEditingUser] = React.useState<User | null>(null);
+
   React.useEffect(() => {
     if (!authLoading && !profileLoading) {
-      if (!user || profile?.role !== 'admin') {
+      if (!authUser || profile?.role !== 'admin') {
         router.replace('/anasayfa');
       }
     }
-  }, [user, profile, authLoading, profileLoading, router]);
+  }, [authUser, profile, authLoading, profileLoading, router]);
 
-  const handleDeleteUser = async () => {
-    if (!selectedUser) return;
-
-    const result = await deleteUserAction(selectedUser.id);
-
-    if (result.success) {
-        toast({ title: 'Başarılı!', description: result.message, variant: 'destructive' });
-        setUsersData(prev => prev.filter(u => u.id !== selectedUser.id));
-    } else {
-        toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
+  React.useEffect(() => {
+    if (profile?.role !== 'admin') {
+        setIsLoading(false);
+        return;
     }
-    setIsAlertOpen(false);
-    setSelectedUser(null);
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+      setUsers(usersData);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching users: ", error);
+      toast({ title: "Hata", description: "Kullanıcı verileri çekilirken bir hata oluştu.", variant: "destructive" });
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast, profile?.role]);
+
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+  });
+
+  React.useEffect(() => {
+    if (editingUser) {
+      form.reset(editingUser);
+    } else {
+      form.reset({ fullName: '', email: '', role: 'teacher' });
+    }
+  }, [editingUser, form]);
+
+  const handleFormSubmit = async (values: UserFormValues) => {
+    try {
+      if (editingUser) {
+        // Update user
+        const userDoc = doc(db, 'users', editingUser.id);
+        await updateDoc(userDoc, values);
+        toast({ title: 'Başarılı!', description: 'Kullanıcı bilgileri güncellendi.' });
+      } else {
+        // Add new user - Note: This only creates a Firestore record, not a Firebase Auth user.
+        await addDoc(collection(db, 'users'), values);
+        toast({ title: 'Başarılı!', description: 'Yeni kullanıcı eklendi.' });
+      }
+      setIsFormOpen(false);
+      setEditingUser(null);
+    } catch (error) {
+      console.error("Error saving user: ", error);
+      toast({ title: "Hata", description: "Kullanıcı kaydedilirken bir hata oluştu.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      // Note: This only deletes the Firestore record. For full deletion, a Cloud Function for Auth is needed.
+      await deleteDoc(doc(db, 'users', userId));
+      toast({ title: 'Başarılı!', description: 'Kullanıcı silindi.', variant: 'destructive' });
+    } catch (error) {
+      console.error("Error deleting user: ", error);
+      toast({ title: "Hata", description: "Kullanıcı silinirken bir hata oluştu.", variant: "destructive" });
+    }
   };
   
-  const handleUpdateRole = async (userId: string, newRole: UserRole) => {
-      const result = await updateUserRoleAction(userId, newRole);
-       if (result.success) {
-        toast({ title: 'Başarılı!', description: result.message });
-        setUsersData(prev => prev.map(u => u.id === userId ? {...u, role: newRole} : u));
-    } else {
-        toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
-    }
+  const filteredUsers = users.filter(user =>
+    user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const openFormForEdit = (user: User) => {
+    setEditingUser(user);
+    setIsFormOpen(true);
   };
 
-  const handlePasswordReset = async (email: string) => {
-    const result = await sendPasswordResetEmailAction(email);
-    if (result.success) {
-        toast({ title: 'Başarılı!', description: result.message });
-    } else {
-        toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
-    }
+  const openFormForNew = () => {
+    setEditingUser(null);
+    setIsFormOpen(true);
   };
+  
+  const totalLoading = isLoading || authLoading || profileLoading;
 
-  const openDeleteConfirm = (user: UserData) => {
-    setSelectedUser(user);
-    setIsAlertOpen(true);
-  };
-
-  const isLoading = authLoading || profileLoading || usersLoading;
-
-  if (isLoading) {
+  if (totalLoading) {
     return (
       <AppLayout>
         <main className="flex-1 p-8 flex items-center justify-center">
@@ -110,166 +148,194 @@ function AdminPage() {
       </AppLayout>
     );
   }
-
-  if (profile?.role !== 'admin') {
-    return null; // or a redirection component
-  }
   
-  const getRoleBadgeVariant = (role: UserRole) => {
-    switch (role) {
-        case 'admin': return 'destructive';
-        case 'teacher': return 'secondary';
-        case 'beklemede': return 'premium';
-        default: return 'outline';
-    }
+  if (profile?.role !== 'admin') {
+      return null;
   }
 
   return (
     <AppLayout>
       <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                    <ShieldCheck className="h-8 w-8 text-primary" />
-                    Admin Paneli
-                </h2>
-                <p className="text-muted-foreground">
-                    Sistemdeki tüm kullanıcıları ve verilerini yönetin.
-                </p>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <ShieldCheck className="h-8 w-8 text-primary" />
+              Kullanıcı Yönetimi
+            </h2>
+            <p className="text-muted-foreground">
+              Firestore'daki kullanıcı verilerini görüntüleyin ve yönetin.
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center justify-between'>
+                <div className='flex items-center gap-2'>
+                    <Users className='h-5 w-5'/>
+                    Kullanıcı Listesi
+                </div>
+                <Button onClick={openFormForNew}>
+                    <UserPlus className="mr-2 h-4 w-4" /> Yeni Kullanıcı Ekle
+                </Button>
+            </CardTitle>
+            <CardDescription>
+              Sistemde kayıtlı {users.length} kullanıcı bulunmaktadır.
+            </CardDescription>
+             <div className="relative pt-4">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Kullanıcı adı veya e-posta ile ara..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ad Soyad</TableHead>
+                    <TableHead>E-posta</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead className="text-right">İşlemler</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {totalLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">
+                        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.fullName}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.role === 'admin' ? 'bg-red-100 text-red-800' : 
+                            user.role === 'teacher' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {user.role}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Menüyü aç</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openFormForEdit(user)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                <span>Düzenle</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className='text-destructive' onClick={() => handleDeleteUser(user.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Sil</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">
+                        Arama kriterlerine uygun sonuç bulunamadı.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="grid gap-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Kullanıcı Listesi</CardTitle>
-                    <CardDescription>{usersData.length} kullanıcı sisteme kayıtlı.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table className="min-w-[800px]">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="pl-6">Ad Soyad</TableHead>
-                                    <TableHead>E-posta</TableHead>
-                                    <TableHead className='text-center'>Rol</TableHead>
-                                    <TableHead className='text-center'>Sınıf Sayısı</TableHead>
-                                    <TableHead className='text-center'>Öğrenci Sayısı</TableHead>
-                                    <TableHead className='text-right pr-6'>İşlemler</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {usersData.map(userData => {
-                                    const totalStudents = userData.classes.reduce((sum, cls) => sum + cls.students.length, 0);
-                                    return (
-                                        <TableRow key={userData.id}>
-                                            <TableCell className="font-medium flex items-center gap-2 pl-6">
-                                                <User className='h-4 w-4 text-muted-foreground'/>
-                                                {userData.fullName}
-                                            </TableCell>
-                                            <TableCell>{userData.email}</TableCell>
-                                            <TableCell className='text-center'>
-                                                <Badge variant={getRoleBadgeVariant(userData.role)}>
-                                                    {userData.role === 'beklemede' ? 'Onay Bekliyor' : userData.role}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <div className='flex items-center justify-center gap-2'>
-                                                <GraduationCap className='h-4 w-4 text-muted-foreground'/>
-                                                {userData.classes.length}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <div className='flex items-center justify-center gap-2'>
-                                                    <Users className='h-4 w-4 text-muted-foreground'/>
-                                                    {totalStudents}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right pr-6">
-                                            {userData.id !== user?.uid ? (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                                            <span className="sr-only">Menüyü aç</span>
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem onSelect={() => handlePasswordReset(userData.email)}>
-                                                            <Send className="mr-2 h-4 w-4" />
-                                                            Şifre Sıfırlama Maili Gönder
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        {userData.role === 'beklemede' && (
-                                                            <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'teacher')}>
-                                                                <UserCheck className="mr-2 h-4 w-4" />
-                                                                Öğretmen Olarak Onayla
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {userData.role === 'teacher' && (
-                                                            <>
-                                                                <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'beklemede')}>
-                                                                    <UserX className="mr-2 h-4 w-4" />
-                                                                    Onayı Kaldır
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'admin')}>
-                                                                    <UserCog className="mr-2 h-4 w-4" />
-                                                                    Admin Yap
-                                                                </DropdownMenuItem>
-                                                            </>
-                                                        )}
-                                                        {userData.role === 'admin' && userData.id !== user?.uid && (
-                                                            <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'teacher')}>
-                                                                <User className="mr-2 h-4 w-4" />
-                                                                Admin Rolünü Al
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className='text-destructive focus:bg-destructive/10 focus:text-destructive' onSelect={() => openDeleteConfirm(userData)}>
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Kullanıcıyı Sil
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            ) : (
-                                                <span className='text-xs text-muted-foreground pr-4'>-</span>
-                                            )}
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingUser ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı Ekle'}</DialogTitle>
+              <DialogDescription>
+                {editingUser ? 'Kullanıcı bilgilerini güncelleyin.' : 'Yeni kullanıcı için bilgileri girin.'}
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 py-4">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ad Soyad</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Örn: Ahmet Yılmaz" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>E-posta</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="ornek@eposta.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rol</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Rol seçin..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="teacher">Teacher</SelectItem>
+                          <SelectItem value="beklemede">Beklemede</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">İptal</Button>
+                    </DialogClose>
+                    <Button type="submit">Kaydet</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
       </main>
-
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Bu işlem geri alınamaz. "{selectedUser?.fullName}" adlı kullanıcının veritabanı kaydını kalıcı olarak sileceksiniz.
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setSelectedUser(null)}>İptal</AlertDialogCancel>
-                <AlertDialogAction
-                    onClick={handleDeleteUser}
-                    className="bg-destructive hover:bg-destructive/90"
-                >
-                    Evet, Sil
-                </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-
     </AppLayout>
   );
 }
 
-export default AdminPage;
+export default function AdminPanelPageContainer() {
+    return (
+        <AuthGuard>
+            <AdminPanelPage/>
+        </AuthGuard>
+    )
+}
