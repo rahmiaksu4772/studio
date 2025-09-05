@@ -1,10 +1,11 @@
 'use server';
 
-import { db, auth } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { doc, updateDoc, writeBatch, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable }from 'firebase/functions';
+import { auth } from '@/lib/firebase';
 
 /**
  * Recursively deletes a collection and all its subcollections.
@@ -68,25 +69,28 @@ export async function deleteUserAction(userId: string) {
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
     const userRef = doc(db, 'users', userId);
-    
-    // First, update the role in Firestore document
-    await updateDoc(userRef, { role: newRole });
-    
-    // Then, call the cloud function to set the custom claim
     const functions = getFunctions();
+
+    // The setAdminClaim function is now the primary driver.
+    // It will handle setting the custom claim which security rules rely on.
     const setAdminClaim = httpsCallable(functions, 'setAdminClaim');
     await setAdminClaim({ uid: userId, isAdmin: newRole === 'admin' });
+    
+    // After the custom claim is successfully set, we also update the
+    // role in the Firestore document to keep the UI consistent.
+    await updateDoc(userRef, { role: newRole });
 
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi ve yetkileri ayarlandı.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
-    // Firestore security rules will reject this if the user is not an admin.
-    if (error.code === 'permission-denied' || (error.details && error.details.code === 'permission-denied')) {
-        return { success: false, message: 'Bu işlemi yapma yetkiniz yok. Lütfen yönetici hesabıyla giriş yaptığınızdan emin olun veya Firestore kurallarınızı kontrol edin.' };
+    // Cloud function errors are often wrapped. We check for permission-denied.
+    if (error.code === 'functions/permission-denied' || (error.details && error.details.code === 'permission-denied')) {
+        return { success: false, message: 'Bu işlemi yapma yetkiniz yok. Lütfen yönetici hesabıyla giriş yaptığınızdan emin olun.' };
     }
     return { success: false, message: error.message || 'Kullanıcı rolü güncellenirken bir hata oluştu.' };
   }
 }
+
 
 export async function sendPasswordResetEmailAction(email: string) {
     try {

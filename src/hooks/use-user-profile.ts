@@ -4,9 +4,12 @@
 import * as React from 'react';
 import { useToast } from './use-toast';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from './use-auth';
 import type { UserProfile, UserRole } from '@/lib/types';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
+
 
 const defaultProfile: Omit<UserProfile, 'email' | 'workplace' | 'hometown' | 'role'> = {
   fullName: 'Yeni Kullanıcı',
@@ -41,6 +44,7 @@ export function useUserProfile(userId?: string) {
         if (user?.email) {
           try {
             const userRole: UserRole = user.email === ADMIN_EMAIL ? 'admin' : 'beklemede';
+            
             const newProfile: UserProfile = {
               ...defaultProfile,
               email: user.email,
@@ -48,19 +52,32 @@ export function useUserProfile(userId?: string) {
               hometown: 'Memleket Belirtilmemiş',
               role: userRole,
             };
+            
             await setDoc(profileDocRef, newProfile);
             setProfile(newProfile);
-             if (userRole === 'admin') {
-              toast({
-                title: 'Admin Yetkisi Verildi!',
-                description: 'Bu hesaba yönetici ayrıcalıkları tanındı.',
-              });
+
+            // If the user is the designated admin, call the bootstrap function
+            // to set their custom claim for the very first time.
+            if (userRole === 'admin') {
+                const functions = getFunctions();
+                const bootstrapAdminFn = httpsCallable(functions, 'bootstrapAdmin');
+                await bootstrapAdminFn();
+                
+                // Force refresh the token to get the new custom claim immediately
+                const auth = getAuth();
+                await auth.currentUser?.getIdToken(true);
+
+                toast({
+                    title: 'Admin Yetkisi Verildi!',
+                    description: 'Bu hesaba yönetici ayrıcalıkları tanındı.',
+                });
             }
-          } catch (error) {
-            console.error("Failed to create default profile:", error);
+
+          } catch (error: any) {
+            console.error("Failed to create default profile or set admin claim:", error);
             toast({
               title: 'Profil Oluşturulamadı',
-              description: 'Varsayılan kullanıcı profili oluşturulamadı.',
+              description: `Bir hata oluştu: ${error.message}`,
               variant: 'destructive',
             });
           }

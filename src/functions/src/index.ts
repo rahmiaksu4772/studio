@@ -10,8 +10,16 @@ const messaging = admin.messaging();
 // This function sets a custom claim on a user to grant/revoke admin privileges.
 // It can only be called by an already authenticated admin.
 export const setAdminClaim = functions.region('europe-west1').https.onCall(async (data, context) => {
+    // Check if the caller is authenticated
+    if (!context.auth) {
+        throw new functions.https.HttpsError(
+            'unauthenticated',
+            'Bu işlemi yapmak için kimliğinizin doğrulanması gerekiyor.'
+        );
+    }
+
     // 1. Check if the caller is an admin.
-    if (context.auth?.token.admin !== true) {
+    if (context.auth.token.admin !== true) {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
@@ -173,3 +181,22 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
         }
     });
 
+// Cloud function to bootstrap the first admin user
+export const bootstrapAdmin = functions.region('europe-west1').https.onCall(async (data, context) => {
+    // This function should have minimal security, only checking if the caller is the designated first admin.
+    // In a real app, this might be triggered by a more secure mechanism or run only once.
+    if (context.auth?.token.email !== 'rahmi.aksu.47@gmail.com') {
+         throw new functions.https.HttpsError(
+            'permission-denied',
+            'Bu işlemi yalnızca özel yetkili kullanıcı yapabilir.'
+        );
+    }
+     const uid = context.auth.uid;
+     try {
+        await adminAuth.setCustomUserClaims(uid, { admin: true });
+        return { message: 'İlk admin başarıyla atandı.' };
+    } catch (error: any) {
+        console.error('İlk admin atanırken hata oluştu', error);
+        throw new functions.https.HttpsError('internal', error.message);
+    }
+});
