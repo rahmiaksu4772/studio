@@ -38,9 +38,9 @@ type User = {
 };
 
 const userFormSchema = z.object({
-  fullName: z.string().min(3, 'İsim en az 3 karakter olmalıdır.'),
   email: z.string().email('Lütfen geçerli bir e-posta adresi girin.'),
   role: z.enum(['admin', 'teacher', 'beklemede'], { required_error: 'Lütfen bir rol seçin.' }),
+  fullName: z.string().optional(), // fullName is now optional as it will be set by the user upon registration
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -95,9 +95,13 @@ function AdminPanelPage() {
 
   React.useEffect(() => {
     if (editingUser) {
-      form.reset(editingUser);
+      form.reset({
+          email: editingUser.email,
+          role: editingUser.role,
+          fullName: editingUser.fullName,
+      });
     } else {
-      form.reset({ fullName: '', email: '', role: 'teacher' });
+      form.reset({ email: '', role: 'teacher', fullName: '' });
     }
   }, [editingUser, form]);
 
@@ -106,12 +110,22 @@ function AdminPanelPage() {
       if (editingUser) {
         // Update user
         const userDoc = doc(db, 'users', editingUser.id);
-        await updateDoc(userDoc, values);
+        // When updating, we only update role and email. FullName is managed by the user.
+        await updateDoc(userDoc, { email: values.email, role: values.role });
         toast({ title: 'Başarılı!', description: 'Kullanıcı bilgileri güncellendi.' });
       } else {
-        // Add new user - Note: This only creates a Firestore record, not a Firebase Auth user.
-        await addDoc(collection(db, 'users'), values);
-        toast({ title: 'Başarılı!', description: 'Yeni kullanıcı eklendi.' });
+        // Add new user profile placeholder. User will complete registration.
+        await addDoc(collection(db, 'users'), { 
+            email: values.email, 
+            role: values.role,
+            fullName: "Yeni Kullanıcı", // Default name
+            title: "Öğretmen", // Default title
+            branch: "Belirtilmemiş", // Default branch
+            avatarUrl: `https://placehold.co/96x96.png`, // Default avatar
+            workplace: 'Okul Belirtilmemiş',
+            hometown: 'Memleket Belirtilmemiş',
+        });
+        toast({ title: 'Başarılı!', description: 'Yeni kullanıcı profili oluşturuldu. Kullanıcı kendi şifresiyle kayıt olabilir.' });
       }
       setIsFormOpen(false);
       setEditingUser(null);
@@ -358,26 +372,13 @@ function AdminPanelPage() {
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingUser ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı Ekle'}</DialogTitle>
+              <DialogTitle>{editingUser ? 'Kullanıcı Rolünü Düzenle' : 'Yeni Kullanıcı Profili Ekle'}</DialogTitle>
               <DialogDescription>
-                {editingUser ? 'Kullanıcı bilgilerini güncelleyin.' : 'Yeni kullanıcı için bilgileri girin.'}
+                {editingUser ? 'Kullanıcının rolünü güncelleyin.' : 'Kullanıcı sisteme bu e-posta ile kayıt olduğunda, atadığınız rol geçerli olacaktır.'}
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 py-4">
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ad Soyad</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Örn: Ahmet Yılmaz" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="email"
