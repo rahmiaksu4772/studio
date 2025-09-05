@@ -186,11 +186,12 @@ function AdminPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6">
-                                            <DropdownMenu>
+                                            {userData.id !== user?.uid && (
+                                                <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={userData.id === user?.uid}>
-                                                        <span className="sr-only">Menüyü aç</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Menüyü aç</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
@@ -219,7 +220,7 @@ function AdminPage() {
                                                                 Admin Yap
                                                             </DropdownMenuItem>
                                                         )}
-                                                        {userData.role === 'admin' && userData.id !== user?.uid && (
+                                                        {userData.role === 'admin' && (
                                                             <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
                                                                 <User className="mr-2 h-4 w-4" />
                                                                 Öğretmen Yap
@@ -232,6 +233,7 @@ function AdminPage() {
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
+                                            )}
                                             </TableCell>
                                         </TableRow>
                                     )
@@ -249,7 +251,7 @@ function AdminPage() {
                 <AlertDialogHeader>
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Bu işlem geri alınamaz. "{selectedUser?.fullName}" adlı kullanıcıyı ve tüm verilerini (sınıflar, öğrenciler, kayıtlar) kalıcı olarak sileceksiniz.
+                    Bu işlem geri alınamaz. "{selectedUser?.fullName}" adlı kullanıcıyı ve tüm verilerini (sınıflar, öğrenciler, kayıtlar, gönderiler vb.) kalıcı olarak sileceksiniz.
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
