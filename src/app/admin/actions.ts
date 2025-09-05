@@ -4,8 +4,8 @@
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeAdmin } from '@/lib/firebase-admin';
-import type { UserRole, ForumAuthor } from '@/lib/types';
-import { addDoc, collection, doc, deleteDoc, query, getDocs, writeBatch, where } from 'firebase/firestore';
+import type { UserRole } from '@/lib/types';
+import { collection, doc, query, getDocs, writeBatch, where, collectionGroup, deleteDoc } from 'firebase/firestore';
 import { db, auth as clientAuth } from '@/lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { deletePost } from '@/hooks/use-forum';
@@ -57,19 +57,9 @@ export async function deleteUserAction(userId: string) {
     const userForumPostsQuery = query(collection(db, 'forum'), where('author.uid', '==', userId));
     const userForumPostsSnapshot = await getDocs(userForumPostsQuery);
     for (const postDoc of userForumPostsSnapshot.docs) {
-        await deletePost(postDoc.id);
+        await deletePost(postDoc.id); // This already handles replies and comments for a specific post
     }
     
-    // Delete replies and comments from other users' posts
-    const allRepliesSnapshot = await getDocs(query(collectionGroup(db, 'replies'), where('author.uid', '==', userId)));
-    const replyDeletionBatch = writeBatch(db);
-    allRepliesSnapshot.forEach(replyDoc => {
-        replyDeletionBatch.delete(replyDoc.ref);
-        // Note: This doesn't delete the comments under the reply, a deeper cleanup would be needed if required.
-    });
-    await replyDeletionBatch.commit();
-    
-
     // 4. Delete the main user document
     await adminDb.collection('users').doc(userId).delete();
 
@@ -97,7 +87,7 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole) {
 }
 
 
-export async function sendNotificationToAllUsersAction(title: string, body: string, author: ForumAuthor) {
+export async function sendNotificationToAllUsersAction(title: string, body: string, author: { uid: string, name: string, avatarUrl?: string }) {
     try {
         // Instead of sending from the server, we write to a Firestore collection
         // that a Cloud Function will listen to.
