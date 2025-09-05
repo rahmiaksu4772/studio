@@ -17,16 +17,17 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
             'Bu işlemi yapmak için kimliğinizin doğrulanması gerekiyor.'
         );
     }
-
-    // 1. Check if the caller is an admin.
-    if (context.auth.token.admin !== true) {
+    
+    // Allow the first admin to set claims without being an admin yet
+    const isFirstAdmin = context.auth.token.email === 'rahmi.aksu.47@gmail.com';
+    
+    if (context.auth.token.admin !== true && !isFirstAdmin) {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
         );
     }
     
-    // 2. Get the target user's UID and the claim to set from the data payload.
     const { uid, isAdmin } = data;
     if (typeof uid !== 'string' || typeof isAdmin !== 'boolean') {
         throw new functions.https.HttpsError(
@@ -36,10 +37,8 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
     }
 
     try {
-        // 3. Set the custom claim on the target user.
         await adminAuth.setCustomUserClaims(uid, { admin: isAdmin });
         
-        // 4. Return a success message.
         return { 
             message: `Başarılı! Kullanıcı ${uid} için admin yetkisi ${isAdmin ? 'verildi' : 'kaldırıldı'}.`
         };
@@ -53,7 +52,7 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
     }
 });
 
-// This function deletes a user from Firebase Authentication
+// This function deletes a user from Firebase Authentication and their Firestore document.
 // It can only be called by an authenticated admin.
 export const deleteUser = functions.region('europe-west1').https.onCall(async (data, context) => {
     if (context.auth?.token.admin !== true) {
@@ -72,10 +71,29 @@ export const deleteUser = functions.region('europe-west1').https.onCall(async (d
     }
 
     try {
+        // Delete user from Auth
         await adminAuth.deleteUser(uid);
-        return { message: `Kullanıcı ${uid} başarıyla kimlik doğrulama sisteminden silindi.` };
+        
+        // Delete user document from Firestore
+        await adminDb.collection('users').doc(uid).delete();
+        
+        return { message: `Kullanıcı ${uid} ve tüm verileri başarıyla silindi.` };
     } catch (error: any) {
         console.error(`Kullanıcı silinirken hata oluştu: uid=${uid}`, error);
+        // Provide a more specific error message if the user is not found in Auth,
+        // which can happen if it was already deleted.
+        if (error.code === 'auth/user-not-found') {
+             try {
+                // Attempt to delete just the Firestore doc as a fallback
+                await adminDb.collection('users').doc(uid).delete();
+                return { message: `Kullanıcı Auth'da bulunamadı, ancak Firestore verileri silindi: ${uid}` };
+            } catch (fsError: any) {
+                 throw new functions.https.HttpsError(
+                    'internal',
+                    'Kullanıcı silinirken bir sunucu hatası oluştu: ' + fsError.message
+                );
+            }
+        }
         throw new functions.https.HttpsError(
             'internal',
             'Kullanıcı silinirken bir sunucu hatası oluştu: ' + error.message

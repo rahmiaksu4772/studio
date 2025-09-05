@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { UserRole } from '@/lib/types';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import { app } from '@/lib/firebase';
@@ -18,16 +18,12 @@ const deleteUserFunction = httpsCallable(functions, 'deleteUser');
 
 export async function deleteUserAction(userId: string) {
   try {
-    // This will now call the Cloud Function to delete the user from Auth
-    await deleteUserFunction({ uid: userId });
-    
-    // We should also delete their user document in Firestore
-    await doc(db, 'users', userId).delete();
-
-    return { success: true, message: 'Kullanıcı ve tüm verileri başarıyla silindi.' };
+    // This single Cloud Function call handles deleting the user from both Auth and Firestore.
+    const result = await deleteUserFunction({ uid: userId });
+    return { success: true, message: (result.data as any).message };
   } catch (error: any) {
     console.error('Error deleting user:', error);
-    return { success: false, message: 'Kullanıcı silinirken bir hata oluştu: ' + (error.message || 'Bilinmeyen sunucu hatası.') };
+    return { success: false, message: 'Kullanıcı silinirken bir hata oluştu: ' + (error.details?.message || error.message || 'Bilinmeyen sunucu hatası.') };
   }
 }
 
