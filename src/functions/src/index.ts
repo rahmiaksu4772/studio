@@ -1,10 +1,10 @@
-
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
-import { adminDb } from "../../src/lib/firebase-admin"; // Merkezi SDK örneğini kullan
+import { getMessaging } from "firebase-admin/messaging";
+import { initializeAdmin } from "../../src/lib/firebase-admin";
 
-// SDK zaten merkezi olarak başlatıldığı için burada tekrar başlatmaya gerek yok.
-const messaging = admin.messaging();
+// Initialize Admin SDK using the centralized function
+const { adminDb } = initializeAdmin();
+const messaging = getMessaging(initializeAdmin().adminApp);
 
 // This function triggers when a new document is created in the /notifications collection.
 export const sendNotificationOnCreate = functions.region('europe-west1').firestore

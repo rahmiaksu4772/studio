@@ -1,26 +1,34 @@
-
 import 'server-only';
 import admin from 'firebase-admin';
 
-// This file provides a centralized and robust way to initialize the Firebase Admin SDK.
-// It ensures that the SDK is initialized only once, leveraging Google Cloud's
-// Application Default Credentials (ADC) for authentication, which is the recommended
-// and most secure method in a managed environment like App Hosting or Cloud Functions.
+/**
+ * Initializes the Firebase Admin SDK, ensuring it's only done once.
+ * This function is designed to be called at the beginning of each server-side
+ * action or function that needs to interact with Firebase services as an admin.
+ * @returns An object containing the initialized admin app, auth, and firestore instances.
+ */
+export function initializeAdmin() {
+  // Check if an app is already initialized. This is the robust way to prevent
+  // "The default Firebase app already exists" errors in serverless environments
+  // where code might be re-initialized in different contexts.
+  if (admin.apps.length > 0 && admin.apps[0]) {
+    const adminApp = admin.apps[0];
+    return {
+      adminApp,
+      adminAuth: admin.auth(adminApp),
+      adminDb: admin.firestore(adminApp),
+    };
+  }
 
-let adminApp: admin.app.App;
-
-// Check if the app is already initialized to prevent errors.
-if (!admin.apps.length) {
-  // If not initialized, initialize the app.
+  // If no app is initialized, initialize one.
   // Calling initializeApp() without arguments in a Google Cloud environment
-  // allows the SDK to automatically find the service account credentials.
-  adminApp = admin.initializeApp();
-} else {
-  // If already initialized, use the existing app instance.
-  adminApp = admin.app();
+  // (like App Hosting or Cloud Functions) allows the SDK to automatically
+  // find the service account credentials. This is the recommended approach.
+  const adminApp = admin.initializeApp();
+  
+  return {
+    adminApp,
+    adminAuth: admin.auth(adminApp),
+    adminDb: admin.firestore(adminApp),
+  };
 }
-
-const adminAuth = admin.auth(adminApp);
-const adminDb = admin.firestore(adminApp);
-
-export { adminApp, adminAuth, adminDb };

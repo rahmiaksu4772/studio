@@ -1,9 +1,8 @@
-
 'use server';
 
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { adminDb, adminAuth } from '@/lib/firebase-admin'; // Merkezi SDK örneğini kullan
+import { initializeAdmin } from '@/lib/firebase-admin';
 import type { UserRole } from '@/lib/types';
 import { sendPasswordResetEmail } from 'firebase/auth';
 
@@ -12,6 +11,7 @@ import { sendPasswordResetEmail } from 'firebase/auth';
  * A batched write can contain up to 500 operations. We chunk the deletions.
  */
 async function deleteCollection(collectionPath: string, batchSize: number = 499) {
+    const { adminDb } = initializeAdmin();
     const collectionRef = adminDb.collection(collectionPath);
     const q = collectionRef.limit(batchSize);
 
@@ -20,6 +20,7 @@ async function deleteCollection(collectionPath: string, batchSize: number = 499)
     });
 
     async function deleteQueryBatch(query: FirebaseFirestore.Query, resolve: () => void) {
+        const { adminDb } = initializeAdmin();
         const snapshot = await query.get();
 
         if (snapshot.size === 0) {
@@ -50,6 +51,7 @@ async function deleteCollection(collectionPath: string, batchSize: number = 499)
  * @param userId The ID of the user to delete.
  */
 export async function deleteUserAction(userId: string) {
+  const { adminDb, adminAuth } = initializeAdmin();
   try {
     // 1. Delete all posts and replies authored by the user from the 'forum' collection
     const userForumPostsQuery = adminDb.collection('forum').where('author.uid', '==', userId);
@@ -107,6 +109,7 @@ export async function deleteUserAction(userId: string) {
 
 
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
+  const { adminDb } = initializeAdmin();
   try {
     const userRef = adminDb.collection('users').doc(userId);
     await userRef.update({ role: newRole });
@@ -120,6 +123,7 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole) {
 
 
 export async function sendNotificationToAllUsersAction(title: string, body: string, author: { uid: string, name: string, avatarUrl?: string }) {
+    const { adminDb } = initializeAdmin();
     try {
         const notificationsRef = adminDb.collection('notifications');
         await notificationsRef.add({
@@ -141,6 +145,7 @@ export async function sendNotificationToAllUsersAction(title: string, body: stri
 }
 
 export async function deleteNotificationAction(notificationId: string) {
+    const { adminDb } = initializeAdmin();
     try {
         // This action can be called from the client, so it should use the client SDK
         // But since it's a delete action on a top-level collection, it's safer with admin access.
