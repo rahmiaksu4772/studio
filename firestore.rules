@@ -1,72 +1,64 @@
-
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Function to check if the requesting user is an admin.
-    function isAdmin(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role == 'admin';
+    // Helper function to check if the requesting user is an admin by looking at their own document.
+    function isRequestingUserAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // Rules for the 'users' collection
     match /users/{userId} {
-      // Any authenticated user can read their own profile.
-      // An admin can read any user's profile.
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin(request.auth.uid));
+      // Allow reading a user's profile if:
+      // 1. The user is reading their own profile.
+      // 2. The user making the request is an admin.
+      allow read: if request.auth != null && (request.auth.uid == userId || isRequestingUserAdmin());
+      
+      // Allow writing to a user's profile (e.g., updating a role) if:
+      // 1. The user is updating their own profile.
+      // 2. The user making the request is an admin.
+      allow write: if request.auth != null && (request.auth.uid == userId || isRequestingUserAdmin());
 
-      // Any authenticated user can update their own profile.
-      // An admin can update any user's profile.
-      allow update: if request.auth != null && (request.auth.uid == userId || isAdmin(request.auth.uid));
-
-      // Only admins can create or delete users.
-      allow create, delete: if request.auth != null && isAdmin(request.auth.uid);
-    }
-    
-    // Rules for user-specific subcollections (e.g., classes, notes, etc.)
-    match /users/{userId}/{subcollection}/{docId} {
-        // A user can do anything with their own subcollections.
-        // An admin can also do anything.
-        allow read, write, create, delete: if request.auth != null && (request.auth.uid == userId || isAdmin(request.auth.uid));
-    }
-    
-    // Rules for the 'forum' collection
-    match /forum/{postId} {
-      // Any authenticated user can read forum posts.
-      allow read: if request.auth != null;
-      // Only the author of the post or an admin can update or delete it.
-      allow update, delete: if request.auth != null && (resource.data.author.uid == request.auth.uid || isAdmin(request.auth.uid));
-       // Any authenticated user can create a post.
-      allow create: if request.auth != null;
-    }
-
-    // Rules for replies subcollection
-    match /forum/{postId}/replies/{replyId} {
-      // Any authenticated user can read replies.
-      allow read: if request.auth != null;
-       // Only the author of the reply or an admin can update or delete it.
-      allow update, delete: if request.auth != null && (resource.data.author.uid == request.auth.uid || isAdmin(request.auth.uid));
-      // Any authenticated user can create a reply.
-      allow create: if request.auth != null;
-    }
-    
-    // Rules for comments on replies
-    match /forum/{postId}/replies/{replyId}/comments/{commentId} {
-        // Any authenticated user can read comments.
-        allow read: if request.auth != null;
-        // Only the author of the comment or an admin can delete it.
-        allow delete: if request.auth != null && (resource.data.author.uid == request.auth.uid || isAdmin(request.auth.uid));
-        // Any authenticated user can create a comment.
-        allow create: if request.auth != null;
+      // Rules for user's subcollections
+      match /{subcollection}/{docId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Rules for notifications
     match /notifications/{notificationId} {
-        // Any authenticated user can read notifications
-        allow read: if request.auth != null;
-        // Only an admin can create or delete notifications
-        allow create, delete: if request.auth != null && isAdmin(request.auth.uid);
+       // Admins can create and delete notifications
+       allow create, delete: if request.auth != null && isRequestingUserAdmin();
+       // Any authenticated user can read notifications
+       allow read: if request.auth != null;
     }
+    
+    // Rules for forum posts
+    match /forum/{postId} {
+        // Any authenticated user can read posts
+        allow read: if request.auth != null;
+        // Only authenticated users can create posts
+        allow create: if request.auth != null && request.resource.data.author.uid == request.auth.uid;
+        // Admins can delete any post
+        allow delete: if request.auth != null && isRequestingUserAdmin();
 
+        match /replies/{replyId} {
+            // Any authenticated user can read replies
+            allow read: if request.auth != null;
+            // Only authenticated users can create replies
+            allow create: if request.auth != null && request.resource.data.author.uid == request.auth.uid;
+            // The author of the reply or an admin can update (upvote) or delete it
+            allow update, delete: if request.auth != null && (request.resource.data.author.uid == request.auth.uid || isRequestingUserAdmin());
+
+            match /comments/{commentId} {
+                 // Any authenticated user can read comments
+                allow read: if request.auth != null;
+                 // Only authenticated users can create comments
+                allow create: if request.auth != null && request.resource.data.author.uid == request.auth.uid;
+                 // The author of the comment or an admin can delete it
+                allow delete: if request.auth != null && (request.resource.data.author.uid == request.auth.uid || isRequestingUserAdmin());
+            }
+        }
+    }
   }
 }
