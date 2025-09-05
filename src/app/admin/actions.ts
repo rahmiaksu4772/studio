@@ -6,9 +6,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { initializeAdmin } from '@/lib/firebase-admin';
 import type { UserRole } from '@/lib/types';
 import { collection, doc, query, getDocs, writeBatch, where, deleteDoc } from 'firebase/firestore';
-import { db, auth as clientAuth } from '@/lib/firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
-
+import { db } from '@/lib/firebase'; // Client db for one specific action
+import { sendPasswordResetEmail } from 'firebase/auth'; // Client auth for one specific action
 
 // Initialize Firebase Admin SDK
 const adminApp = initializeAdmin();
@@ -19,10 +18,11 @@ const adminDb = getFirestore(adminApp);
  * Recursively deletes a collection and all its subcollections.
  * A batched write can contain up to 500 operations. We chunk the deletions.
  */
-async function deleteCollection(collectionRef: FirebaseFirestore.CollectionReference, batchSize: number = 499): Promise<void> {
+async function deleteCollection(collectionPath: string, batchSize: number = 499) {
+    const collectionRef = adminDb.collection(collectionPath);
     const q = collectionRef.limit(batchSize);
 
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         deleteQueryBatch(q, resolve).catch(reject);
     });
 
@@ -30,24 +30,21 @@ async function deleteCollection(collectionRef: FirebaseFirestore.CollectionRefer
         const snapshot = await query.get();
 
         if (snapshot.size === 0) {
-            // When there are no documents left, we are done
             resolve();
             return;
         }
 
-        // Delete documents in a batch
         const batch = adminDb.batch();
         for (const doc of snapshot.docs) {
-            // Recursively delete subcollections
             const subcollections = await doc.ref.listCollections();
             for (const subcollection of subcollections) {
-                await deleteCollection(subcollection, batchSize);
+                // Recursively delete subcollections first
+                await deleteCollection(subcollection.path, batchSize);
             }
             batch.delete(doc.ref);
         }
         await batch.commit();
 
-        // Recurse on the same query to process next batch
         process.nextTick(() => {
             deleteQueryBatch(query, resolve);
         });
@@ -61,57 +58,48 @@ async function deleteCollection(collectionRef: FirebaseFirestore.CollectionRefer
  */
 export async function deleteUserAction(userId: string) {
   try {
-    const userRef = adminDb.collection('users').doc(userId);
-
-    // 1. Delete all posts authored by the user and their subcollections
+    // 1. Delete all posts and replies authored by the user from the 'forum' collection
     const userForumPostsQuery = adminDb.collection('forum').where('author.uid', '==', userId);
     const userForumPostsSnapshot = await userForumPostsQuery.get();
+    const postDeletionBatch = adminDb.batch();
     for (const postDoc of userForumPostsSnapshot.docs) {
-        await deleteCollection(postDoc.ref.collection('replies'));
-        await postDoc.ref.delete();
+        // Delete all subcollections (replies and their comments) within each post
+        await deleteCollection(`forum/${postDoc.id}/replies`);
+        postDeletionBatch.delete(postDoc.ref);
     }
-
-    // 2. Delete all replies and comments from the user on other posts
-    // This is a more complex operation and requires iterating through all posts/replies.
-    // For simplicity and performance, we'll focus on direct data. A more robust solution
-    // might involve a different data structure or Cloud Function triggers.
-    // The current implementation will leave orphaned replies/comments on other's posts.
-    // We will now address this by iterating.
-
+    await postDeletionBatch.commit();
+    
+    // 2. Delete all replies and comments from the user on other people's posts
+    // This requires iterating through all posts and their replies
     const allPostsSnapshot = await adminDb.collection('forum').get();
     for (const postDoc of allPostsSnapshot.docs) {
-        const repliesRef = postDoc.ref.collection('replies');
-        
         // Delete user's replies on this post
-        const userRepliesQuery = repliesRef.where('author.uid', '==', userId);
+        const userRepliesQuery = adminDb.collection(`forum/${postDoc.id}/replies`).where('author.uid', '==', userId);
         const userRepliesSnapshot = await userRepliesQuery.get();
         for (const replyDoc of userRepliesSnapshot.docs) {
-            await deleteCollection(replyDoc.ref.collection('comments'));
-            await replyDoc.ref.delete();
+            await deleteCollection(`forum/${postDoc.id}/replies/${replyDoc.id}/comments`);
+            await replyDoc.ref.delete(); // Delete the reply doc itself
         }
         
         // Delete user's comments on remaining replies
-        const remainingRepliesSnapshot = await repliesRef.get();
+        const remainingRepliesSnapshot = await adminDb.collection(`forum/${postDoc.id}/replies`).get();
         for(const replyDoc of remainingRepliesSnapshot.docs) {
-            const commentsRef = replyDoc.ref.collection('comments');
-            const userCommentsQuery = commentsRef.where('author.uid', '==', userId);
+            const userCommentsQuery = adminDb.collection(`forum/${postDoc.id}/replies/${replyDoc.id}/comments`).where('author.uid', '==', userId);
             const userCommentsSnapshot = await userCommentsQuery.get();
-            const batch = adminDb.batch();
-            userCommentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
-            await batch.commit();
+            const commentDeletionBatch = adminDb.batch();
+            userCommentsSnapshot.forEach(commentDoc => commentDeletionBatch.delete(commentDoc.ref));
+            await commentDeletionBatch.commit();
         }
     }
 
-
-    // 3. Delete all top-level subcollections for the user
-    const subcollectionsToDelete = ['notes', 'plans', 'schedules', 'classes'];
-    for (const subcollectionName of subcollectionsToDelete) {
-        const subcollectionRef = userRef.collection(subcollectionName);
-        await deleteCollection(subcollectionRef);
+    // 3. Delete all top-level subcollections for the user (notes, plans, schedules, classes)
+    const userSubcollections = ['notes', 'plans', 'schedules', 'classes'];
+    for (const subcollectionName of userSubcollections) {
+        await deleteCollection(`users/${userId}/${subcollectionName}`);
     }
     
     // 4. Delete the main user document from the 'users' collection
-    await userRef.delete();
+    await adminDb.collection('users').doc(userId).delete();
 
     // 5. Delete user from Firebase Authentication
     // This is done last to ensure all data is cleaned up first.
@@ -140,8 +128,6 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole) {
 
 export async function sendNotificationToAllUsersAction(title: string, body: string, author: { uid: string, name: string, avatarUrl?: string }) {
     try {
-        // Instead of sending from the server, we write to a Firestore collection
-        // that a Cloud Function will listen to.
         const notificationsRef = adminDb.collection('notifications');
         await notificationsRef.add({
             title,
@@ -163,8 +149,9 @@ export async function sendNotificationToAllUsersAction(title: string, body: stri
 
 export async function deleteNotificationAction(notificationId: string) {
     try {
-        const notificationRef = doc(db, 'notifications', notificationId);
-        await deleteDoc(notificationRef);
+        // This action can be called from the client, so it should use the client SDK
+        // But since it's a delete action on a top-level collection, it's safer with admin access.
+        await adminDb.collection('notifications').doc(notificationId).delete();
         return { success: true, message: 'Bildirim başarıyla silindi.' };
     } catch(error: any) {
         console.error('Error deleting notification: ', error);
@@ -174,13 +161,14 @@ export async function deleteNotificationAction(notificationId: string) {
 
 export async function sendPasswordResetEmailAction(email: string) {
     try {
+      // This is a client-side action that does not require admin privileges.
+      // We are using the client auth instance for this.
+      const { auth: clientAuth } = await import('@/lib/firebase');
       await sendPasswordResetEmail(clientAuth, email);
       return { success: true, message: `"${email}" adresine şifre sıfırlama e-postası başarıyla gönderildi.` };
     } catch (error: any) {
       console.error('Error sending password reset email:', error);
-      return { success: false, message: 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu. Lütfen kullanıcının e-posta adresinin doğru olduğundan emin olun.' };
+      // It's better to return a generic error message to avoid leaking user existence info.
+      return { success: false, message: 'Şifre sıfırlama e-postası gönderilemedi. Lütfen girdiğiniz e-postanın doğru olduğundan emin olun.' };
     }
   }
-
-
-
