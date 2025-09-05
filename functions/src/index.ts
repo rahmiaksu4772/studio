@@ -1,11 +1,14 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { Lesson, Day } from "../../src/lib/types";
 
 admin.initializeApp();
 
 const db = admin.firestore();
 const messaging = admin.messaging();
+
+const dayOrder: Day[] = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
 // This function triggers when a new document is created in the /notifications collection.
 export const sendNotificationOnCreate = functions.region('europe-west1').firestore
@@ -87,3 +90,71 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
         }
     });
 
+// This function runs every 5 minutes to check for upcoming lessons and send notifications.
+export const sendLessonStartNotifications = functions.region('europe-west1').pubsub
+    .schedule('every 5 minutes')
+    .onRun(async (context) => {
+        const now = new Date();
+        // Adjust for Turkey's timezone (UTC+3)
+        now.setHours(now.getUTCHours() + 3);
+
+        const currentDayName = dayOrder[now.getDay()];
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        console.log(`Running job for: ${currentDayName} at ${currentTime}`);
+
+        const usersSnapshot = await db.collection('users').get();
+        
+        if (usersSnapshot.empty) {
+            console.log("No users found.");
+            return;
+        }
+
+        for (const userDoc of usersSnapshot.docs) {
+            const user = userDoc.data();
+            if (!user.fcmTokens || user.fcmTokens.length === 0) {
+                // console.log(`User ${user.fullName} has no FCM tokens. Skipping.`);
+                continue;
+            }
+
+            const scheduleDocRef = db.collection(`users/${userDoc.id}/schedules`).doc('weekly-lessons-schedule');
+            const scheduleDoc = await scheduleDocRef.get();
+
+            if (!scheduleDoc.exists) {
+                // console.log(`User ${user.fullName} has no schedule. Skipping.`);
+                continue;
+            }
+            
+            const scheduleData = scheduleDoc.data();
+            const todaysLessons: Lesson[] = scheduleData?.[currentDayName] || [];
+
+            for (const lesson of todaysLessons) {
+                if (lesson.time === currentTime) {
+                    console.log(`Found a lesson for ${user.fullName}: ${lesson.subject} at ${lesson.time}`);
+
+                    const message = {
+                        notification: {
+                            title: 'İyi Dersler',
+                            body: `${lesson.class} ${lesson.subject} dersi zamanı geldi. Kazanımlara ulaşmak için tıklayınız.`
+                        },
+                        tokens: user.fcmTokens,
+                        webpush: {
+                            notification: {
+                                icon: "https://takip-k0hdb.web.app/favicon.ico",
+                            },
+                        },
+                    };
+                    
+                    try {
+                        await messaging.sendEachForMulticast(message);
+                        console.log(`Notification sent to ${user.fullName} for lesson ${lesson.subject}`);
+                    } catch (error) {
+                        console.error(`Error sending notification to ${user.fullName}:`, error);
+                    }
+                }
+            }
+        }
+        
+        console.log("Finished lesson notification job.");
+        return null;
+    });
