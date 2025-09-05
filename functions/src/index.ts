@@ -1,9 +1,88 @@
-
 import * as functions from "firebase-functions";
-import { adminDb } from "../../src/lib/firebase-admin"; // Merkezi SDK örneğini kullan
-import { getMessaging } from "firebase-admin/messaging";
+import * as admin from "firebase-admin";
 
-const messaging = getMessaging();
+admin.initializeApp();
+
+const adminDb = admin.firestore();
+const adminAuth = admin.auth();
+const messaging = admin.messaging();
+
+// This function sets a custom claim on a user to grant/revoke admin privileges.
+// It can only be called by an already authenticated admin.
+export const setAdminClaim = functions.region('europe-west1').https.onCall(async (data, context) => {
+    // Check if the caller is authenticated
+    if (!context.auth) {
+        throw new functions.https.HttpsError(
+            'unauthenticated',
+            'Bu işlemi yapmak için kimliğinizin doğrulanması gerekiyor.'
+        );
+    }
+
+    // 1. Check if the caller is an admin.
+    if (context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError(
+            'permission-denied',
+            'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
+        );
+    }
+    
+    // 2. Get the target user's UID and the claim to set from the data payload.
+    const { uid, isAdmin } = data;
+    if (typeof uid !== 'string' || typeof isAdmin !== 'boolean') {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'Veri yükü "uid" (string) ve "isAdmin" (boolean) alanlarını içermelidir.'
+        );
+    }
+
+    try {
+        // 3. Set the custom claim on the target user.
+        await adminAuth.setCustomUserClaims(uid, { admin: isAdmin });
+        
+        // 4. Return a success message.
+        return { 
+            message: `Başarılı! Kullanıcı ${uid} için admin yetkisi ${isAdmin ? 'verildi' : 'kaldırıldı'}.`
+        };
+
+    } catch (error: any) {
+        console.error(`Admin claim ayarlanırken hata oluştu: uid=${uid}, isAdmin=${isAdmin}`, error);
+        throw new functions.https.HttpsError(
+            'internal',
+            'Kullanıcı yetkileri ayarlanırken bir sunucu hatası oluştu: ' + error.message
+        );
+    }
+});
+
+// This function deletes a user from Firebase Authentication
+// It can only be called by an authenticated admin.
+export const deleteUser = functions.region('europe-west1').https.onCall(async (data, context) => {
+    if (context.auth?.token.admin !== true) {
+        throw new functions.https.HttpsError(
+            'permission-denied',
+            'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
+        );
+    }
+    
+    const { uid } = data;
+    if (typeof uid !== 'string') {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'Veri yükü "uid" (string) alanını içermelidir.'
+        );
+    }
+
+    try {
+        await adminAuth.deleteUser(uid);
+        return { message: `Kullanıcı ${uid} başarıyla kimlik doğrulama sisteminden silindi.` };
+    } catch (error: any) {
+        console.error(`Kullanıcı silinirken hata oluştu: uid=${uid}`, error);
+        throw new functions.https.HttpsError(
+            'internal',
+            'Kullanıcı silinirken bir sunucu hatası oluştu: ' + error.message
+        );
+    }
+});
+
 
 // This function triggers when a new document is created in the /notifications collection.
 export const sendNotificationOnCreate = functions.region('europe-west1').firestore
@@ -101,3 +180,23 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
             console.error("Error sending notifications:", error);
         }
     });
+
+// Cloud function to bootstrap the first admin user
+export const bootstrapAdmin = functions.region('europe-west1').https.onCall(async (data, context) => {
+    // This function should have minimal security, only checking if the caller is the designated first admin.
+    // In a real app, this might be triggered by a more secure mechanism or run only once.
+    if (context.auth?.token.email !== 'rahmi.aksu.47@gmail.com') {
+         throw new functions.https.HttpsError(
+            'permission-denied',
+            'Bu işlemi yalnızca özel yetkili kullanıcı yapabilir.'
+        );
+    }
+     const uid = context.auth.uid;
+     try {
+        await adminAuth.setCustomUserClaims(uid, { admin: true });
+        return { message: 'İlk admin başarıyla atandı.' };
+    } catch (error: any) {
+        console.error('İlk admin atanırken hata oluştu', error);
+        throw new functions.https.HttpsError('internal', error.message);
+    }
+});
