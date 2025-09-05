@@ -32,7 +32,7 @@ export async function deleteUserAction(userId: string) {
     } catch (error: any) {
         console.error('Error deleting user from Firestore:', error);
         if (error.code === 'permission-denied') {
-            return { success: false, message: 'Bu işlemi yapmak için yönetici yetkiniz bulunmuyor.' };
+            return { success: false, message: 'Bu işlemi yapmak için admin yetkiniz bulunmuyor.' };
         }
         return { success: false, message: 'Kullanıcı silinirken bir hata oluştu: ' + error.message };
     }

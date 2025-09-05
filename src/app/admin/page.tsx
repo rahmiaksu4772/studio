@@ -223,7 +223,7 @@ function AdminPage() {
                                                         {userData.role === 'admin' && userData.id !== user?.uid && (
                                                             <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'teacher')}>
                                                                 <User className="mr-2 h-4 w-4" />
-                                                                Öğretmen Yap
+                                                                Admin Rolünü Al
                                                             </DropdownMenuItem>
                                                         )}
                                                         <DropdownMenuSeparator />
