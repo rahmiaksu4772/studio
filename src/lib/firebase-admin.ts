@@ -1,30 +1,23 @@
 
+import 'server-only';
 import admin from 'firebase-admin';
 
-// This file is the single source of truth for initializing the Firebase Admin SDK.
-// It ensures the SDK is initialized only once, using a specific service account
-// provided via an environment variable, which is the most secure and reliable method.
+// This file provides a centralized and robust way to initialize the Firebase Admin SDK.
+// It ensures that the SDK is initialized only once, leveraging Google Cloud's
+// Application Default Credentials (ADC) for authentication, which is the recommended
+// and most secure method in a managed environment like App Hosting or Cloud Functions.
 
 let adminApp: admin.app.App;
 
-try {
-  // Check if the app is already initialized. This is crucial to prevent re-initialization errors.
-  adminApp = admin.apps.length > 0 && admin.apps[0] ? admin.apps[0] : admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON!)),
-      projectId: 'takip-k0hdb', // Explicitly setting the projectId is a good practice.
-  });
-} catch (error: any) {
-  console.error("Firebase Admin SDK initialization failed:", error);
-  // If initialization fails, we might not be in a server environment with the env var.
-  // We'll proceed, and subsequent calls to adminAuth or adminDb will fail,
-  // which is expected on the client-side.
-  if (!admin.apps.length) {
-    // A dummy app initialization to prevent crashing when this module is imported client-side.
-    // Client-side code should never use the admin SDK exports.
-    adminApp = admin.initializeApp(); 
-  } else {
-    adminApp = admin.apps[0]!;
-  }
+// Check if the app is already initialized to prevent errors.
+if (!admin.apps.length) {
+  // If not initialized, initialize the app.
+  // Calling initializeApp() without arguments in a Google Cloud environment
+  // allows the SDK to automatically find the service account credentials.
+  adminApp = admin.initializeApp();
+} else {
+  // If already initialized, use the existing app instance.
+  adminApp = admin.app();
 }
 
 const adminAuth = admin.auth(adminApp);
