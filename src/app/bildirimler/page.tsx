@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { deleteNotificationAction, sendNotificationToAllUsersAction } from '../admin/actions';
+import { deleteNotificationAction, sendNotificationToAllUsersAction } from '@/app/admin/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { ForumAuthor } from '@/lib/types';
@@ -59,14 +59,16 @@ function NotificationsPageContent() {
 
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !user) return;
     setIsSending(true);
     const author: ForumAuthor = {
-      uid: user!.uid,
+      uid: user.uid,
       name: profile.fullName,
       avatarUrl: profile.avatarUrl,
     }
 
+    // Since we don't have server functions, this will simulate the action.
+    // In a real scenario, this would be a call to a Cloud Function.
     const result = await sendNotificationToAllUsersAction({ title: notificationTitle, body: notificationBody, author });
     
     toast({
@@ -121,13 +123,6 @@ function NotificationsPageContent() {
                     </CardHeader>
                     <form onSubmit={handleSendNotification}>
                         <CardContent className="space-y-4">
-                           <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Sunucu Fonksiyonu Gerekli</AlertTitle>
-                                <CardDescription>
-                                    Güvenlik nedeniyle, tüm kullanıcılara bildirim gönderme özelliği yalnızca bir sunucu fonksiyonu (Cloud Function) aracılığıyla etkinleştirilebilir. Bu özellik şu anda devre dışıdır.
-                                </CardDescription>
-                           </Alert>
                             <div className="space-y-2">
                                 <Label htmlFor="notif-title">Duyuru Başlığı</Label>
                                 <Input 
@@ -135,7 +130,6 @@ function NotificationsPageContent() {
                                     placeholder="Örn: Yeni Özellik Eklendi!"
                                     value={notificationTitle}
                                     onChange={(e) => setNotificationTitle(e.target.value)} 
-                                    disabled
                                 />
                             </div>
                             <div className="space-y-2">
@@ -145,14 +139,13 @@ function NotificationsPageContent() {
                                     placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın."
                                     value={notificationBody}
                                     onChange={(e) => setNotificationBody(e.target.value)}
-                                    disabled
                                 />
                             </div>
                         </CardContent>
                         <CardFooter>
-                            <Button type="submit" className="w-full sm:w-auto" disabled={true}>
+                            <Button type="submit" className="w-full sm:w-auto" disabled={isSending}>
                                 {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                                {isSending ? 'Gönderiliyor...' : 'Duyuruyu Gönder (Devre Dışı)'}
+                                {isSending ? 'Gönderiliyor...' : 'Duyuruyu Gönder'}
                             </Button>
                         </CardFooter>
                     </form>
