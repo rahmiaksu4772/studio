@@ -6,6 +6,7 @@ import { doc, updateDoc, writeBatch, deleteDoc, collection, getDocs } from 'fire
 import type { UserRole } from '@/lib/types';
 import { getFunctions, httpsCallable }from 'firebase/functions';
 import { auth } from '@/lib/firebase';
+import { getApp } from 'firebase/app';
 
 /**
  * Recursively deletes a collection and all its subcollections.
@@ -54,7 +55,7 @@ export async function deleteUserAction(userId: string) {
     await deleteDoc(doc(db, 'users', userId));
     
     // We also need to delete the user from auth, which requires a cloud function
-    const functions = getFunctions();
+    const functions = getFunctions(getApp(), 'europe-west1');
     const deleteUserFn = httpsCallable(functions, 'deleteUser');
     await deleteUserFn({ uid: userId });
 
@@ -69,7 +70,7 @@ export async function deleteUserAction(userId: string) {
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
     const userRef = doc(db, 'users', userId);
-    const functions = getFunctions();
+    const functions = getFunctions(getApp(), 'europe-west1');
 
     // The setAdminClaim function is now the primary driver.
     // It will handle setting the custom claim which security rules rely on.
