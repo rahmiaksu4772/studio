@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Bell, BellRing, Loader2, Trash2, Send } from 'lucide-react';
+import { Bell, BellRing, Loader2, Trash2, Send, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotifications } from '@/hooks/use-notifications';
 import AppLayout from '@/components/app-layout';
@@ -21,6 +21,7 @@ import type { ForumAuthor } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 
 function NotificationsPageContent() {
   const { user } = useAuth();
@@ -58,35 +59,27 @@ function NotificationsPageContent() {
 
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!notificationTitle || !notificationBody) {
-        toast({ title: 'Eksik Bilgi', description: 'Lütfen bildirim başlığı ve içeriğini girin.', variant: 'destructive'});
-        return;
-    }
-    if (!user || !profile) {
-        toast({ title: 'Giriş Gerekli', description: 'Bildirim göndermek için admin olarak giriş yapmalısınız.', variant: 'destructive'});
-        return;
-    }
-
+    if (!profile) return;
     setIsSending(true);
-
     const author: ForumAuthor = {
-      uid: user.uid,
+      uid: user!.uid,
       name: profile.fullName,
       avatarUrl: profile.avatarUrl,
     }
 
-    try {
-        const result: any = await sendNotificationToAllUsersAction({ title: notificationTitle, body: notificationBody, author });
-        if (result.data.success) {
-            toast({ title: 'Gönderim Raporu', description: result.data.message });
-            setNotificationTitle('');
-            setNotificationBody('');
-        } else {
-            toast({ title: 'Gönderim Hatası', description: result.data.message, variant: 'destructive' });
-        }
-    } catch(error: any) {
-        toast({ title: 'Gönderim Hatası', description: error.message, variant: 'destructive' });
+    const result = await sendNotificationToAllUsersAction({ title: notificationTitle, body: notificationBody, author });
+    
+    toast({
+        title: result.success ? 'Başarılı!' : 'Hata!',
+        description: result.message,
+        variant: result.success ? 'default' : 'destructive',
+    });
+
+    if (result.success) {
+        setNotificationTitle('');
+        setNotificationBody('');
     }
+
     setIsSending(false);
   }
 
@@ -125,10 +118,16 @@ function NotificationsPageContent() {
                  <Card>
                     <CardHeader>
                         <CardTitle>Yeni Duyuru Gönder</CardTitle>
-                        <CardDescription>Bu araç ile sisteme kayıtlı ve bildirim izni vermiş tüm kullanıcılara anlık bildirim gönderebilirsiniz.</CardDescription>
                     </CardHeader>
                     <form onSubmit={handleSendNotification}>
                         <CardContent className="space-y-4">
+                           <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Sunucu Fonksiyonu Gerekli</AlertTitle>
+                                <CardDescription>
+                                    Güvenlik nedeniyle, tüm kullanıcılara bildirim gönderme özelliği yalnızca bir sunucu fonksiyonu (Cloud Function) aracılığıyla etkinleştirilebilir. Bu özellik şu anda devre dışıdır.
+                                </CardDescription>
+                           </Alert>
                             <div className="space-y-2">
                                 <Label htmlFor="notif-title">Duyuru Başlığı</Label>
                                 <Input 
@@ -136,6 +135,7 @@ function NotificationsPageContent() {
                                     placeholder="Örn: Yeni Özellik Eklendi!"
                                     value={notificationTitle}
                                     onChange={(e) => setNotificationTitle(e.target.value)} 
+                                    disabled
                                 />
                             </div>
                             <div className="space-y-2">
@@ -145,13 +145,14 @@ function NotificationsPageContent() {
                                     placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın."
                                     value={notificationBody}
                                     onChange={(e) => setNotificationBody(e.target.value)}
+                                    disabled
                                 />
                             </div>
                         </CardContent>
                         <CardFooter>
-                            <Button type="submit" className="w-full sm:w-auto" disabled={isSending}>
+                            <Button type="submit" className="w-full sm:w-auto" disabled={true}>
                                 {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
-                                {isSending ? 'Gönderiliyor...' : 'Duyuruyu Gönder'}
+                                {isSending ? 'Gönderiliyor...' : 'Duyuruyu Gönder (Devre Dışı)'}
                             </Button>
                         </CardFooter>
                     </form>

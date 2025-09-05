@@ -7,8 +7,6 @@ import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from './use-auth';
 import type { UserProfile, UserRole } from '@/lib/types';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getAuth } from 'firebase/auth';
 
 
 const defaultProfile: Omit<UserProfile, 'email' | 'workplace' | 'hometown' | 'role'> = {
@@ -56,25 +54,8 @@ export function useUserProfile(userId?: string) {
             await setDoc(profileDocRef, newProfile);
             setProfile(newProfile);
 
-            // If the user is the designated admin, call the bootstrap function
-            // to set their custom claim for the very first time.
-            if (userRole === 'admin') {
-                const functions = getFunctions();
-                const bootstrapAdminFn = httpsCallable(functions, 'bootstrapAdmin');
-                await bootstrapAdminFn();
-                
-                // Force refresh the token to get the new custom claim immediately
-                const auth = getAuth();
-                await auth.currentUser?.getIdToken(true);
-
-                toast({
-                    title: 'Admin Yetkisi Verildi!',
-                    description: 'Bu hesaba yönetici ayrıcalıkları tanındı.',
-                });
-            }
-
           } catch (error: any) {
-            console.error("Failed to create default profile or set admin claim:", error);
+            console.error("Failed to create default profile:", error);
             toast({
               title: 'Profil Oluşturulamadı',
               description: `Bir hata oluştu: ${error.message}`,
