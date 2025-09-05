@@ -93,11 +93,9 @@ export const sendNotificationOnCreate = functions.region('europe-west1').firesto
 // This function runs every 5 minutes to check for upcoming lessons and send notifications.
 export const sendLessonStartNotifications = functions.region('europe-west1').pubsub
     .schedule('every 5 minutes')
+    .timeZone('Europe/Istanbul') // Set the timezone for the function
     .onRun(async (context) => {
         const now = new Date();
-        // Adjust for Turkey's timezone (UTC+3)
-        now.setHours(now.getUTCHours() + 3);
-
         const currentDayName = dayOrder[now.getDay()];
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
