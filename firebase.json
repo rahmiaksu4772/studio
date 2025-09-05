@@ -1,8 +1,11 @@
-
 {
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+    "source": "src/functions",
+    "runtime": "nodejs18"
   },
   "hosting": {
     "public": "out",
@@ -20,9 +23,5 @@
   },
   "dataconnect": {
     "source": "dataconnect"
-  },
-  "functions": {
-    "source": "src/functions",
-    "runtime": "nodejs18"
   }
 }

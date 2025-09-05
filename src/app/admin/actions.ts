@@ -1,40 +1,50 @@
-
 'use server';
 
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import type { UserRole } from '@/lib/types';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
+import type { UserRole } from '@/lib/types';
 import { app, db } from '@/lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
+
+// Initialize functions, specifying the correct region.
+const functions = getFunctions(getApp(), 'europe-west1');
 
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
+    // First, update the role in the Firestore document for display purposes.
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, { role: newRole });
+
+    // Then, call the Cloud Function to set the custom claim for security rules.
+    const setAdminClaimFunction = httpsCallable(functions, 'setAdminClaim');
+    await setAdminClaimFunction({ uid: userId, isAdmin: newRole === 'admin' });
 
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
-    if (error.code === 'permission-denied') {
-        return { success: false, message: 'Bu işlemi yapmak için yönetici yetkiniz bulunmuyor.' };
+    const message = error.details?.message || error.message || 'Bir hata oluştu.';
+    if (message.includes('PERMISSION_DENIED')) {
+         return { success: false, message: 'Bu işlemi yapmak için yönetici yetkiniz bulunmuyor.' };
     }
-    return { success: false, message: 'Kullanıcı rolü güncellenirken bir hata oluştu: ' + error.message };
+    return { success: false, message: `Kullanıcı rolü güncellenirken bir hata oluştu: ${message}` };
   }
 }
 
 
 export async function deleteUserAction(userId: string) {
     try {
-        // This only deletes the Firestore document. Deleting from Auth requires a Cloud Function (Admin SDK).
-        // This is a limitation of the client-side only approach.
-        await deleteDoc(doc(db, 'users', userId));
-        return { success: true, message: 'Kullanıcı veritabanından başarıyla silindi.' };
+        const deleteUserFunction = httpsCallable(functions, 'deleteUser');
+        const result = await deleteUserFunction({ uid: userId });
+        return { success: true, message: (result.data as any).message || 'Kullanıcı başarıyla silindi.' };
     } catch (error: any) {
-        console.error('Error deleting user from Firestore:', error);
-        if (error.code === 'permission-denied') {
+        console.error('Error deleting user:', error);
+        const message = error.details?.message || error.message || 'Bir hata oluştu.';
+        if (message.includes('PERMISSION_DENIED')) {
             return { success: false, message: 'Bu işlemi yapmak için admin yetkiniz bulunmuyor.' };
         }
-        return { success: false, message: 'Kullanıcı silinirken bir hata oluştu: ' + error.message };
+        return { success: false, message: `Kullanıcı silinirken bir hata oluştu: ${message}` };
     }
 }
 
@@ -57,8 +67,10 @@ export const sendNotificationToAllUsersAction = async (data: { title: string; bo
 };
 
 export const deleteNotificationAction = async (notificationId: string) => {
+    // This action requires admin privileges defined in security rules.
+    const notificationRef = doc(db, 'notifications', notificationId);
     try {
-        await deleteDoc(doc(db, 'notifications', notificationId));
+        await deleteDoc(notificationRef);
         return { success: true, message: "Duyuru başarıyla silindi." };
     } catch (error: any) {
         console.error("Error deleting notification:", error);

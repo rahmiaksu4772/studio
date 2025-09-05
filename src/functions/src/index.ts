@@ -1,4 +1,3 @@
-
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
@@ -18,12 +17,8 @@ export const setAdminClaim = functions.region('europe-west1').https.onCall(async
         );
     }
 
-    // Allow the first admin to set claims without being an admin yet
-    // This is a one-time setup for the first admin user.
-    const isFirstAdminSetup = context.auth.token.email === 'rahmi.aksu.47@gmail.com';
-
     // The caller must be an admin to set claims for others.
-    if (context.auth.token.admin !== true && !isFirstAdminSetup) {
+    if (context.auth.token.admin !== true) {
         throw new functions.https.HttpsError(
             'permission-denied',
             'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
