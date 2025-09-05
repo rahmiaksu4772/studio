@@ -30,31 +30,31 @@ export function useAllUsersData(isAdmin: boolean) {
         const usersRef = collection(db, 'users');
 
         const unsubscribe = onSnapshot(usersRef, async (usersSnapshot) => {
-            const allData: UserData[] = [];
-            
-            for (const userDoc of usersSnapshot.docs) {
+            const allDataPromises = usersSnapshot.docs.map(async (userDoc) => {
                 const userProfile = { id: userDoc.id, ...userDoc.data() } as UserProfile & { id: string };
 
                 const classesRef = collection(db, `users/${userDoc.id}/classes`);
                 const classesSnapshot = await getDocs(classesRef);
                 
-                const classesData: ClassInfo[] = [];
-                for (const classDoc of classesSnapshot.docs) {
+                const classesDataPromises = classesSnapshot.docs.map(async (classDoc) => {
                     const classInfo = { id: classDoc.id, ...classDoc.data() } as ClassInfo;
                     
                     const studentsRef = collection(db, `users/${userDoc.id}/classes/${classDoc.id}/students`);
                     const studentsSnapshot = await getDocs(studentsRef);
                     classInfo.students = studentsSnapshot.docs.map(sDoc => ({ id: sDoc.id, ...sDoc.data() } as Student));
 
-                    classesData.push(classInfo);
-                }
+                    return classInfo;
+                });
 
-                allData.push({
+                const classesData = await Promise.all(classesDataPromises);
+
+                return {
                     ...userProfile,
                     classes: classesData
-                });
-            }
+                };
+            });
 
+            const allData = await Promise.all(allDataPromises);
             setUsersData(allData);
             setIsLoading(false);
 

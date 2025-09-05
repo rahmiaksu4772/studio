@@ -2,24 +2,24 @@
 'use server';
 
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import { initializeAdmin } from '@/lib/firebase-admin';
 import type { UserRole, ForumAuthor } from '@/lib/types';
-import { getMessaging } from 'firebase-admin/messaging';
-import { addDoc, collection, doc, deleteDoc, query, getDocs, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, doc, deleteDoc, query, getDocs, writeBatch, where } from 'firebase/firestore';
 import { db, auth as clientAuth } from '@/lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import { deletePost } from '@/hooks/use-forum';
 
 
 // Initialize Firebase Admin SDK
 const adminApp = initializeAdmin();
 const auth = getAuth(adminApp);
 const adminDb = getFirestore(adminApp);
-const messaging = getMessaging(adminApp);
 
-async function deleteCollection(collectionPath: string, batch: FirebaseFirestore.WriteBatch) {
-    const collectionRef = adminDb.collection(collectionPath);
-    const snapshot = await collectionRef.get();
+
+async function deleteUserSubcollection(userId: string, subcollectionName: string, batch: FirebaseFirestore.WriteBatch) {
+    const subcollectionRef = adminDb.collection('users').doc(userId).collection(subcollectionName);
+    const snapshot = await subcollectionRef.get();
 
     if (snapshot.empty) {
         return;
@@ -32,33 +32,48 @@ async function deleteCollection(collectionPath: string, batch: FirebaseFirestore
 
 export async function deleteUserAction(userId: string) {
   try {
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
 
     // --- Delete all user-related data from Firestore ---
 
-    // 1. Delete all subcollections for each class
-    const classesRef = collection(db, `users/${userId}/classes`);
-    const classesSnapshot = await getDocs(classesRef);
+    // 1. Delete all class-related subcollections
+    const classesSnapshot = await adminDb.collection('users').doc(userId).collection('classes').get();
     for (const classDoc of classesSnapshot.docs) {
-      // Delete records and students for each class
-      await deleteCollection(`users/${userId}/classes/${classDoc.id}/records`, batch);
-      await deleteCollection(`users/${userId}/classes/${classDoc.id}/students`, batch);
-      // Delete the class doc itself
+      await deleteUserSubcollection(userId, `classes/${classDoc.id}/records`, batch);
+      await deleteUserSubcollection(userId, `classes/${classDoc.id}/students`, batch);
       batch.delete(classDoc.ref);
     }
     
     // 2. Delete top-level subcollections (notes, plans, schedules)
-    await deleteCollection(`users/${userId}/notes`, batch);
-    await deleteCollection(`users/${userId}/plans`, batch);
-    await deleteCollection(`users/${userId}/schedules`, batch);
-
-    // Commit the deletions for subcollections
+    await deleteUserSubcollection(userId, 'notes', batch);
+    await deleteUserSubcollection(userId, 'plans', batch);
+    await deleteUserSubcollection(userId, 'schedules', batch);
+    
+    // Commit subcollection deletions
     await batch.commit();
 
-    // 3. Delete the main user document after subcollections are handled
+    // 3. Delete user's forum posts and associated data
+    // This part has to run separately because it uses the client SDK for its logic
+    const userForumPostsQuery = query(collection(db, 'forum'), where('author.uid', '==', userId));
+    const userForumPostsSnapshot = await getDocs(userForumPostsQuery);
+    for (const postDoc of userForumPostsSnapshot.docs) {
+        await deletePost(postDoc.id);
+    }
+    
+    // Delete replies and comments from other users' posts
+    const allRepliesSnapshot = await getDocs(query(collectionGroup(db, 'replies'), where('author.uid', '==', userId)));
+    const replyDeletionBatch = writeBatch(db);
+    allRepliesSnapshot.forEach(replyDoc => {
+        replyDeletionBatch.delete(replyDoc.ref);
+        // Note: This doesn't delete the comments under the reply, a deeper cleanup would be needed if required.
+    });
+    await replyDeletionBatch.commit();
+    
+
+    // 4. Delete the main user document
     await adminDb.collection('users').doc(userId).delete();
 
-    // 4. Delete user from Firebase Authentication
+    // 5. Delete user from Firebase Authentication
     await auth.deleteUser(userId);
 
     return { success: true, message: 'Kullanıcı ve ilişkili tüm verileri başarıyla silindi.' };
