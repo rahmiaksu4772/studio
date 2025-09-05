@@ -97,3 +97,41 @@ export const deleteUser = functions.region('europe-west1').https.onCall(async (d
         );
     }
 });
+
+export const sendNotificationToAllUsersAction = functions.region('europe-west1').https.onCall(async (data, context) => {
+  // Check if the caller is an admin
+  if (context.auth?.token.admin !== true) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Bu işlemi yalnızca admin yetkisine sahip kullanıcılar yapabilir.'
+    );
+  }
+
+  const { title, body, author } = data;
+  if (typeof title !== 'string' || typeof body !== 'string' || typeof author !== 'object') {
+    throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Geçersiz veri yükü.'
+    );
+  }
+
+  try {
+    // Save the notification to the 'notifications' collection
+    const notificationData = {
+        title,
+        body,
+        author,
+        createdAt: new Date().toISOString(),
+    };
+    await adminDb.collection('notifications').add(notificationData);
+    
+    return { success: true, message: "Duyuru başarıyla tüm kullanıcılara gönderildi ve kaydedildi." };
+
+  } catch (error: any) {
+    console.error('Error sending notification to all users:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Duyuru gönderilirken bir sunucu hatası oluştu: ' + error.message
+    );
+  }
+});

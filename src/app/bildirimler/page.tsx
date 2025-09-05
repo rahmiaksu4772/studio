@@ -75,13 +75,17 @@ function NotificationsPageContent() {
       avatarUrl: profile.avatarUrl,
     }
 
-    const result = await sendNotificationToAllUsersAction(notificationTitle, notificationBody, author);
-    if (result.success) {
-        toast({ title: 'Gönderim Raporu', description: result.message });
-        setNotificationTitle('');
-        setNotificationBody('');
-    } else {
-        toast({ title: 'Gönderim Hatası', description: result.message, variant: 'destructive' });
+    try {
+        const result: any = await sendNotificationToAllUsersAction({ title: notificationTitle, body: notificationBody, author });
+        if (result.data.success) {
+            toast({ title: 'Gönderim Raporu', description: result.data.message });
+            setNotificationTitle('');
+            setNotificationBody('');
+        } else {
+            toast({ title: 'Gönderim Hatası', description: result.data.message, variant: 'destructive' });
+        }
+    } catch(error: any) {
+        toast({ title: 'Gönderim Hatası', description: error.message, variant: 'destructive' });
     }
     setIsSending(false);
   }

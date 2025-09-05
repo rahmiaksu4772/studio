@@ -58,3 +58,15 @@ export async function sendPasswordResetEmailAction(email: string) {
         return { success: false, message: 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu.' };
     }
 }
+
+export const sendNotificationToAllUsersAction = httpsCallable(functions, 'sendNotificationToAllUsersAction');
+
+export const deleteNotificationAction = async (notificationId: string) => {
+    try {
+        await deleteDoc(doc(db, 'notifications', notificationId));
+        return { success: true, message: "Duyuru başarıyla silindi." };
+    } catch (error: any) {
+        console.error("Error deleting notification:", error);
+        return { success: false, message: "Duyuru silinirken bir hata oluştu." };
+    }
+}
