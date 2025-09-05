@@ -197,37 +197,37 @@ function AdminPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem onClick={() => handlePasswordReset(userData.email)}>
+                                                        <DropdownMenuItem onSelect={() => handlePasswordReset(userData.email)}>
                                                             <Send className="mr-2 h-4 w-4" />
                                                             Şifre Sıfırlama Maili Gönder
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         {userData.role === 'beklemede' && (
-                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
+                                                            <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'teacher')}>
                                                                 <UserCheck className="mr-2 h-4 w-4" />
                                                                 Öğretmen Olarak Onayla
                                                             </DropdownMenuItem>
                                                         )}
                                                         {userData.role === 'teacher' && (
                                                             <>
-                                                                <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'beklemede')}>
+                                                                <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'beklemede')}>
                                                                     <UserX className="mr-2 h-4 w-4" />
                                                                     Onayı Kaldır
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
+                                                                <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'admin')}>
                                                                     <UserCog className="mr-2 h-4 w-4" />
                                                                     Admin Yap
                                                                 </DropdownMenuItem>
                                                             </>
                                                         )}
                                                         {userData.role === 'admin' && userData.id !== user?.uid && (
-                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
+                                                            <DropdownMenuItem onSelect={() => handleUpdateRole(userData.id, 'teacher')}>
                                                                 <User className="mr-2 h-4 w-4" />
                                                                 Öğretmen Yap
                                                             </DropdownMenuItem>
                                                         )}
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className='text-destructive focus:bg-destructive/10 focus:text-destructive' onClick={() => openDeleteConfirm(userData)}>
+                                                        <DropdownMenuItem className='text-destructive focus:bg-destructive/10 focus:text-destructive' onSelect={() => openDeleteConfirm(userData)}>
                                                             <Trash2 className="mr-2 h-4 w-4" />
                                                             Kullanıcıyı Sil
                                                         </DropdownMenuItem>
