@@ -3,62 +3,66 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper function to check if the requester is an admin
-    function isAdmin(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role == 'admin';
-    }
-
+    
+    // Users Collection
     match /users/{userId} {
-      // READ: Users can read their own profile. Admins can read any profile. Admins can list all users.
-      allow get: if request.auth.uid == userId || isAdmin(request.auth.uid);
-      allow list: if isAdmin(request.auth.uid);
-      
-      // CREATE: A user can create their own profile document.
+      // READ: 
+      // 1. Admins can list all users.
+      // 2. Any authenticated user can read their own profile.
+      allow list: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow get: if request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // CREATE:
+      // Any authenticated user can create their own user document.
       allow create: if request.auth.uid == userId;
-      
-      // UPDATE: A user can update their own profile. An admin can update any user's profile.
-      allow update: if request.auth.uid == userId || isAdmin(request.auth.uid);
-      
-      // DELETE: Only admins can delete user documents.
-      allow delete: if isAdmin(request.auth.uid);
-    }
-    
-    // Any subcollection under a user's document
-    match /users/{userId}/{document=**} {
-        // READ/WRITE: A user can only access documents under their own user path.
-      allow read, write: if request.auth.uid == userId;
+
+      // UPDATE:
+      // 1. A user can update their own document.
+      // 2. An admin can update any user's document.
+      allow update: if request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // DELETE:
+      // Only an admin can delete a user document.
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // Subcollections (classes, notes, plans, etc.)
+      match /{subcollection}/{docId=**} {
+        allow read, write: if request.auth.uid == userId;
+      }
     }
 
+    // Forum Collection
     match /forum/{postId} {
-        // READ: Any authenticated user can read forum posts.
-        allow get, list: if request.auth != null;
-        // WRITE: Authenticated users can create posts. Only the author or an admin can update/delete.
-        allow create: if request.auth != null;
-        allow update, delete: if resource.data.author.uid == request.auth.uid || isAdmin(request.auth.uid);
-    }
-    
-    match /forum/{postId}/replies/{replyId} {
-        // READ: Any authenticated user can read replies.
-        allow get, list: if request.auth != null;
-        // WRITE: Authenticated users can create. Only author or admin can update/delete.
-        allow create: if request.auth != null;
-        allow update, delete: if resource.data.author.uid == request.auth.uid || isAdmin(request.auth.uid);
-    }
-    
-     match /forum/{postId}/replies/{replyId}/comments/{commentId} {
-        // READ: Any authenticated user can read comments.
-        allow get, list: if request.auth != null;
-        // WRITE: Authenticated users can create. Only author or admin can update/delete.
-        allow create: if request.auth != null;
-        allow update, delete: if resource.data.author.uid == request.auth.uid || isAdmin(request.auth.uid);
-    }
+      // READ: Any authenticated user can read forum posts.
+      allow get: if request.auth != null;
+      allow list: if request.auth != null;
 
+      // WRITE: Only authenticated users can create posts.
+      allow create: if request.auth != null;
+      
+      // UPDATE, DELETE: Only the post author or an admin can update/delete.
+      allow update, delete: if request.auth.uid == resource.data.author.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Replies Subcollection
+      match /replies/{replyId} {
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth.uid == resource.data.author.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        
+        // Comments Sub-subcollection
+        match /comments/{commentId} {
+            allow create: if request.auth != null;
+            allow delete: if request.auth.uid == resource.data.author.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        }
+      }
+    }
+    
+    // Notifications Collection
     match /notifications/{notificationId} {
-        // READ: Any authenticated user can read notifications.
-        allow get, list: if request.auth != null;
-        // WRITE: Only admins can create/update/delete notifications.
-        allow write: if isAdmin(request.auth.uid);
+      // READ: Any authenticated user can read notifications.
+      allow get, list: if request.auth != null;
+      
+      // WRITE: Only admins can create/update/delete notifications.
+      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }
