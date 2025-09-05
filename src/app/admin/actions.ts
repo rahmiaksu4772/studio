@@ -5,11 +5,10 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeAdmin } from '@/lib/firebase-admin';
 import type { UserRole } from '@/lib/types';
-import { collection, doc, query, getDocs, writeBatch, where, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase'; // Client db for one specific action
 import { sendPasswordResetEmail } from 'firebase/auth'; // Client auth for one specific action
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK ONCE at the module level.
+// This ensures that all functions in this file share the same initialized instance.
 const adminApp = initializeAdmin();
 const auth = getAuth(adminApp);
 const adminDb = getFirestore(adminApp);
