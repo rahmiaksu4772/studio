@@ -1,34 +1,23 @@
-
 'use server';
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getApp } from 'firebase/app';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import type { UserRole } from '@/lib/types';
 import { app, db } from '@/lib/firebase';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 
-// Initialize functions, specifying the correct region.
-const functions = getFunctions(getApp(), 'europe-west1');
-
 export async function updateUserRoleAction(userId: string, newRole: UserRole) {
   try {
-    const roleToSet = newRole === 'admin' ? true : (newRole === 'teacher' ? false : null);
-    if (roleToSet === null) {
-         return { success: false, message: 'Geçersiz rol ataması.' };
-    }
-
-    // Call the Cloud Function to set the custom claim for security rules.
-    const setAdminClaimFunction = httpsCallable(functions, 'setAdminClaim');
-    await setAdminClaimFunction({ uid: userId, isAdmin: roleToSet });
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { role: newRole });
 
     return { success: true, message: `Kullanıcının rolü başarıyla "${newRole}" olarak güncellendi.` };
   } catch (error: any) {
     console.error('Error updating user role:', error);
     const message = error.message || 'Bir hata oluştu.';
+    // Firestore security rules will throw a "permission-denied" or "PERMISSION_DENIED" error
     if (message.includes('permission-denied') || message.includes('PERMISSION_DENIED')) {
-         return { success: false, message: 'Bu işlemi yapmak için yönetici yetkiniz bulunmuyor.' };
+         return { success: false, message: 'Bu işlemi yapmak için admin yetkiniz bulunmuyor.' };
     }
     return { success: false, message: `Kullanıcı rolü güncellenirken bir hata oluştu: ${message}` };
   }
@@ -37,16 +26,18 @@ export async function updateUserRoleAction(userId: string, newRole: UserRole) {
 
 export async function deleteUserAction(userId: string) {
     try {
-        const deleteUserFunction = httpsCallable(functions, 'deleteUser');
-        const result = await deleteUserFunction({ uid: userId });
-        return { success: true, message: (result.data as any).message || 'Kullanıcı başarıyla silindi.' };
+        // This action now only deletes the Firestore document.
+        // Deleting from Auth requires a Cloud Function, which is on a paid plan.
+        const userRef = doc(db, 'users', userId);
+        await deleteDoc(userRef);
+        return { success: true, message: `Kullanıcının Firestore verileri başarıyla silindi.` };
     } catch (error: any) {
-        console.error('Error deleting user:', error);
+        console.error('Error deleting user document:', error);
         const message = error.message || 'Bir hata oluştu.';
         if (message.includes('permission-denied') || message.includes('PERMISSION_DENIED')) {
             return { success: false, message: 'Bu işlemi yapmak için admin yetkiniz bulunmuyor.' };
         }
-        return { success: false, message: `Kullanıcı silinirken bir hata oluştu: ${message}` };
+        return { success: false, message: `Kullanıcı verileri silinirken bir hata oluştu: ${message}` };
     }
 }
 
@@ -63,9 +54,10 @@ export async function sendPasswordResetEmailAction(email: string) {
 }
 
 export const sendNotificationToAllUsersAction = async (data: { title: string; body: string; author: any; }) => {
-    // This function can't be implemented securely on the client-side.
-    // It requires a Cloud Function to prevent abuse.
-    return { success: false, message: "Bu özellik güvenlik nedeniyle sunucu fonksiyonu gerektirir ve şu anda devre dışıdır." };
+    // This action requires admin privileges defined in security rules.
+    // However, sending to ALL users efficiently and securely requires a Cloud Function.
+    // For now, this action is disabled to prevent client-side loops.
+    return { success: false, message: "Bu özellik güvenlik ve verimlilik nedeniyle bir sunucu fonksiyonu gerektirir ve şu anda devre dışıdır." };
 };
 
 export const deleteNotificationAction = async (notificationId: string) => {
@@ -79,4 +71,3 @@ export const deleteNotificationAction = async (notificationId: string) => {
         return { success: false, message: "Duyuru silinirken bir hata oluştu." };
     }
 }
-
