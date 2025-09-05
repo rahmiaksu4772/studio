@@ -66,7 +66,7 @@ function AdminPage() {
     const result = await deleteUserAction(selectedUser.id);
 
     if (result.success) {
-        toast({ title: 'Başarılı!', description: result.message });
+        toast({ title: 'Başarılı!', description: result.message, variant: 'destructive' });
         setUsersData(prev => prev.filter(u => u.id !== selectedUser.id));
     } else {
         toast({ title: 'Hata!', description: result.message, variant: 'destructive' });
@@ -186,7 +186,7 @@ function AdminPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6">
-                                            {userData.id !== user?.uid && (
+                                            {userData.id !== user?.uid ? (
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -209,30 +209,32 @@ function AdminPage() {
                                                             </DropdownMenuItem>
                                                         )}
                                                         {userData.role === 'teacher' && (
-                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'beklemede')}>
-                                                                <UserX className="mr-2 h-4 w-4" />
-                                                                Onayı Kaldır
-                                                            </DropdownMenuItem>
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'beklemede')}>
+                                                                    <UserX className="mr-2 h-4 w-4" />
+                                                                    Onayı Kaldır
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
+                                                                    <UserCog className="mr-2 h-4 w-4" />
+                                                                    Admin Yap
+                                                                </DropdownMenuItem>
+                                                            </>
                                                         )}
-                                                        {userData.role !== 'admin' && (
-                                                            <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'admin')}>
-                                                                <UserCog className="mr-2 h-4 w-4" />
-                                                                Admin Yap
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {userData.role === 'admin' && (
+                                                        {userData.role === 'admin' && userData.id !== user?.uid && (
                                                             <DropdownMenuItem onClick={() => handleUpdateRole(userData.id, 'teacher')}>
                                                                 <User className="mr-2 h-4 w-4" />
                                                                 Öğretmen Yap
                                                             </DropdownMenuItem>
                                                         )}
                                                         <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className='text-destructive' onClick={() => openDeleteConfirm(userData)}>
+                                                        <DropdownMenuItem className='text-destructive focus:bg-destructive/10 focus:text-destructive' onClick={() => openDeleteConfirm(userData)}>
                                                             <Trash2 className="mr-2 h-4 w-4" />
                                                             Kullanıcıyı Sil
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
+                                            ) : (
+                                                <span className='text-xs text-muted-foreground pr-4'>-</span>
                                             )}
                                             </TableCell>
                                         </TableRow>
@@ -251,7 +253,7 @@ function AdminPage() {
                 <AlertDialogHeader>
                 <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Bu işlem geri alınamaz. "{selectedUser?.fullName}" adlı kullanıcıyı ve tüm verilerini (sınıflar, öğrenciler, kayıtlar, gönderiler vb.) kalıcı olarak sileceksiniz.
+                    Bu işlem geri alınamaz. "{selectedUser?.fullName}" adlı kullanıcıyı ve tüm verilerini (sınıflar, öğrenciler, kayıtlar, forum gönderileri vb.) kalıcı olarak sileceksiniz.
                 </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
