@@ -183,7 +183,7 @@ function AdminPanelPage() {
               Sistemde kayıtlı {users.length} kullanıcı bulunmaktadır.
             </CardDescription>
              <div className="relative pt-4">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder="Kullanıcı adı veya e-posta ile ara..."
                 className="pl-10"
