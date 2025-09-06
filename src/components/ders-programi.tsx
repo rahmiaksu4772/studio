@@ -66,9 +66,12 @@ export default function DersProgrami() {
   }, [settings]);
   
   React.useEffect(() => {
-    const todayIndex = new Date().getDay() - 1; 
-    if (todayIndex >= 0 && todayIndex < 5) {
-        setSelectedDay(dayOrder[todayIndex]);
+    const todayIndex = new Date().getDay(); // Sunday: 0, Monday: 1, ..., Saturday: 6
+    // Adjust index to match our dayOrder array (Monday: 0, etc.)
+    const adjustedIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+
+    if (adjustedIndex >= 0 && adjustedIndex < dayOrder.length) {
+        setSelectedDay(dayOrder[adjustedIndex]);
     }
     // Set the current week number when the component mounts
     setCurrentWeekNumber(getWeek(new Date(), { weekStartsOn: 1 }));
