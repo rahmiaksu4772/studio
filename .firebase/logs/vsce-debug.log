@@ -489,3 +489,4 @@ I0906 15:13:37.556491    4153 load.go:109] Finished reloading
  {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0906 15:13:37.610225    4153 dev.go:102] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
 [debug] [2025-09-06T15:13:37.810Z] I0906 15:13:37.799772    4153 engine.go:171] [/emulator/studio 940b] ExecuteGraphqlRead IntrospectionQuery: succeeded. 
  {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0906 15:13:37.799772    4153 engine.go:171] [/emulator/studio 940b] ExecuteGraphqlRead IntrospectionQuery: succeeded. \n"}}
+[error] [Firebase Plugin] requireAuth error: Could not refresh access token: Unsuccessful response status code. Request failed with status code 500
