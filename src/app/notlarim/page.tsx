@@ -246,6 +246,65 @@ function NotlarimPageContent() {
     );
   }
   
+  const NoteCardContent = ({ note }: { note: Note }) => {
+    const contentRef = React.useRef<HTMLDivElement>(null);
+    const [isOverflowing, setIsOverflowing] = React.useState(false);
+    const sortedItems = note.items ? [...note.items].sort((a, b) => a.isChecked === b.isChecked ? 0 : a.isChecked ? 1 : -1) : [];
+  
+    React.useLayoutEffect(() => {
+      const contentElement = contentRef.current;
+      if (contentElement) {
+        if (contentElement.scrollHeight > contentElement.clientHeight) {
+          setIsOverflowing(true);
+        } else {
+          setIsOverflowing(false);
+        }
+      }
+    }, [note.content, note.items]);
+  
+    return (
+      <div className="relative flex-grow min-h-0">
+        <div
+          ref={contentRef}
+          className={cn(
+            "p-4 max-h-[250px] overflow-y-auto no-scrollbar",
+            note.imageUrl && "pt-4",
+            !note.title && !note.content && (!note.items || note.items.length === 0) ? 'hidden' : 'block'
+          )}
+        >
+          {note.title && <h3 className='font-bold mb-2' style={{color: note.textColor}}>{note.title}</h3>}
+          {note.type === 'checklist' && note.items && note.items.length > 0 ? (
+            <ul className='space-y-2' style={{color: note.textColor}}>
+                {sortedItems.map(item => (
+                    <li key={item.id} className='flex items-start gap-3'>
+                        <Checkbox id={`item-${item.id}`} checked={item.isChecked} style={{borderColor: note.textColor}} />
+                        <label htmlFor={`item-${item.id}`} className={cn('flex-1 text-sm break-all', item.isChecked && 'line-through opacity-60')}>{item.text}</label>
+                    </li>
+                ))}
+            </ul>
+          ) : (
+            <p className='text-sm whitespace-pre-wrap break-all' style={{color: note.textColor}}>{note.content}</p>
+          )}
+        </div>
+        {isOverflowing && (
+          <div 
+            className={cn(
+                'absolute bottom-0 left-0 w-full h-12 pointer-events-none',
+                note.color === 'bg-card' ? 'bg-gradient-to-t from-card to-transparent' : 
+                note.color === 'bg-red-100 dark:bg-red-900/20' ? 'bg-gradient-to-t from-red-100 dark:from-red-900/20 to-transparent' :
+                note.color === 'bg-yellow-100 dark:bg-yellow-900/20' ? 'bg-gradient-to-t from-yellow-100 dark:from-yellow-900/20 to-transparent' :
+                note.color === 'bg-green-100 dark:bg-green-900/20' ? 'bg-gradient-to-t from-green-100 dark:from-green-900/20 to-transparent' :
+                note.color === 'bg-blue-100 dark:bg-blue-900/20' ? 'bg-gradient-to-t from-blue-100 dark:from-blue-900/20 to-transparent' :
+                note.color === 'bg-purple-100 dark:bg-purple-900/20' ? 'bg-gradient-to-t from-purple-100 dark:from-purple-900/20 to-transparent' :
+                note.color === 'bg-pink-100 dark:bg-pink-900/20' ? 'bg-gradient-to-t from-pink-100 dark:from-pink-900/20 to-transparent' :
+                'bg-gradient-to-t from-card to-transparent' // fallback
+            )}
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <AppLayout>
       <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -424,9 +483,7 @@ function NotlarimPageContent() {
 
         {notes.length > 0 ? (
           <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4 mt-8">
-            {notes.map((note) => {
-              const sortedItems = note.items ? [...note.items].sort((a, b) => a.isChecked === b.isChecked ? 0 : a.isChecked ? 1 : -1) : [];
-              return (
+            {notes.map((note) => (
               <Card
                 key={note.id}
                 onClick={() => setEditingNote(note)}
@@ -435,22 +492,7 @@ function NotlarimPageContent() {
                 <CardHeader className="p-0">
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover max-h-60" />}
                 </CardHeader>
-                <CardContent className={cn("p-4 flex-grow max-h-[250px] overflow-y-auto no-scrollbar", !note.title && !note.content && (!note.items || note.items.length === 0) ? 'hidden' : 'block', note.imageUrl && "pt-4")} style={{color: note.textColor}}>
-                  {note.title && <h3 className='font-bold mb-2'>{note.title}</h3>}
-                  
-                  {note.type === 'checklist' && note.items && note.items.length > 0 ? (
-                    <ul className='space-y-2'>
-                        {sortedItems.map(item => (
-                            <li key={item.id} className='flex items-start gap-3'>
-                                <Checkbox id={`item-${item.id}`} checked={item.isChecked} style={{borderColor: note.textColor}} />
-                                <label htmlFor={`item-${item.id}`} className={cn('flex-1 text-sm break-all', item.isChecked && 'line-through opacity-60')}>{item.text}</label>
-                            </li>
-                        ))}
-                    </ul>
-                  ) : (
-                    <p className='text-sm whitespace-pre-wrap break-all'>{note.content}</p>
-                  )}
-                </CardContent>
+                <NoteCardContent note={note} />
                 <CardFooter className="flex justify-between items-center text-xs p-2" style={{color: note.textColor}}>
                   <span className='pl-2 opacity-70'>{format(new Date(note.date), 'dd MMM')}</span>
                   <div className='flex items-center opacity-0 group-hover:opacity-100 transition-opacity'>
@@ -500,8 +542,7 @@ function NotlarimPageContent() {
                   </div>
                 </CardFooter>
               </Card>
-            )}
-            )}
+            ))}
           </div>
         ) : (
           <div className="text-center p-12 border-2 border-dashed rounded-lg mt-8 max-w-xl mx-auto">
