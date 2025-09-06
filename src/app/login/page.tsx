@@ -111,7 +111,7 @@ export default function LoginPage() {
         <CardHeader>
             <div className='flex items-center justify-center gap-2 mb-4'>
                 <GraduationCap className="h-8 w-8 text-primary" />
-                <h1 className='text-2xl font-bold'>SınıfPlanım</h1>
+                <h1 className='text-2xl font-bold'>Öğrenci Radarı</h1>
             </div>
           <CardTitle className="text-2xl">Giriş Yap</CardTitle>
           <CardDescription>

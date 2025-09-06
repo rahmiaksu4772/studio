@@ -7,7 +7,7 @@ import { AuthProvider } from '@/hooks/use-auth.tsx';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'SınıfPlanım | Öğretmenin Dijital Asistanı',
+  title: 'Öğrenci Radarı | Öğretmenin Dijital Asistanı',
   description: 'Öğretmenler için profesyonel dijital yoklama ve gözlem paneli.',
 };
 
