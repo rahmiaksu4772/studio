@@ -435,7 +435,7 @@ function NotlarimPageContent() {
                 <CardHeader className="p-0">
                    {note.imageUrl && <img src={note.imageUrl} alt="Not resmi" className="rounded-t-lg w-full object-cover max-h-60" />}
                 </CardHeader>
-                <CardContent className={cn("p-4 flex-grow", !note.title && !note.content && (!note.items || note.items.length === 0) ? 'hidden' : 'block', note.imageUrl && "pt-4")} style={{color: note.textColor}}>
+                <CardContent className={cn("p-4 flex-grow max-h-[250px] overflow-y-auto no-scrollbar", !note.title && !note.content && (!note.items || note.items.length === 0) ? 'hidden' : 'block', note.imageUrl && "pt-4")} style={{color: note.textColor}}>
                   {note.title && <h3 className='font-bold mb-2'>{note.title}</h3>}
                   
                   {note.type === 'checklist' && note.items && note.items.length > 0 ? (
